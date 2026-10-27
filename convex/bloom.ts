@@ -160,6 +160,7 @@ export const conversation = query({
       case: schema.doc("cases"),
       messages: v.array(schema.doc("messages")),
       issue: v.union(schema.doc("issues"), v.null()),
+      run: v.union(schema.doc("runs"), v.null()),
     }),
   ),
   handler: async (ctx, a) => {
@@ -180,6 +181,15 @@ export const conversation = query({
           .take(100)
       ).reverse(),
       issue: c.issueId ? await ctx.db.get("issues", c.issueId) : null,
+      run: c.issueId
+        ? await ctx.db
+            .query("runs")
+            .withIndex("by_issueId_and_createdAt", (q) =>
+              q.eq("issueId", c.issueId!),
+            )
+            .order("desc")
+            .first()
+        : null,
     };
   },
 });

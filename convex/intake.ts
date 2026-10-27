@@ -56,7 +56,6 @@ export const widgetMessage = mutation({
       title: a.title,
       body: a.initialBody,
       sourceUrl: a.sourceUrl,
-      ack: "Thanks — your report is saved. Our team will follow up here.",
     });
     return { caseId, created: true };
   },

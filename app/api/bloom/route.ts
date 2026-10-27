@@ -156,7 +156,6 @@ export async function POST(request: NextRequest) {
               channel: "chat",
               message: b.text,
               conversation: c,
-              verified: c?.issue?.status === "resolved",
             });
           } catch {}
         if (c) {

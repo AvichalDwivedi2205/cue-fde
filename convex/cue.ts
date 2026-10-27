@@ -2,6 +2,7 @@ import schema from "./schema";
 import { mutation, query, env } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { uploadRegressionCandidate } from "../lib/symptoms";
+import { fallbackReply } from "../lib/reply-policy";
 
 export function authorize(secret: string) {
   if (!env.CUE_DEMO_SECRET || secret !== env.CUE_DEMO_SECRET)
@@ -316,11 +317,6 @@ export const createCase = mutation({
             .order("desc")
             .first()
         : null;
-    const verifiedResolution =
-      latestRun?.status === "resolved" &&
-      latestRun.deployed &&
-      latestRun.verified &&
-      latestRun.commit;
     const initials = args.customer
       .trim()
       .split(/\s+/)
@@ -375,11 +371,11 @@ export const createCase = mutation({
       role: args.channel === "chat" ? "cue" : "draft",
       body:
         args.ack ||
-        (verifiedResolution
-          ? "A fix for this issue has been deployed and verified. Please try again and let us know if the problem remains."
-          : upload
-            ? "I've received your report and linked it to the shared photo upload issue. I'll keep this conversation updated as the investigation progresses."
-            : "Thanks — your request is recorded. The team can review it and follow up here."),
+        fallbackReply({
+          case: { title: args.title, body: args.body, channel: args.channel },
+          issue,
+          run: latestRun,
+        }),
       createdAt: stamp() + 1,
     });
     await ctx.db.insert("events", {
@@ -528,7 +524,7 @@ export const updateRun = mutation({
           caseId: c._id,
           author: "Cue",
           role: c.channel === "chat" ? "cue" : "draft",
-          body: "Good news — photos up to 5 MB now upload. We tested the fix successfully. Please try your photo again.",
+          body: "The fix for rejected photos between 2 and 5 MB is live and passed our upload tests. Please retry your photo; if it still fails, send the exact error you see.",
           createdAt: stamp(),
         });
       }

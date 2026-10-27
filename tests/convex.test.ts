@@ -71,7 +71,7 @@ describe("Cue permissions and lifecycle", () => {
     const reply = snapshot.messages.find(
       (m) => m.caseId === caseId && m.role === "draft",
     )!;
-    expect(reply.body.includes("deployed and verified")).toBe(
+    expect(reply.body.includes("passed our upload tests")).toBe(
       state.expectResolution,
     );
     expect(snapshot.cases.find((c) => c._id === caseId)?.status).toBe("open");
@@ -516,13 +516,14 @@ describe("Cue permissions and lifecycle", () => {
       expect(s.cases.find((c) => c._id === caseId)?.status).toBe("open");
       expect(
         s.messages.find(
-          (m) => m.caseId === caseId && m.body.includes("Good news"),
+          (m) =>
+            m.caseId === caseId && m.body.includes("passed our upload tests"),
         )?.role,
       ).toBe("draft");
     }
     expect(
       s.messages.some(
-        (m) => m.role === "draft" && m.body.includes("Good news"),
+        (m) => m.role === "draft" && m.body.includes("passed our upload tests"),
       ),
     ).toBe(true);
     await expect(

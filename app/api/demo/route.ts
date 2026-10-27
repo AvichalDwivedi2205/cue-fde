@@ -186,7 +186,9 @@ export async function POST(request: NextRequest) {
             case: c,
             messages: s.messages.filter((m) => m.caseId === c._id),
             issue: s.issues.find((i) => i._id === c.issueId),
-            verified: s.runs.some((r) => r.issueId === c.issueId && r.verified),
+            run: s.runs
+              .filter((r) => r.issueId === c.issueId)
+              .sort((a, b) => b.createdAt - a.createdAt)[0],
           }),
         });
       }

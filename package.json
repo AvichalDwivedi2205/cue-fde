@@ -15,7 +15,8 @@
     "test:backend": "vitest run",
     "verify": "tsx scripts/verify.ts",
     "preflight": "tsx scripts/preflight.ts",
-    "evaluate:triage": "tsx scripts/evaluate-triage.ts"
+    "evaluate:triage": "tsx scripts/evaluate-triage.ts",
+    "evaluate:replies": "tsx scripts/evaluate-replies.ts"
   },
   "dependencies": {
     "@google/genai": "^2.28.0",
