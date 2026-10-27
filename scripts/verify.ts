@@ -1,9 +1,11 @@
 import nextEnv from "@next/env";
 import assert from "node:assert/strict";
+import type { FunctionReturnType } from "convex/server";
 import { createHmac } from "node:crypto";
 import { promises as fs } from "node:fs";
 import { photo } from "../demo/bloom/fixture.mjs";
 import { validSlack } from "../lib/slack";
+import { replyProblems, socialReplyLength } from "../lib/reply-policy";
 import { request as httpRequest } from "node:http";
 nextEnv.loadEnvConfig(process.cwd());
 const { db, api, secret } = await import("../lib/server-store");
@@ -29,7 +31,9 @@ if (workos) {
   assert.equal(operatorResponse.status, 401);
   check("WorkOS rejects unauthenticated operator HTTP access");
 }
-const snapshot = async () =>
+const snapshot = async (): Promise<
+  FunctionReturnType<typeof api.cue.snapshot>
+> =>
   workos
     ? db().query(api.cue.snapshot, { secret: secret() })
     : (await fetch(base + "/api/demo")).json();
@@ -183,7 +187,7 @@ if (workos) {
     db().mutation(api.jobs.decide, {
       secret: secret(),
       runId: run._id,
-      commit: run.commit,
+      commit: run.commit!,
       actor: "Verification",
       approve: true,
     }),
@@ -246,14 +250,18 @@ check("Slack signature, tamper and replay controls");
 await assert.rejects(() => db().query(api.cue.snapshot, { secret: "invalid" }));
 check("Direct Convex access requires server authorization");
 const { draft } = await import("../lib/gemini");
-const reply = await draft({
+const replyContext = {
   channel: "x",
   case: sample,
-  verified: true,
-  evidence:
-    "The deployed customer gateway accepted a valid 3 MB photo and rejected 6 MB.",
-});
-assert.ok(reply.length && reply.length <= 280);
+  issue: s.issues.find((i) => i._id === sample.issueId),
+  run: s.runs
+    .filter((r) => r.issueId === sample.issueId)
+    .sort((a, b) => b.createdAt - a.createdAt)[0],
+  messages: s.messages.filter((m) => m.caseId === sample._id),
+};
+const reply = await draft(replyContext);
+assert.ok(reply.length && socialReplyLength(reply) <= 280);
+assert.deepEqual(replyProblems(reply, replyContext), []);
 check("Live Vertex Gemini returns a bounded X brand draft");
 await fs.mkdir(".cue", { recursive: true });
 await fs.writeFile(
@@ -269,8 +277,7 @@ await fs.writeFile(
         : "loopback local operator",
       integrationLimits: [
         "Slack and support email live checks are recorded by verify-slack.ts and verify-email.ts",
-        "Selective Gmail forwarding for X and Reddit notifications is not enabled",
-        "An independent X mention has not passed end to end",
+        "Native social intake evidence is recorded separately by verify-social.ts",
         "Reddit public reply was removed by moderation",
         "Branded email sender domain remains unverified",
       ],

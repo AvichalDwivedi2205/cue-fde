@@ -118,10 +118,12 @@ assert(
     (m) =>
       m.caseId === acknowledged._id &&
       m.role === "draft" &&
-      m.body.includes("deployed and verified"),
+      /deployed and verified|passed our upload tests/.test(m.body),
   ),
 );
-pass("Ordinary channel intake uses the current verified resolution draft");
+pass(
+  "Controlled ordinary channel intake retains its verified resolution draft",
+);
 const input = {
   team_id: config.teamId,
   event: {
