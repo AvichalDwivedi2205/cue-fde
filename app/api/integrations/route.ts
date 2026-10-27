@@ -51,6 +51,7 @@ export async function GET(request: Request) {
               notificationImport: !!email.notificationImport,
               pollReceiving: !!email.pollReceiving,
               receivingAddress: email.receivingAddress,
+              supportReceivingAddress: email.supportReceivingAddress,
               notifications: await notificationRuntimeStatus(),
             }
           : { configured: false },
@@ -114,6 +115,7 @@ export async function POST(request: Request) {
         webhookSecret: b.webhookSecret || old?.webhookSecret,
         replyTo: b.replyTo || undefined,
         receivingAddress: b.receivingAddress || undefined,
+        supportReceivingAddress: b.supportReceivingAddress || undefined,
       });
       const result = await checkEmail(config);
       await updateIntegrations((c) => ({

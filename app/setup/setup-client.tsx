@@ -20,6 +20,7 @@ type Status = {
     notificationImport?: boolean;
     pollReceiving?: boolean;
     receivingAddress?: string;
+    supportReceivingAddress?: string;
     notifications?: {
       connected: boolean;
       detail: string;
@@ -371,6 +372,15 @@ export function SetupClient({ origin }: { origin: string }) {
                 placeholder="whsec_…"
               />
             </label>
+            <label>
+              <span>Support receiving address</span>
+              <input
+                name="supportReceivingAddress"
+                type="email"
+                defaultValue={status?.email.supportReceivingAddress}
+                placeholder="support@your-id.resend.app"
+              />
+            </label>
             <label className="checkbox-field">
               <input
                 name="notificationImport"
@@ -394,7 +404,7 @@ export function SetupClient({ origin }: { origin: string }) {
                 type="checkbox"
                 defaultChecked={status?.email.pollReceiving || false}
               />
-              Poll notification inbox locally every 30 seconds
+              Poll configured inboxes locally every 30 seconds
             </label>
           </div>
           <button disabled={busy}>Save and verify email</button>{" "}
@@ -430,9 +440,11 @@ export function SetupClient({ origin }: { origin: string }) {
         )}
         <p className="small">
           Local polling needs an API key and dedicated Resend receiving address;
-          no public URL or custom domain is needed for notification intake. It
-          imports emails received after polling is enabled. Sender verification
-          is still required for outbound support replies. For the webhook
+          no public URL or custom domain is needed for intake. It imports emails
+          received after polling is enabled. Sender verification is still
+          required for branded outbound replies. The provider&apos;s
+          onboarding@resend.dev sender is limited to the account owner&apos;s inbox.
+          Support and notification addresses must be separate. For the webhook
           alternative, configure <code>{origin}/api/webhooks/email</code> at a
           reachable HTTPS origin; localhost cannot receive webhooks.
         </p>

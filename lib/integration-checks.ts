@@ -56,6 +56,14 @@ export async function checkEmail(config: EmailConfig) {
       );
   }
   const domainName = config.from.split("@")[1].toLowerCase();
+  if (config.from.toLowerCase() === "onboarding@resend.dev")
+    return {
+      ok: true,
+      domain: domainName,
+      status: "provider_test_sender",
+      message:
+        "Receiving API verified. Provider test sender is limited to the Resend account owner's email; send a test to confirm delivery.",
+    };
   const domain = result.data.data.find(
     (d) => d.name.toLowerCase() === domainName,
   );

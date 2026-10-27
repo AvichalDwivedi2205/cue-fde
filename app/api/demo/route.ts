@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
         slackSend: !!slack?.botToken,
         email: !!email,
         emailSend: !!email,
+        emailTestSender: email?.from.toLowerCase() === "onboarding@resend.dev",
         notificationPolling: !!email?.pollReceiving,
         notifications: email?.pollReceiving
           ? await notificationRuntimeStatus()

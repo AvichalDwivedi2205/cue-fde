@@ -65,12 +65,14 @@ export function createNotificationPoller(deps: {
       const config = await deps.config();
       if (
         !config?.pollReceiving ||
-        !config.notificationImport ||
-        !config.receivingAddress
+        !(
+          config.supportReceivingAddress ||
+          (config.notificationImport && config.receivingAddress)
+        )
       ) {
         state = {
           connected: false,
-          detail: "Enable local notification polling in Email setup",
+          detail: "Enable local inbox polling in Email setup",
           lastPollAt: null,
           imported: 0,
           needsReview: 0,
@@ -82,7 +84,10 @@ export function createNotificationPoller(deps: {
         .update(
           JSON.stringify([
             config.apiKey,
-            config.receivingAddress.toLowerCase(),
+            config.receivingAddress?.toLowerCase() ?? null,
+            config.notificationImport ?? false,
+            config.supportReceivingAddress?.toLowerCase() ?? null,
+            config.supportPollStartedAt ?? null,
             config.pollStartedAt ?? null,
           ]),
         )
@@ -108,30 +113,44 @@ export function createNotificationPoller(deps: {
       state.needsReview = checkpoint.needsReview;
       const provider = deps.provider(config);
       const processed = new Set(checkpoint.processed);
-      const eligible = (mail: MailMetadata) => {
+      const mode = (mail: MailMetadata): "support" | "notification" | null => {
         const recipients = mail.received_for?.length
           ? mail.received_for
           : mail.to;
-        return (
-          recipients.some(
-            (to) =>
-              to.trim().toLowerCase() ===
-              config.receivingAddress!.toLowerCase(),
-          ) &&
-          Date.parse(mail.created_at) >= checkpoint.startedAt &&
+        const to = recipients.map((address) => address.trim().toLowerCase());
+        const support =
+          !!config.supportReceivingAddress &&
+          to.includes(config.supportReceivingAddress.toLowerCase());
+        const notification =
+          !!config.receivingAddress &&
+          to.includes(config.receivingAddress.toLowerCase());
+        if (support && notification) return null;
+        const receivedAt = Date.parse(mail.created_at);
+        if (
+          support &&
+          receivedAt >= (config.supportPollStartedAt ?? checkpoint.startedAt)
+        )
+          return "support";
+        if (
+          notification &&
+          config.notificationImport &&
+          receivedAt >= checkpoint.startedAt &&
           isSocialNotification(mail)
-        );
+        )
+          return "notification";
+        return null;
       };
       for (let page = 0; page < 5; page++) {
         const batch = await provider.list(checkpoint.after);
         for (const metadata of batch.data) {
-          if (processed.has(metadata.id) || !eligible(metadata)) continue;
+          const intakeMode = mode(metadata);
+          if (processed.has(metadata.id) || !intakeMode) continue;
           const mail = await provider.get(metadata.id);
-          if (mail.id !== metadata.id || !eligible(mail))
+          if (mail.id !== metadata.id || mode(mail) !== intakeMode)
             throw new Error("Received email metadata changed");
-          const result = normalizeEmail(mail, true);
+          const result = normalizeEmail(mail, intakeMode === "notification");
           for (const report of result.reports) {
-            if (report.channel === "email")
+            if (intakeMode === "notification" && report.channel === "email")
               throw new Error("Unexpected email channel");
             if (!(await deps.receive(report)).duplicate) {
               checkpoint.imported++;
@@ -154,7 +173,7 @@ export function createNotificationPoller(deps: {
         connected: true,
         detail: checkpoint.after
           ? "Inbox connected; continuing backlog next poll"
-          : "Inbox polling active; waiting for platform notifications",
+          : "Inbox polling active; waiting for support or platform notifications",
         lastPollAt: Date.now(),
         imported: checkpoint.imported,
         needsReview: checkpoint.needsReview,

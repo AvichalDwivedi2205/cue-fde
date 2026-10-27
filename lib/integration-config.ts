@@ -69,17 +69,31 @@ export const emailInput = z
     notificationImport: z.boolean().optional(),
     pollReceiving: z.boolean().optional(),
     receivingAddress: z.email().max(200).optional(),
+    supportReceivingAddress: z.email().max(200).optional(),
   })
   .superRefine((config, ctx) => {
     if (
       config.pollReceiving &&
-      (!config.receivingAddress || !config.notificationImport)
+      !(
+        config.supportReceivingAddress ||
+        (config.receivingAddress && config.notificationImport)
+      )
     )
       ctx.addIssue({
         code: "custom",
         path: ["pollReceiving"],
         message:
-          "Enable notification import and set a dedicated receiving address before polling",
+          "Set a support address or enable notification import with a dedicated address before polling",
+      });
+    if (
+      config.supportReceivingAddress &&
+      config.supportReceivingAddress.toLowerCase() ===
+        config.receivingAddress?.toLowerCase()
+    )
+      ctx.addIssue({
+        code: "custom",
+        path: ["supportReceivingAddress"],
+        message: "Support and notification addresses must be different",
       });
   });
 export type WidgetApp = z.infer<typeof appInput> & {
@@ -89,6 +103,7 @@ export type WidgetApp = z.infer<typeof appInput> & {
 export type SlackConfig = z.infer<typeof slackInput>;
 export type EmailConfig = z.infer<typeof emailInput> & {
   pollStartedAt?: number;
+  supportPollStartedAt?: number;
 };
 export function emailConfigForSave(
   input: z.infer<typeof emailInput>,
@@ -106,6 +121,17 @@ export function emailConfigForSave(
               input.receivingAddress?.toLowerCase()
               ? (old.pollStartedAt ?? now)
               : now,
+          ...(input.supportReceivingAddress
+            ? {
+                supportPollStartedAt:
+                  old?.pollReceiving &&
+                  old.apiKey === input.apiKey &&
+                  old.supportReceivingAddress?.toLowerCase() ===
+                    input.supportReceivingAddress.toLowerCase()
+                    ? (old.supportPollStartedAt ?? now)
+                    : now,
+              }
+            : {}),
         }
       : {}),
   };
@@ -199,6 +225,7 @@ export async function emailConfig(): Promise<EmailConfig | undefined> {
           notificationImport: process.env.CUE_EMAIL_NOTIFICATIONS === "true",
           pollReceiving: process.env.CUE_EMAIL_POLL === "true",
           receivingAddress: process.env.CUE_EMAIL_POLL_RECIPIENT,
+          supportReceivingAddress: process.env.CUE_EMAIL_SUPPORT_RECIPIENT,
         }
       : undefined)
   );

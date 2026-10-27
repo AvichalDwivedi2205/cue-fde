@@ -115,6 +115,73 @@ test("X and Reddit imports survive worker restarts with private checkpoints", as
   expect(file).not.toContain("Upload fails");
   expect((await fs.stat(s.checkpointFile)).mode & 0o777).toBe(0o600);
 });
+test("support polling imports only its dedicated new mail and keeps social notifications separate", async () => {
+  const s = setup();
+  const supportConfig = {
+    ...config,
+    supportReceivingAddress: "support@test.resend.app",
+    supportPollStartedAt: start + 2000,
+  };
+  const mail = {
+    ...x,
+    id: "support-receipt",
+    from: "alice@example.com",
+    subject: "My photo upload fails",
+    text: "My 3 MB photo upload fails",
+    message_id: "<support@example.com>",
+    to: [supportConfig.supportReceivingAddress],
+    created_at: new Date(start + 3000).toISOString(),
+  };
+  s.list.mockResolvedValue({
+    data: [
+      mail,
+      x,
+      {
+        ...mail,
+        id: "old-support",
+        created_at: new Date(start + 1000).toISOString(),
+      },
+      { ...mail, id: "private", to: ["private@test.resend.app"] },
+      { ...mail, id: "ambiguous", to: [mail.to[0], config.receivingAddress!] },
+    ],
+    has_more: false,
+  });
+  s.get.mockImplementation(async (id) => (id === mail.id ? mail : x));
+  const deps = { ...s, config: async () => supportConfig };
+  await createNotificationPoller(deps).poll();
+  await createNotificationPoller(deps).poll();
+  expect(s.get.mock.calls).toEqual([[mail.id], [x.id]]);
+  expect(s.receive.mock.calls.map(([report]) => report.channel)).toEqual([
+    "email",
+    "x",
+  ]);
+  expect(s.receive.mock.calls[0][0]).toMatchObject({
+    sourceKey: "email:support-receipt",
+    customer: "alice@example.com",
+    messageKey: "rfc822:<support@example.com>",
+  });
+});
+test("support-only polling needs no notification opt-in and activation is server controlled", () => {
+  const input = emailInput.parse({
+    ...config,
+    notificationImport: false,
+    receivingAddress: undefined,
+    supportReceivingAddress: "support@test.resend.app",
+    supportPollStartedAt: 0,
+  });
+  const saved = emailConfigForSave(input, config, start + 2000);
+  expect(saved.supportPollStartedAt).toBe(start + 2000);
+  expect(saved.pollStartedAt).toBe(start + 2000);
+  expect(
+    emailConfigForSave(input, saved, start + 3000).supportPollStartedAt,
+  ).toBe(start + 2000);
+  expect(
+    emailInput.safeParse({
+      ...input,
+      receivingAddress: input.supportReceivingAddress,
+    }).success,
+  ).toBe(false);
+});
 test("tracking-only notifications are held for review without creating cases", async () => {
   const s = setup();
   s.list.mockResolvedValue({ data: [x], has_more: false });

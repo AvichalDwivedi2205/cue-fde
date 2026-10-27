@@ -90,7 +90,9 @@ rows.push({
 rows.push({
   service: "Email sending",
   status: email
-    ? "Configured · sender domain and inbox delivery need verification"
+    ? email.from.toLowerCase() === "onboarding@resend.dev"
+      ? "Provider test sender · account owner's inbox only"
+      : "Configured · sender domain and inbox delivery need verification"
     : "Credentials needed",
 });
 console.table(rows);

@@ -98,6 +98,13 @@ export async function sendEmail(
     throw new Error("Sending is supported only for a verified inbound email");
   const to = c.customer.match(/<?([^<>\s]+@[^<>\s]+)>?/)?.[1];
   if (!to) throw new Error("Recipient unavailable");
+  if (
+    config.from.toLowerCase() === "onboarding@resend.dev" &&
+    to.toLowerCase() !== process.env.CUE_OPERATOR_EMAIL?.toLowerCase()
+  )
+    throw new Error(
+      "The Resend test sender can reply only to the configured operator email. Verify a sender domain for other recipients.",
+    );
   const resend = new Resend(config.apiKey);
   const original = await resend.emails.receiving.get(
     c.externalId || c.sourceKey.slice(6),
