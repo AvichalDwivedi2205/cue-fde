@@ -220,7 +220,12 @@ const dedup = workos
   : await (await post("/api/demo", dedupArgs)).json();
 assert.equal(dedup.id, sample._id);
 const again = await snapshot();
-assert.equal(again.cases.length, s.cases.length);
+assert.equal(
+  again.cases.filter(
+    (c: { sourceKey?: string }) => c.sourceKey === sample.sourceKey,
+  ).length,
+  1,
+);
 check("Repeated X post capture reuses the original case");
 assert.equal(
   (await fetch(base + "/api/webhooks/slack", { method: "POST", body: "{}" }))
@@ -262,10 +267,12 @@ await fs.writeFile(
       operatorMode: workos
         ? "WorkOS HTTP access control; server-only Convex checks; authenticated UI verified separately"
         : "loopback local operator",
-      externalCredentialsStillNeeded: [
-        "Slack Pipes provider",
-        "Slack workspace",
-        "Resend email",
+      integrationLimits: [
+        "Slack and support email live checks are recorded by verify-slack.ts and verify-email.ts",
+        "Selective Gmail forwarding for X and Reddit notifications is not enabled",
+        "An independent X mention has not passed end to end",
+        "Reddit public reply was removed by moderation",
+        "Branded email sender domain remains unverified",
       ],
     },
     null,
