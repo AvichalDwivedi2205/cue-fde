@@ -22,6 +22,60 @@ beforeEach(() => vi.stubEnv("CUE_DEMO_SECRET", secret));
 afterEach(() => vi.unstubAllEnvs());
 
 describe("Cue permissions and lifecycle", () => {
+  test.each([
+    { deployed: true, verified: true, resolved: true, expectResolution: true },
+    {
+      deployed: true,
+      verified: false,
+      resolved: true,
+      expectResolution: false,
+    },
+    {
+      deployed: false,
+      verified: true,
+      resolved: true,
+      expectResolution: false,
+    },
+    {
+      deployed: true,
+      verified: true,
+      resolved: false,
+      expectResolution: false,
+    },
+  ])("new intake uses current verified resolution: %j", async (state) => {
+    const { t, issue } = await setup();
+    await t.run(async (ctx) => {
+      await ctx.db.patch("issues", issue._id, {
+        status: state.resolved ? "resolved" : "open",
+      });
+      await ctx.db.insert("runs", {
+        issueId: issue._id,
+        status: "resolved",
+        phase: "complete",
+        provider: "codex",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        commit: "a".repeat(40),
+        deployed: state.deployed,
+        verified: state.verified,
+      });
+    });
+    const caseId = await t.mutation(api.cue.createCase, {
+      ...auth,
+      title: "Photo upload fails",
+      body: "My 3 MB journal photo upload fails",
+      customer: "Slack UTEST",
+      channel: "slack",
+    });
+    const snapshot = await t.query(api.cue.snapshot, auth);
+    const reply = snapshot.messages.find(
+      (m) => m.caseId === caseId && m.role === "draft",
+    )!;
+    expect(reply.body.includes("deployed and verified")).toBe(
+      state.expectResolution,
+    );
+    expect(snapshot.cases.find((c) => c._id === caseId)?.status).toBe("open");
+  });
   test("concurrent first widget messages share one case and retain both reports", async () => {
     const { t } = await setup();
     const message = {
@@ -425,6 +479,17 @@ describe("Cue permissions and lifecycle", () => {
 
   test("resolution requires deployment evidence and terminal runs stay immutable", async () => {
     const { t, issue } = await setup();
+    const externalCases = await Promise.all(
+      ["slack", "reddit", "email", "x"].map((channel) =>
+        t.mutation(api.cue.createCase, {
+          ...auth,
+          channel,
+          title: "Photo upload fails",
+          body: "My 3 MB photo upload fails",
+          customer: `${channel} customer`,
+        }),
+      ),
+    );
     const runId = await t.mutation(api.cue.startRun, {
       ...auth,
       issueId: issue._id,
@@ -444,9 +509,17 @@ describe("Cue permissions and lifecycle", () => {
     const s = await t.query(api.cue.snapshot, auth);
     expect(
       s.cases
-        .filter((c) => c.issueId === issue._id)
+        .filter((c) => c.issueId === issue._id && c.channel === "chat")
         .every((c) => c.status === "resolved"),
     ).toBe(true);
+    for (const caseId of externalCases) {
+      expect(s.cases.find((c) => c._id === caseId)?.status).toBe("open");
+      expect(
+        s.messages.find(
+          (m) => m.caseId === caseId && m.body.includes("Good news"),
+        )?.role,
+      ).toBe("draft");
+    }
     expect(
       s.messages.some(
         (m) => m.role === "draft" && m.body.includes("Good news"),
