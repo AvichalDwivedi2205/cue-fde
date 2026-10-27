@@ -8,6 +8,7 @@ import {
 } from "node:crypto";
 import { z } from "zod";
 import { secret } from "./server-store";
+import { membersInput } from "./roles";
 
 const originSchema = z
   .string()
@@ -56,6 +57,7 @@ export const slackInput = z.object({
     .min(1)
     .max(20),
   workspace: z.string().max(100).optional(),
+  members: membersInput.optional(),
 });
 export const emailInput = z
   .object({

@@ -5,7 +5,13 @@ import { geminiReady, draft, generateSpec } from "@/lib/gemini";
 import { z } from "zod";
 import { saveAttachment } from "@/lib/attachment";
 import { triage } from "@/lib/triage";
-import { sendApproval, sendEmail, sendSlackReply } from "@/lib/delivery";
+import {
+  sendApproval,
+  sendEmail,
+  sendSlackReply,
+  sendSpecApproval,
+} from "@/lib/delivery";
+import { actionPermission, requirePermission, can } from "@/lib/roles";
 import { emailConfig, slackConfig } from "@/lib/integration-config";
 import {
   slackRuntimeStatus,
@@ -47,6 +53,20 @@ export async function GET(request: NextRequest) {
           : null,
         workos: workosReady(),
         actor: actor.name,
+        role: actor.role,
+        members:
+          slack?.members?.map(({ name, slackId, role }) => ({
+            name,
+            slackId,
+            role,
+          })) || [],
+        permissions: {
+          support: can(actor.role, "support"),
+          deploy: can(actor.role, "deploy"),
+          investigate: can(actor.role, "investigate"),
+          spec: can(actor.role, "spec"),
+          manage: can(actor.role, "manage"),
+        },
       },
     });
   } catch (e) {
@@ -61,6 +81,7 @@ export async function POST(request: NextRequest) {
     sameOrigin(request);
     const actor = await operator(request);
     const body = await request.json();
+    requirePermission(actor, actionPermission(body.action));
     const store = db(),
       auth = secret();
     switch (body.action) {
@@ -205,6 +226,9 @@ export async function POST(request: NextRequest) {
       case "slackApproval":
         await sendApproval(body.runId, actor);
         break;
+      case "specApproval":
+        await sendSpecApproval(body.issueId, actor.name);
+        break;
       case "emailSend":
         await sendEmail(
           body.caseId,
@@ -227,13 +251,21 @@ export async function POST(request: NextRequest) {
         });
         break;
       case "spec":
-        await store.mutation(api.cue.spec, {
-          secret: auth,
-          issueId: body.issueId,
-          spec: z.string().max(18000).parse(body.spec),
-          approved: !!body.approved,
-          actor: actor.name,
-        });
+        if (body.approved)
+          await store.mutation(api.cue.decideSpec, {
+            secret: auth,
+            issueId: body.issueId,
+            expectedSpec: z.string().max(18000).parse(body.spec),
+            approve: true,
+            actor: actor.name,
+          });
+        else
+          await store.mutation(api.cue.spec, {
+            secret: auth,
+            issueId: body.issueId,
+            spec: z.string().max(18000).parse(body.spec),
+            actor: actor.name,
+          });
         break;
       default:
         throw new Error("Unknown action");

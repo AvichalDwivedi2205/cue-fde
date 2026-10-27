@@ -1,8 +1,10 @@
 "use client";
 import { useEffect, useState, type FormEvent } from "react";
+import type { TeamMember } from "@/lib/roles";
 type App = { id: string; name: string; origins: string[] };
 type Status = {
   apps: App[];
+  ownerEmail?: string;
   slack: {
     configured: boolean;
     connected?: boolean;
@@ -11,6 +13,7 @@ type Status = {
     supportChannel?: string;
     engineeringChannel?: string;
     operatorIds?: string[];
+    members?: TeamMember[];
   };
   email: {
     configured: boolean;
@@ -299,6 +302,107 @@ export function SetupClient({ origin }: { origin: string }) {
           </button>
         </form>
       </section>
+      <section id="team">
+        <div className="section-heading">
+          <h2>Team and approvals</h2>
+          <span className="badge">Owner controls access</span>
+        </div>
+        <p>
+          Engineering reviews deployments. Product reviews feature
+          specifications. Support handles customer replies. Owner can manage all
+          actions. Each account must verify its email; Slack decisions also
+          require its exact member ID.
+        </p>
+        <form
+          key={JSON.stringify(status?.slack.members)}
+          onSubmit={(e) => {
+            e.preventDefault();
+            const data = new FormData(e.currentTarget);
+            void send({
+              action: "team",
+              members: Array.from(
+                { length: Number(data.get("count")) },
+                (_, i) => ({
+                  name: data.get(`name-${i}`),
+                  email: data.get(`email-${i}`),
+                  role: data.get(`role-${i}`),
+                  slackId: data.get(`slack-${i}`) || undefined,
+                }),
+              ),
+            });
+          }}
+        >
+          <input
+            type="hidden"
+            name="count"
+            value={status?.slack.members?.length || 4}
+          />
+          {(status?.slack.members?.length
+            ? status.slack.members
+            : [
+                {
+                  name: "Avichal",
+                  email: status?.ownerEmail || "",
+                  role: "owner",
+                  slackId: status?.slack.operatorIds?.[0],
+                },
+                { name: "", email: "", role: "engineering" },
+                { name: "", email: "", role: "product" },
+                { name: "", email: "", role: "support" },
+              ]
+          ).map((member, i) => (
+            <fieldset key={i} className="team-member">
+              <legend>{member.name || `Member ${i + 1}`}</legend>
+              <div className="fields">
+                <label>
+                  Name
+                  <input
+                    name={`name-${i}`}
+                    defaultValue={member.name}
+                    required
+                    maxLength={60}
+                  />
+                </label>
+                <label>
+                  Verified account email
+                  <input
+                    name={`email-${i}`}
+                    type="email"
+                    defaultValue={member.email}
+                    required
+                  />
+                </label>
+                <label>
+                  Role
+                  <select name={`role-${i}`} defaultValue={member.role}>
+                    <option value="owner">Owner</option>
+                    <option value="engineering">Engineering</option>
+                    <option value="product">Product</option>
+                    <option value="support">Support</option>
+                  </select>
+                </label>
+                <label>
+                  Slack member ID
+                  <input
+                    name={`slack-${i}`}
+                    defaultValue={member.slackId}
+                    placeholder="U… · empty until joined"
+                    pattern="[UW][A-Z0-9]+"
+                  />
+                </label>
+              </div>
+            </fieldset>
+          ))}
+          <button disabled={busy || !status?.slack.configured}>
+            Save team roles
+          </button>
+          <p className="small">
+            Pending invitees can be saved without a Slack ID. They cannot
+            approve in Slack until connected. Display names do not grant
+            permissions.
+          </p>
+        </form>
+      </section>
       <section id="email">
         <div className="section-heading">
           <h2>Email</h2>
@@ -443,10 +547,11 @@ export function SetupClient({ origin }: { origin: string }) {
           no public URL or custom domain is needed for intake. It imports emails
           received after polling is enabled. Sender verification is still
           required for branded outbound replies. The provider&apos;s
-          onboarding@resend.dev sender is limited to the account owner&apos;s inbox.
-          Support and notification addresses must be separate. For the webhook
-          alternative, configure <code>{origin}/api/webhooks/email</code> at a
-          reachable HTTPS origin; localhost cannot receive webhooks.
+          onboarding@resend.dev sender is limited to the account owner&apos;s
+          inbox. Support and notification addresses must be separate. For the
+          webhook alternative, configure{" "}
+          <code>{origin}/api/webhooks/email</code> at a reachable HTTPS origin;
+          localhost cannot receive webhooks.
         </p>
         <p className="small">
           Enable mention emails on the brand accounts, then forward only those

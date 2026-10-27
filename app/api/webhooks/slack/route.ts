@@ -1,6 +1,7 @@
 import { validSlack } from "@/lib/slack";
 import { slackConfig } from "@/lib/integration-config";
 import { receiveSlack, decideSlack } from "@/lib/slack-events";
+import { sendSpecDecision } from "@/lib/delivery";
 export async function POST(request: Request) {
   const raw = await request.text();
   const config = await slackConfig();
@@ -21,8 +22,17 @@ export async function POST(request: Request) {
     ) {
       const p = JSON.parse(new URLSearchParams(raw).get("payload") || "{}");
       if (!config) throw new Error("Slack not configured");
-      await decideSlack(p, config);
-      return Response.json({ text: "Decision recorded for the exact commit." });
+      if (
+        p.actions?.every((a: { action_id: string }) =>
+          ["cue_open_cue", "cue_open_pr"].includes(a.action_id),
+        )
+      )
+        return Response.json({ ok: true });
+      const decision = await decideSlack(p, config);
+      if (decision) await sendSpecDecision(decision, p.message?.ts);
+      return Response.json({
+        text: "Decision recorded for this exact version.",
+      });
     }
     const body = JSON.parse(raw);
     if (body.type === "url_verification")

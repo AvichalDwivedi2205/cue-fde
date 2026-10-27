@@ -59,6 +59,7 @@
   margin-bottom: 16px;
 }
 .setup input,
+.setup select,
 .setup textarea {
   display: block;
   width: 100%;
@@ -69,6 +70,16 @@
   background: #fff;
   color: #1c2922;
   font: 14px system-ui;
+}
+.setup .team-member {
+  border: 1px solid #d9e2d9;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 18px 0;
+}
+.setup .team-member legend {
+  font-weight: 600;
+  padding: 0 6px;
 }
 .setup textarea {
   height: 85px;

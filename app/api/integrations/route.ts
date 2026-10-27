@@ -2,6 +2,7 @@ import { z } from "zod";
 import { randomBytes } from "node:crypto";
 import { Resend } from "resend";
 import { operator, sameOrigin } from "@/lib/access";
+import { membersInput, requirePermission } from "@/lib/roles";
 import {
   appInput,
   slackInput,
@@ -22,13 +23,15 @@ import {
 export const runtime = "nodejs";
 export async function GET(request: Request) {
   try {
-    await operator(request);
+    const actor = await operator(request);
+    requirePermission(actor, "manage");
     const config = await readIntegrations(),
       slack = await slackConfig(),
       email = await emailConfig();
     return Response.json(
       {
         apps: config.apps,
+        ownerEmail: process.env.CUE_OPERATOR_EMAIL,
         slack: slack
           ? {
               configured: true,
@@ -36,6 +39,7 @@ export async function GET(request: Request) {
               supportChannel: slack.supportChannel,
               engineeringChannel: slack.engineeringChannel,
               operatorIds: slack.operatorIds,
+              members: slack.members || [],
               workspace: slack.workspace,
               socket: !!slack.appToken,
               signedWebhook: !!slack.signingSecret,
@@ -70,6 +74,7 @@ export async function POST(request: Request) {
   try {
     sameOrigin(request);
     actor = await operator(request);
+    requirePermission(actor, "manage");
   } catch {
     return Response.json(
       { error: "Operator access required" },
@@ -78,6 +83,38 @@ export async function POST(request: Request) {
   }
   try {
     const b = await request.json();
+    if (b.action === "team") {
+      const members = membersInput.parse(b.members);
+      if (
+        !members.some(
+          (m) =>
+            m.email === process.env.CUE_OPERATOR_EMAIL?.toLowerCase() &&
+            m.role === "owner" &&
+            m.slackId,
+        )
+      )
+        throw new Error(
+          "Keep the configured owner and Slack member ID in the team",
+        );
+      if (
+        members.some(
+          (m) =>
+            m.role === "owner" &&
+            m.email !== process.env.CUE_OPERATOR_EMAIL?.toLowerCase(),
+        )
+      )
+        throw new Error("Only the configured account can hold the owner role");
+      await updateIntegrations((c) => {
+        if (!c.slack)
+          throw new Error("Connect Slack before assigning team roles");
+        return { ...c, slack: { ...c.slack, members } };
+      });
+      return Response.json({
+        ok: true,
+        message:
+          "Team roles saved. Members without Slack IDs cannot approve in Slack.",
+      });
+    }
     if (b.action === "app") {
       const input = appInput.parse(b),
         app = {
@@ -99,6 +136,7 @@ export async function POST(request: Request) {
         botToken: b.botToken || old?.botToken,
         appToken: b.appToken || old?.appToken,
         signingSecret: b.signingSecret || old?.signingSecret,
+        members: old?.members,
       });
       const result = await checkSlack(config);
       await updateIntegrations((c) => ({

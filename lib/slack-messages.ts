@@ -1,4 +1,5 @@
 import type { Doc } from "../convex/_generated/dataModel";
+import { createHash } from "node:crypto";
 
 type Case = Pick<
   Doc<"cases">,
@@ -123,7 +124,96 @@ export function supportMessage(
     ],
   };
 }
-export function approvalMessage(run: Run, title: string): SlackMessage {
+export function specVersion(spec: string) {
+  return createHash("sha256").update(spec).digest("hex");
+}
+function reviewerBlock(ids: string[], role: string) {
+  if (!ids.length)
+    return context(
+      `${role} reviewer is not connected. Assign a Slack member ID in Cue settings.`,
+    );
+  return {
+    type: "section",
+    text: {
+      type: "mrkdwn",
+      text: `*Assigned ${role} reviewer*\n${ids
+        .filter((id) => /^[UW][A-Z0-9]+$/.test(id))
+        .map((id) => `<@${id}>`)
+        .join(" ")}`,
+      verbatim: true,
+    },
+  };
+}
+export function specApprovalMessage(
+  issue: Pick<Doc<"issues">, "_id" | "title" | "spec" | "status">,
+  reviewerIds: string[] = [],
+): SlackMessage {
+  if (!issue.spec || issue.status !== "spec_ready")
+    throw new Error("No pending specification");
+  const spec = JSON.parse(issue.spec);
+  const version = specVersion(issue.spec);
+  const value = JSON.stringify({ issueId: issue._id, version });
+  const cue = cueLink("features");
+  return {
+    text: `Product review required: ${issue.title}\n${spec.specification}\nAcceptance criteria:\n${spec.acceptanceCriteria.join("\n")}\nVersion: ${version}\nApproval covers this specification. It does not ship the feature.${cue ? `\nOpen in Cue: ${cue}` : ""}`,
+    blocks: [
+      header("Feature specification review"),
+      section(issue.title.slice(0, 3000)),
+      reviewerBlock(reviewerIds, "Product"),
+      ...bodyBlocks(spec.specification),
+      ...bodyBlocks(
+        "Acceptance criteria\n" +
+          spec.acceptanceCriteria
+            .map((s: string, n: number) => `${n + 1}. ${s}`)
+            .join("\n"),
+      ),
+      context(`Specification version · ${version}`),
+      section(
+        "Approve this exact specification for implementation planning. This does not deploy code or announce a shipped feature.",
+      ),
+      {
+        type: "actions",
+        elements: [
+          {
+            type: "button",
+            text: plain("Approve specification"),
+            style: "primary",
+            action_id: "cue_spec_approve",
+            value,
+            confirm: {
+              title: plain("Approve specification?"),
+              text: plain(
+                "Record product approval for this exact specification. No code is deployed.",
+              ),
+              confirm: plain("Approve specification"),
+              deny: plain("Cancel"),
+            },
+          },
+          {
+            type: "button",
+            text: plain("Request changes"),
+            action_id: "cue_spec_reject",
+            value,
+            confirm: {
+              title: plain("Request changes?"),
+              text: plain(
+                "Reject this specification version. Cue will retain it for revision.",
+              ),
+              confirm: plain("Request changes"),
+              deny: plain("Cancel"),
+            },
+          },
+          ...(cue ? [button("Open in Cue", cue, "cue")] : []),
+        ],
+      },
+    ],
+  };
+}
+export function approvalMessage(
+  run: Run,
+  title: string,
+  reviewerIds: string[] = [],
+): SlackMessage {
   if (
     run.status !== "awaiting_approval" ||
     !run.commit ||
@@ -138,6 +228,7 @@ export function approvalMessage(run: Run, title: string): SlackMessage {
     text: `Review required: ${title}\nCommit: ${run.commit}\n${run.rootCause || "Review the recorded investigation in Cue."}\nValidation: ${run.after || "Review the recorded checks in Cue."}\nApproval deploys this exact commit to the connected Bloom environment.\nOnly configured engineering operators may approve or reject.${pr ? `\nPull request: ${pr}` : ""}${cue ? `\nOpen in Cue: ${cue}` : ""}`,
     blocks: [
       header("Ready for review"),
+      reviewerBlock(reviewerIds, "Engineering"),
       section(title.slice(0, 3000)),
       fields("Status\nApproval required", `Commit\n${short}`),
       section(
@@ -194,9 +285,13 @@ export function approvalMessage(run: Run, title: string): SlackMessage {
   };
 }
 
-export function runMessage(run: Run, issue: Issue): SlackMessage {
+export function runMessage(
+  run: Run,
+  issue: Issue,
+  reviewerIds: string[] = [],
+): SlackMessage {
   if (run.status === "awaiting_approval")
-    return approvalMessage(run, issue.title);
+    return approvalMessage(run, issue.title, reviewerIds);
   const verified = verifiedSlackFix(issue, run);
   const failed = ["failed", "cancelled", "rejected"].includes(run.status);
   const heading = verified

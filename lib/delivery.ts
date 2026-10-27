@@ -5,7 +5,14 @@ import { providerToken } from "./pipes";
 import { slackPost } from "./slack";
 import type { Id } from "../convex/_generated/dataModel";
 import { emailConfig, slackConfig } from "./integration-config";
-import { approvalMessage, supportMessage, runMessage } from "./slack-messages";
+import {
+  approvalMessage,
+  supportMessage,
+  runMessage,
+  specApprovalMessage,
+  specVersion,
+} from "./slack-messages";
+import { reviewers } from "./roles";
 const digest = (text: string) =>
   createHash("sha256").update(text).digest("hex");
 export async function sendApproval(
@@ -33,6 +40,7 @@ export async function sendApproval(
   const message = approvalMessage(
     run,
     s.issues.find((i) => i._id === run.issueId)?.title || "Bloom change",
+    config ? reviewers(config, "deploy") : [],
   );
   const text = message.text;
   const id = await store.mutation(api.deliveries.reserve, {
@@ -229,7 +237,7 @@ export async function sendSlackRunUpdate(runId: Id<"runs">) {
   const run = snapshot.runs.find((r) => r._id === runId);
   const issue = snapshot.issues.find((i) => i._id === run?.issueId);
   if (!run || !issue) return;
-  const message = runMessage(run, issue);
+  const message = runMessage(run, issue, reviewers(config, "deploy"));
   const key =
     run.status === "awaiting_approval"
       ? `approval:${runId}`
@@ -265,5 +273,126 @@ export async function sendSlackRunUpdate(runId: Id<"runs">) {
       receipt: e instanceof Error ? e.message : "Provider error",
     });
     throw e;
+  }
+}
+
+export async function sendSpecApproval(issueId: Id<"issues">, actor: string) {
+  const config = await slackConfig();
+  if (!config) throw new Error("Connect Slack first");
+  const snapshot = await db().query(api.cue.snapshot, { secret: secret() });
+  const issue = snapshot.issues.find((i) => i._id === issueId);
+  if (!issue?.spec || issue.kind !== "feature" || issue.status !== "spec_ready")
+    throw new Error("No pending specification");
+  const ids = reviewers(config, "spec");
+  if (!ids.length)
+    throw new Error("Connect a Product or Owner Slack reviewer first");
+  const message = specApprovalMessage(issue, ids);
+  const key = `spec-approval:${issueId}:${specVersion(issue.spec)}`;
+  if (snapshot.deliveries.some((d) => d.key === key)) return;
+  const id = await db().mutation(api.deliveries.reserve, {
+    secret: secret(),
+    key,
+    channel: "slack",
+    destination: config.engineeringChannel,
+    body: message.text,
+    actor,
+  });
+  try {
+    const receipt = await slackPost(
+      config.botToken,
+      config.engineeringChannel,
+      message.text,
+      message.blocks,
+    );
+    await db().mutation(api.deliveries.finish, {
+      secret: secret(),
+      id,
+      status: "sent",
+      receipt: `${receipt.channel}:${receipt.ts}`,
+    });
+  } catch (e) {
+    await db().mutation(api.deliveries.finish, {
+      secret: secret(),
+      id,
+      status: "unknown",
+      receipt: e instanceof Error ? e.message : "Provider error",
+    });
+    throw e;
+  }
+}
+export async function sendSpecDecision(
+  decision: { issueId: Id<"issues">; version: string; actor: string },
+  threadTs?: string,
+) {
+  const config = await slackConfig();
+  if (!config) return;
+  const snapshot = await db().query(api.cue.snapshot, { secret: secret() });
+  const issue = snapshot.issues.find((i) => i._id === decision.issueId);
+  if (
+    !issue?.spec ||
+    specVersion(issue.spec) !== decision.version ||
+    !["approved", "spec_rejected"].includes(issue.status)
+  )
+    return;
+  const key = `spec-decision:${issue._id}:${decision.version}`;
+  if (snapshot.deliveries.some((d) => d.key === key)) return;
+  const approved = issue.status === "approved";
+  const heading = approved ? "Specification approved" : "Changes requested";
+  const text = `${heading}\n${issue.title}\nReviewed by ${decision.actor}.\n${approved ? "Ready for implementation planning. The feature has not shipped." : "Revise and save the specification before requesting another review."}`;
+  const message = {
+    text,
+    blocks: [
+      { type: "header", text: { type: "plain_text", text: heading } },
+      {
+        type: "section",
+        text: { type: "plain_text", text: issue.title.slice(0, 3000) },
+      },
+      {
+        type: "section",
+        text: {
+          type: "plain_text",
+          text: `Reviewed by ${decision.actor}.\n${approved ? "Ready for implementation planning. The feature has not shipped." : "Revise and save the specification before requesting another review."}`,
+        },
+      },
+      {
+        type: "context",
+        elements: [
+          {
+            type: "plain_text",
+            text: `Specification version · ${decision.version}`,
+          },
+        ],
+      },
+    ],
+  };
+  const id = await db().mutation(api.deliveries.reserve, {
+    secret: secret(),
+    key,
+    channel: "slack",
+    destination: config.engineeringChannel,
+    body: text,
+    actor: decision.actor,
+  });
+  try {
+    const receipt = await slackPost(
+      config.botToken,
+      config.engineeringChannel,
+      text,
+      message.blocks,
+      threadTs && /^\d+\.\d+$/.test(threadTs) ? threadTs : undefined,
+    );
+    await db().mutation(api.deliveries.finish, {
+      secret: secret(),
+      id,
+      status: "sent",
+      receipt: `${receipt.channel}:${receipt.ts}`,
+    });
+  } catch (e) {
+    await db().mutation(api.deliveries.finish, {
+      secret: secret(),
+      id,
+      status: "unknown",
+      receipt: e instanceof Error ? e.message : "Provider error",
+    });
   }
 }

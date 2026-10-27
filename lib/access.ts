@@ -2,6 +2,8 @@ import { cookies } from "next/headers";
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { withAuth } from "@workos-inc/authkit-nextjs";
 import { secret } from "./server-store";
+import { slackConfig } from "./integration-config";
+import { memberForEmail } from "./roles";
 
 export const workosReady = () =>
   !!(
@@ -41,13 +43,19 @@ export async function operator(request: Request) {
   if (workosReady()) {
     const { user, organizationId } = await withAuth();
     if (!user) throw new Error("Sign in to Cue first");
-    const allowed = process.env.CUE_OPERATOR_EMAIL;
-    if (!allowed || user.email.toLowerCase() !== allowed.toLowerCase())
-      throw new Error("This account does not have operator access");
+    const member = memberForEmail(
+      user.email,
+      user.emailVerified,
+      process.env.CUE_OPERATOR_EMAIL,
+      (await slackConfig())?.members,
+    );
     return {
       id: user.id,
+      role: member.role,
       name:
-        `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
+        ("name" in member ? member.name : undefined) ||
+        `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+        user.email,
       email: user.email,
       organizationId,
     };
@@ -56,6 +64,7 @@ export async function operator(request: Request) {
     throw new Error("Configure WorkOS before exposing the operator workspace");
   return {
     id: "local-operator",
+    role: "owner" as const,
     name: "Avi Dwivedi",
     email: "local operator",
     organizationId: undefined,

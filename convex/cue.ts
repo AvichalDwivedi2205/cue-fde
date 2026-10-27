@@ -616,6 +616,43 @@ export const spec = mutation({
   },
 });
 
+export const decideSpec = mutation({
+  args: {
+    secret: v.string(),
+    issueId: v.id("issues"),
+    expectedSpec: v.string(),
+    approve: v.boolean(),
+    actor: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    authorize(args.secret);
+    const issue = await ctx.db.get("issues", args.issueId);
+    if (
+      !issue ||
+      issue.kind !== "feature" ||
+      issue.status !== "spec_ready" ||
+      issue.spec !== args.expectedSpec
+    )
+      throw new ConvexError("Approval must match the pending specification");
+    await ctx.db.patch("issues", args.issueId, {
+      status: args.approve ? "approved" : "spec_rejected",
+      specApprovedAt: args.approve ? stamp() : undefined,
+      specApprovedBy: args.approve ? args.actor.slice(0, 100) : undefined,
+    });
+    await ctx.db.insert("events", {
+      issueId: args.issueId,
+      title: args.approve
+        ? "Feature specification approved"
+        : "Feature specification rejected",
+      detail: `${args.actor.slice(0, 100)}: ${issue.title}. This decision covers the specification, not implementation or deployment.`,
+      kind: args.approve ? "approval" : "failure",
+      createdAt: stamp(),
+    });
+    return null;
+  },
+});
+
 export const tags = mutation({
   args: {
     secret: v.string(),

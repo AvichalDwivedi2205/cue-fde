@@ -3,6 +3,8 @@ import { api, db, secret } from "./server-store";
 import type { SlackConfig } from "./integration-config";
 import type { Id } from "../convex/_generated/dataModel";
 import { triage } from "./triage";
+import { can, slackMember } from "./roles";
+import { specVersion } from "./slack-messages";
 const event = z.object({
   team_id: z.string(),
   event: z.object({
@@ -52,7 +54,12 @@ const interaction = z.object({
   actions: z
     .array(
       z.object({
-        action_id: z.enum(["cue_approve", "cue_reject"]),
+        action_id: z.enum([
+          "cue_approve",
+          "cue_reject",
+          "cue_spec_approve",
+          "cue_spec_reject",
+        ]),
         value: z.string(),
       }),
     )
@@ -60,21 +67,50 @@ const interaction = z.object({
 });
 export async function decideSlack(input: unknown, config: SlackConfig) {
   const p = interaction.parse(input);
+  const action = p.actions[0];
+  const member = slackMember(config, p.user.id);
+  const spec = action.action_id.startsWith("cue_spec_");
   if (
     p.team.id !== config.teamId ||
     p.channel.id !== config.engineeringChannel ||
-    !config.operatorIds.includes(p.user.id)
+    !member ||
+    !can(member.role, spec ? "spec" : "deploy")
   )
     throw new Error("Operator not authorized");
-  const action = p.actions[0],
-    value = z
-      .object({ runId: z.string(), commit: z.string().regex(/^[a-f0-9]{40}$/) })
+  if (spec) {
+    const value = z
+      .object({
+        issueId: z.string(),
+        version: z.string().regex(/^[a-f0-9]{64}$/),
+      })
       .parse(JSON.parse(action.value));
+    const snapshot = await db().query(api.cue.snapshot, { secret: secret() });
+    const issue = snapshot.issues.find((i) => i._id === value.issueId);
+    if (!issue?.spec || specVersion(issue.spec) !== value.version)
+      throw new Error("Specification changed; refresh the approval request");
+    await db().mutation(api.cue.decideSpec, {
+      secret: secret(),
+      issueId: issue._id,
+      expectedSpec: issue.spec,
+      approve: action.action_id === "cue_spec_approve",
+      actor: `${member.name} · Slack ${p.user.id}`,
+    });
+    return {
+      issueId: issue._id,
+      version: value.version,
+      actor: `${member.name} · Slack ${p.user.id}`,
+    };
+  }
+  const value = z
+    .object({ runId: z.string(), commit: z.string().regex(/^[a-f0-9]{40}$/) })
+    .parse(JSON.parse(action.value));
   await db().mutation(api.jobs.decide, {
     secret: secret(),
     runId: value.runId as Id<"runs">,
     commit: value.commit,
-    actor: `Slack operator ${p.user.id}`,
+    actor: config.members
+      ? `${member.name} · Slack ${p.user.id}`
+      : `Slack operator ${p.user.id}`,
     approve: action.action_id === "cue_approve",
     reason: action.action_id === "cue_reject" ? "Rejected in Slack" : undefined,
   });

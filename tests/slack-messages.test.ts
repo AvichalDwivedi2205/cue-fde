@@ -4,6 +4,8 @@ import {
   supportMessage,
   verifiedSlackFix,
   runMessage,
+  specApprovalMessage,
+  specVersion,
 } from "../lib/slack-messages";
 import type { Doc } from "../convex/_generated/dataModel";
 const c = {
@@ -57,6 +59,37 @@ test("Slack customer content remains plain text and long replies retain every ch
       .join(""),
   ).toBe(body);
   expect(message.text).toContain(body);
+});
+test("Product cards bind exact specification versions and mention only configured reviewer IDs", () => {
+  const spec = JSON.stringify({
+    need: "Export",
+    specification: "Export <!channel> without a ping",
+    acceptanceCriteria: ["Select memories", "Preserve photos"],
+  });
+  const m = specApprovalMessage(
+    {
+      _id: "feature" as Doc<"issues">["_id"],
+      title: "Export",
+      spec,
+      status: "spec_ready",
+    },
+    ["UPRODUCT"],
+  );
+  expect(m.text).toContain("Preserve photos");
+  expect(m.text).toContain("does not ship");
+  const actionBlock = m.blocks.find((b) => b.type === "actions");
+  for (const action of (
+    actionBlock?.elements as { value?: string; action_id: string }[]
+  ).filter((a) => a.value))
+    expect(JSON.parse(action.value!)).toEqual({
+      issueId: "feature",
+      version: specVersion(spec),
+    });
+  expect(JSON.stringify(m.blocks)).toContain("<@UPRODUCT>");
+  const customerBlock = m.blocks.find((b) =>
+    (b.text as { text?: string })?.text?.includes("<!channel>"),
+  );
+  expect(customerBlock?.text).toMatchObject({ type: "plain_text" });
 });
 test("approval actions bind full commit and preserve validation in accessible fallback", () => {
   const pending = {
