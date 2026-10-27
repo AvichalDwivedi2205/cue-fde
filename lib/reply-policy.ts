@@ -19,6 +19,7 @@ type Run = {
 };
 type Message = { role?: string; body?: string; createdAt?: number };
 export type ReplyContext = {
+  medium?: "voice";
   channel?: string;
   appName?: string;
   message?: string;
@@ -27,6 +28,69 @@ export type ReplyContext = {
   run?: Run | null;
   messages?: Message[];
 };
+
+function customerDetails(c: ReplyContext) {
+  return [
+    c.case?.body,
+    ...(c.messages || [])
+      .filter((m) => m.role === "customer")
+      .map((m) => m.body),
+    c.message,
+  ].join(" ");
+}
+function voiceKnownDetails(c: ReplyContext) {
+  const supplied = customerDetails(c);
+  return {
+    loading:
+      /(?:stuck|stays?|keeps?).{0,40}(?:loading|spinning)|loading screen|never finish/i.test(
+        supplied,
+      ),
+    noError: /no error|without an? error|doesn't (?:show|give).*error/i.test(
+      supplied,
+    ),
+    photo: /upload|photo|picture|image/i.test(supplied),
+    alternativeFailed:
+      /(?:different|another|small|smaller).{0,60}(?:photo|picture|image).{0,150}(?:also|too|fail|stays|stuck|hang|loading|won't|doesn't|didn't)/i.test(
+        supplied,
+      ),
+  };
+}
+
+// A small deterministic floor for an underspecified spoken problem. The model
+// handles richer diagnosis using the supplied conversation, not a questionnaire.
+export function voiceDiagnosticQuestion(c: ReplyContext) {
+  if (c.medium !== "voice") return undefined;
+  const latest =
+    c.message ||
+    c.messages?.filter((m) => m.role === "customer").at(-1)?.body ||
+    "";
+  if (
+    !/not working|isn't working|doesn't work|don't think.*working|broken|fails?|failed|can't|cannot|won't|stuck|stays on.*loading|never finish|problem|wrong|error|disappear|lost|slow/i.test(
+      latest,
+    )
+  )
+    return undefined;
+  const supplied = customerDetails(c);
+  const known = voiceKnownDetails(c);
+  if (known.photo && known.loading)
+    return known.alternativeFailed
+      ? "Both photos get stuck. Does the upload finish on a different network?"
+      : "Does a different photo upload successfully?";
+  if (
+    !/upload|photo|picture|image|memory|memories|caption|search|find|journal|sign.?in|log.?in|export|pdf|button|page|notification|saving|save|add|delete|payment|checkout/i.test(
+      supplied,
+    )
+  )
+    return "What were you trying to do, and what happened instead?";
+  if (
+    /upload|photo|picture|image/i.test(supplied) &&
+    !/error|message|reject|rotate|sideways|413|limit|too large|blank|missing|disappear|\b[2-5]\s?mb\b/i.test(
+      supplied,
+    )
+  )
+    return "What happens when you try to add the photo: an error, a loading screen, or something else?";
+  return undefined;
+}
 
 export function replyFacts(c: ReplyContext) {
   const verified = !!(
@@ -79,6 +143,8 @@ function topic(c: ReplyContext) {
 }
 
 export function fallbackReply(c: ReplyContext) {
+  const question = voiceDiagnosticQuestion(c);
+  if (question) return question;
   const facts = replyFacts(c);
   const subject = topic(c);
   if (facts.featureVerified) {
@@ -136,6 +202,37 @@ export function replyProblems(text: string, c: ReplyContext) {
     );
   if ((text.match(/\?/g) || []).length > 1)
     problems.push("Ask at most one useful question");
+  if (voiceDiagnosticQuestion(c) && !text.includes("?"))
+    problems.push(
+      "The spoken problem is missing a diagnostic detail. Ask one concrete follow-up instead of ending with a report receipt.",
+    );
+  if (c.medium === "voice" && text.length > 1200)
+    problems.push(
+      "Keep the spoken reply short: one or two sentences and one next step.",
+    );
+  if (c.medium === "voice") {
+    const known = voiceKnownDetails(c),
+      question = (text.match(/[^.!?]*\?/g) || []).join(" ");
+    if (
+      (known.loading || known.noError) &&
+      /what.*(?:error|behavior|see on|happens on)|which.*error|any error message/i.test(
+        question,
+      ) &&
+      !/different|another|\bif\b/i.test(question)
+    )
+      problems.push(
+        "The customer already described the loading behavior or lack of an error. Choose a new diagnostic step.",
+      );
+    if (
+      known.alternativeFailed &&
+      /(?:photo|picture|image)/i.test(question) &&
+      /different|another|smaller|less than|under.*mb|1\s?mb/i.test(question) &&
+      !/network|browser|device|connection/i.test(question)
+    )
+      problems.push(
+        "The customer already tried a different small photo. Don't repeat the same test with a narrower file size.",
+      );
+  }
   // These guard common explicit overclaims, not every possible paraphrase.
   if (
     !facts.fixVerified &&
@@ -209,6 +306,7 @@ Write like someone who understands the customer's goal. Name the specific need o
 Use workflowFacts as the authority for actions and current status. A received/open/requested report is saved, not under investigation. Investigating means work has begun, not a promised fix. A proposed fix awaiting approval is not deployed. spec_ready means awaiting product review; approved means the specification is approved, not that a feature is built or shipped. No invented release dates, ETA, capabilities, escalation, staff actions or future follow-up promises.
 Only fixVerified or featureVerified permits a deployment claim. A verified feature passed deployed acceptance checks; a verified fix passed regression tests. Neither establishes this customer's outcome. Explain the matched behavior if supplied; invite a retry without guaranteeing the result. Never declare this customer's issue resolved. Current customer messages take precedence over old drafts: if they say the fix still fails, acknowledge the remaining failure and do not repeat the resolution announcement.
 Use supplied conversation details; never ask again for a device, size, error or step already provided. Ask at most one question, only when the answer changes the next diagnostic step. If nothing else is needed, don't ask a question. Public social replies must not expose customer-specific private details. Avoid formulaic openings like "You're looking for a way to...".
+For a voice conversation, behave like a helpful person talking through a problem. Usually one or two short spoken sentences. A vague failure needs a concrete follow-up about the failing action and observed result, not a saved-report receipt or workflow disclaimer. Use earlier answers to choose the next diagnostic step; don't restart intake each turn. When details are sufficient, explain the next useful step. For greetings, thanks, status questions, or clear feature requests, don't force a bug questionnaire. If a proposed workaround isn't an established capability, don't invent it.
 Examples of tone, only when the facts match:
 Saved feature: "Searching captions would make older memories easier to find. Your request is saved for product review; there isn't a release date yet."
 Approved specification: "The plan for caption search is approved, but the feature hasn't been released. There's no release date to share yet."

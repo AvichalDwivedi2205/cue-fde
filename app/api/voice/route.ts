@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { guest, sameOrigin } from "@/lib/access";
@@ -9,6 +9,7 @@ import { draft, geminiReady, transcribeAudio } from "@/lib/gemini";
 import { VOICE_DISCLOSURE, publicVoiceError } from "@/lib/voice-audio";
 import { decodeVoiceAudio } from "@/lib/voice-decoder";
 import { triage } from "@/lib/triage";
+import { spokenReply } from "@/lib/google-speech";
 import type { Id } from "@/convex/_generated/dataModel";
 export const runtime = "nodejs";
 const input = z.object({
@@ -56,9 +57,12 @@ export async function POST(request: NextRequest) {
         secret: auth,
         owner,
         appId,
-        customer: b.app ? b.name || "Guest" : "Oliver Park",
+        customer: b.app ? b.name || "Guest" : "Bloom user",
       });
-      return Response.json({ sessionId, disclosure: VOICE_DISCLOSURE });
+      return Response.json(
+        { sessionId, disclosure: VOICE_DISCLOSURE },
+        { headers: { "cache-control": "no-store" } },
+      );
     }
     if (!b.sessionId) throw new Error("Start a voice session first");
     const sessionId = b.sessionId as Id<"voiceSessions">;
@@ -90,6 +94,7 @@ export async function POST(request: NextRequest) {
         transcript: done.transcript,
         reply: done.reply,
         caseId: session.caseId,
+        ...(await spokenReply(done.reply)),
       });
     claimed = { owner, sessionId, key };
     phase = "transcribe";
@@ -104,6 +109,7 @@ export async function POST(request: NextRequest) {
         conversation?.case._id === session.caseId ? conversation : null,
       appName,
       channel: "chat",
+      medium: "voice",
       message: transcript,
     });
     phase = "persist";
@@ -115,8 +121,11 @@ export async function POST(request: NextRequest) {
     });
     claimed = undefined;
     phase = "triage";
-    if (!session.caseId) await triage(caseId);
-    return Response.json({ transcript, reply, caseId });
+    if (!session.caseId) after(() => triage(caseId));
+    return Response.json(
+      { transcript, reply, caseId, ...(await spokenReply(reply)) },
+      { headers: { "cache-control": "no-store" } },
+    );
   } catch (e) {
     if (phase !== "validation") {
       // Diagnose hosted failures without logging audio, transcripts, identity,

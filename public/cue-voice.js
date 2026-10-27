@@ -1,27 +1,68 @@
-/* Opt-in, turn-based voice support. Recordings are transient; transcripts are durable. */
+/* Opt-in voice support. Audio stays transient; the support conversation is durable. */
 (() => {
   let current;
+  const icons = {
+    mic: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg>',
+    send: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-5 14-3-6-6-1ZM11 13l8-8"/></svg>',
+    sound:
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4 5 9H2v6h3l6 5V4ZM15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14"/></svg>',
+    muted:
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4 5 9H2v6h3l6 5V4ZM16 9l5 6M21 9l-5 6"/></svg>',
+  };
   window.CueVoice = {
     async open(context = {}, onUpdate = () => {}) {
       if (current) return current.focus();
       const dialog = document.createElement("dialog");
       dialog.className = "cue-voice";
+      dialog.dataset.state = "consent";
       dialog.setAttribute("aria-label", "Voice support with Cue");
-      dialog.innerHTML =
-        '<h2>Talk to Cue</h2><p class="cue-voice-disclosure">You are speaking with an AI assistant. Audio is sent to Google Gemini for transcription. Transcripts and replies are saved in your support case; Cue does not store raw audio.</p><label class="cue-voice-consent"><input type="checkbox"> I agree to start voice support</label><div class="cue-voice-log" aria-live="polite"></div><p class="cue-voice-status" role="status">Speak in short turns. You can interrupt or end at any time.</p><div class="cue-voice-actions"><button type="button" class="cue-voice-record" disabled>Record a message</button><button type="button" class="cue-voice-end">End session</button></div>';
+      dialog.innerHTML = `<header class="cue-voice-header"><span class="cue-voice-brand">cue<span>Voice support</span></span><button type="button" class="cue-voice-close" aria-label="Close voice support">×</button></header>
+        <div class="cue-voice-hero"><div class="cue-voice-orb" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M34 12C18 11 12 19 14 29c9 4 19-1 20-17Z"/><path d="M11 36c4-10 10-15 19-19"/></svg><span class="cue-voice-bars"><i></i><i></i><i></i><i></i><i></i></span></div><span class="cue-voice-state">A little help, out loud</span><h2>Let’s work through it.</h2><p class="cue-voice-status" role="status">Tell me what happened. I’ll ask for the details we need.</p><span class="cue-voice-timer" hidden>00:00</span></div>
+        <section class="cue-voice-privacy"><label class="cue-voice-consent"><input type="checkbox"> <span>I agree to speak with Cue’s AI assistant.</span></label><p>Google processes your audio and spoken replies. Your transcript stays in support chat. Cue doesn’t store raw audio.</p></section>
+        <div class="cue-voice-log" aria-live="polite" aria-label="Voice conversation"></div>
+        <div class="cue-voice-controls"><button type="button" class="cue-voice-replay" hidden>Replay reply</button><button type="button" class="cue-voice-mute" aria-label="Mute voice replies" aria-pressed="false">${icons.sound}</button><button type="button" class="cue-voice-interrupt" hidden>Stop playback</button></div>
+        <footer class="cue-voice-footer"><button type="button" class="cue-voice-record" disabled>${icons.mic}<span>Start talking</span></button><button type="button" class="cue-voice-retry" hidden>Retry message</button><button type="button" class="cue-voice-end">End session</button><p>One short message at a time · Up to 30 seconds</p></footer>`;
       document.body.append(dialog);
       dialog.showModal();
       current = dialog;
       const status = dialog.querySelector(".cue-voice-status"),
+        stateLabel = dialog.querySelector(".cue-voice-state"),
         record = dialog.querySelector(".cue-voice-record"),
         consent = dialog.querySelector("input"),
-        log = dialog.querySelector(".cue-voice-log");
+        log = dialog.querySelector(".cue-voice-log"),
+        timerLabel = dialog.querySelector(".cue-voice-timer"),
+        replay = dialog.querySelector(".cue-voice-replay"),
+        mute = dialog.querySelector(".cue-voice-mute"),
+        interrupt = dialog.querySelector(".cue-voice-interrupt"),
+        retry = dialog.querySelector(".cue-voice-retry");
       let sessionId,
         recorder,
         stream,
-        timer,
-        closing = false,
-        busy = false;
+        timeout,
+        tick,
+        player,
+        audioUrl,
+        pendingTurn;
+      let closing = false,
+        busy = false,
+        muted = false;
+      function state(name, message) {
+        if (closing) return;
+        dialog.dataset.state = name;
+        stateLabel.textContent = {
+          consent: "A little help, out loud",
+          ready: "Your turn",
+          listening: "Listening",
+          processing: "Thinking it through",
+          speaking: "Cue is speaking",
+          error: "Let’s try that again",
+        }[name];
+        status.textContent = message;
+      }
+      function button(label, icon = "mic") {
+        record.innerHTML = icons[icon] + "<span></span>";
+        record.querySelector("span").textContent = label;
+      }
       async function call(action, extra = {}) {
         const response = await fetch("/api/voice", {
           method: "POST",
@@ -33,16 +74,57 @@
         return data;
       }
       function stopTracks() {
-        clearTimeout(timer);
+        clearTimeout(timeout);
+        clearInterval(tick);
+        timerLabel.hidden = true;
         stream?.getTracks().forEach((track) => track.stop());
         stream = undefined;
       }
+      function stopPlayback() {
+        player?.pause();
+        interrupt.hidden = true;
+        if (!closing && dialog.dataset.state === "speaking")
+          state("ready", "Ready when you are. Record your answer below.");
+      }
+      async function play() {
+        if (!player || closing || muted || busy) return;
+        stopPlayback();
+        player.currentTime = 0;
+        try {
+          await player.play();
+          if (closing || muted || recorder?.state === "recording")
+            return stopPlayback();
+          interrupt.hidden = false;
+          state(
+            "speaking",
+            "You can stop playback and answer whenever you’re ready.",
+          );
+        } catch {
+          state(
+            "ready",
+            "Tap Replay reply to listen, or read the conversation below.",
+          );
+        }
+      }
+      replay.onclick = play;
+      interrupt.onclick = stopPlayback;
+      mute.onclick = () => {
+        muted = !muted;
+        mute.setAttribute("aria-pressed", String(muted));
+        mute.setAttribute(
+          "aria-label",
+          muted ? "Unmute voice replies" : "Mute voice replies",
+        );
+        mute.innerHTML = muted ? icons.muted : icons.sound;
+        if (muted) stopPlayback();
+      };
       async function close() {
         if (closing) return;
         closing = true;
         if (recorder?.state === "recording") recorder.stop();
         stopTracks();
-        window.speechSynthesis?.cancel();
+        stopPlayback();
+        if (audioUrl) URL.revokeObjectURL(audioUrl);
         dialog.close();
         dialog.remove();
         current = undefined;
@@ -50,16 +132,113 @@
         onUpdate();
       }
       dialog.querySelector(".cue-voice-end").onclick = close;
+      dialog.querySelector(".cue-voice-close").onclick = close;
       dialog.addEventListener("cancel", (e) => {
         e.preventDefault();
         void close();
       });
-      consent.onchange = async () => {
-        if (!consent.checked) {
-          record.disabled = true;
-          void close();
-          return;
+      consent.onchange = () => {
+        record.disabled = !consent.checked;
+        if (!consent.checked && sessionId) void close();
+        else
+          state(
+            consent.checked ? "ready" : "consent",
+            consent.checked
+              ? "Start talking, then press Send message when you’re done."
+              : "Tell me what happened. I’ll ask for the details we need.",
+          );
+      };
+      function append(author, text) {
+        const bubble = document.createElement("div"),
+          label = document.createElement("span"),
+          body = document.createElement("p");
+        bubble.className =
+          author === "You" ? "cue-voice-user" : "cue-voice-assistant";
+        label.textContent = author;
+        body.textContent = text;
+        bubble.append(label, body);
+        log.append(bubble);
+      }
+      async function send() {
+        if (!pendingTurn || busy || closing) return;
+        busy = true;
+        record.disabled = true;
+        retry.hidden = true;
+        state(
+          "processing",
+          "Listening to your message and finding the next useful step…",
+        );
+        let playNewReply = false;
+        try {
+          const data = await call("turn", pendingTurn);
+          pendingTurn = undefined;
+          if (closing) return;
+          append("You", data.transcript);
+          append("Cue", data.reply);
+          log.scrollTop = log.scrollHeight;
+          dialog.querySelector(".cue-voice-privacy").hidden = true;
+          onUpdate();
+          stopPlayback();
+          if (audioUrl) URL.revokeObjectURL(audioUrl);
+          player = undefined;
+          audioUrl = undefined;
+          replay.hidden = true;
+          state(
+            "ready",
+            data.playbackError ||
+              "Your turn. Record your answer when you’re ready.",
+          );
+          if (data.audio?.mimeType === "audio/mpeg" && data.audio.data) {
+            const bytes = Uint8Array.from(atob(data.audio.data), (c) =>
+              c.charCodeAt(0),
+            );
+            audioUrl = URL.createObjectURL(
+              new Blob([bytes], { type: "audio/mpeg" }),
+            );
+            player = new Audio(audioUrl);
+            player.onended = () => {
+              interrupt.hidden = true;
+              state(
+                "ready",
+                "Your turn. Record your answer when you’re ready.",
+              );
+            };
+            player.onerror = () => {
+              interrupt.hidden = true;
+              state(
+                "ready",
+                "Playback unavailable. Your reply is saved in the conversation.",
+              );
+            };
+            replay.hidden = false;
+            playNewReply = true;
+          }
+        } catch (e) {
+          if (!closing) {
+            state(
+              "error",
+              e.message || "Couldn’t send that message. Try again.",
+            );
+            retry.hidden = !pendingTurn;
+          }
+        } finally {
+          busy = false;
+          if (!closing) {
+            record.disabled = !consent.checked;
+            button("Record your answer");
+            if (playNewReply && player && !muted) void play();
+          }
         }
+      }
+      retry.onclick = send;
+      record.onclick = async () => {
+        if (busy || closing || !consent.checked) return;
+        if (recorder?.state === "recording") return recorder.stop();
+        stopPlayback();
+        pendingTurn = undefined;
+        retry.hidden = true;
+        busy = true;
+        record.disabled = true;
         try {
           if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder)
             throw new Error(
@@ -69,30 +248,12 @@
             sessionId = (await call("start", { consent: true })).sessionId;
           if (closing) {
             await call("end").catch(() => {});
-          } else if (consent.checked) {
-            record.disabled = false;
-            status.textContent =
-              "Ready. Record a message, then press Send recording.";
-          }
-        } catch (e) {
-          consent.checked = false;
-          status.textContent = e.message;
-        }
-      };
-      record.onclick = async () => {
-        if (busy || closing || !sessionId || !consent.checked) return;
-        if (recorder?.state === "recording") {
-          recorder.stop();
-          return;
-        }
-        window.speechSynthesis?.cancel();
-        record.disabled = true;
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          if (closing || !consent.checked) {
-            stopTracks();
             return;
           }
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true },
+          });
+          if (closing || !consent.checked) return stopTracks();
           const mimeType = [
             "audio/webm;codecs=opus",
             "audio/ogg;codecs=opus",
@@ -100,7 +261,7 @@
           ].find((type) => MediaRecorder.isTypeSupported(type));
           if (!mimeType)
             throw new Error(
-              "This browser's recording format is unsupported. Please use support chat.",
+              "This recording format is unsupported. Please use support chat.",
             );
           recorder = new MediaRecorder(stream, { mimeType });
           const chunks = [];
@@ -109,17 +270,17 @@
           };
           recorder.onerror = () => {
             stopTracks();
+            state("error", "Recording failed. Please try again.");
             record.disabled = false;
-            record.textContent = "Record a message";
-            status.textContent = "Recording failed. Please try again.";
+            button("Record your answer");
           };
           recorder.onstop = async () => {
             stopTracks();
-            record.textContent = "Record a message";
+            button("Record your answer");
             if (closing || !consent.checked) return;
             busy = true;
             record.disabled = true;
-            status.textContent = "Transcribing and preparing your reply…";
+            state("processing", "Preparing your message…");
             try {
               const blob = new Blob(chunks, { type: mimeType });
               if (blob.size > 3 * 1024 * 1024)
@@ -131,59 +292,55 @@
                 reader.onerror = reject;
                 reader.readAsDataURL(blob);
               });
-              const data = await call("turn", {
-                audio,
-                mimeType,
-                key: crypto.randomUUID(),
-              });
-              if (closing) return;
-              for (const [author, text] of [
-                ["You", data.transcript],
-                ["Cue", data.reply],
-              ]) {
-                const bubble = document.createElement("p"),
-                  label = document.createElement("strong");
-                label.textContent = author + ": ";
-                bubble.append(label, document.createTextNode(text));
-                log.append(bubble);
-              }
-              log.scrollTop = log.scrollHeight;
-              onUpdate();
-              status.textContent =
-                "Saved to your support conversation. Record another message whenever you’re ready.";
-              if (window.speechSynthesis && window.SpeechSynthesisUtterance) {
-                const speech = new SpeechSynthesisUtterance(data.reply);
-                speech.rate = 1;
-                speech.onerror = () => {
-                  if (!closing)
-                    status.textContent =
-                      "Reply saved. Voice playback unavailable; read it above.";
-                };
-                window.speechSynthesis.speak(speech);
-              }
-            } catch (e) {
-              if (!closing)
-                status.textContent =
-                  e.message || "Voice request failed. Please try again.";
-            } finally {
+              pendingTurn = { audio, mimeType, key: crypto.randomUUID() };
               busy = false;
-              if (!closing) record.disabled = !consent.checked;
+              await send();
+            } catch (e) {
+              busy = false;
+              if (!closing) {
+                record.disabled = false;
+                state(
+                  "error",
+                  e.message ||
+                    "Couldn’t read that recording. Please try again.",
+                );
+              }
             }
           };
           recorder.start();
+          busy = false;
           record.disabled = false;
-          record.textContent = "Send recording";
-          status.textContent = "Listening… recordings stop after 30 seconds.";
-          timer = setTimeout(() => {
+          button("Send message", "send");
+          state(
+            "listening",
+            "Speak naturally. Press Send message when you’re done.",
+          );
+          const began = Date.now();
+          timerLabel.hidden = false;
+          timerLabel.textContent = "00:00 / 00:30";
+          tick = setInterval(() => {
+            const seconds = Math.min(
+              30,
+              Math.floor((Date.now() - began) / 1000),
+            );
+            timerLabel.textContent =
+              "00:" + String(seconds).padStart(2, "0") + " / 00:30";
+          }, 250);
+          timeout = setTimeout(() => {
             if (recorder.state === "recording") recorder.stop();
           }, 30_000);
         } catch (e) {
           stopTracks();
-          record.disabled = false;
-          status.textContent =
-            e.name === "NotAllowedError"
-              ? "Microphone permission was denied. You can use support chat instead."
-              : e.message;
+          busy = false;
+          if (!closing) {
+            record.disabled = !consent.checked;
+            state(
+              "error",
+              e.name === "NotAllowedError"
+                ? "Microphone permission was denied. You can use support chat instead."
+                : e.message,
+            );
+          }
         }
       };
     },

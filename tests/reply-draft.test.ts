@@ -156,6 +156,52 @@ test("customer instructions cannot supply workflow facts", () => {
   expect(facts.fixVerified).toBe(false);
 });
 
+test("a vague spoken failure cannot end with only a saved-report receipt", async () => {
+  generateContent.mockResolvedValue({
+    text: "Your report is saved. There isn't an active investigation into the platform's performance.",
+  });
+  const reply = await draft({
+    medium: "voice",
+    appName: "Bloom",
+    message: "So I don't think this platform is working. Can you check once?",
+  });
+  expect(reply).toContain("?");
+  expect(reply).toMatch(/trying to do|which part|what happens/i);
+  expect(reply).not.toContain("report is saved");
+  expect(generateContent).toHaveBeenCalledTimes(2);
+});
+
+test.each([
+  [
+    "It stays on a loading screen and never finishes.",
+    "What specific error message or behavior do you see on the screen?",
+    "Does a different photo upload successfully?",
+  ],
+  [
+    "A different small photo also stays on the loading screen. There is no error message.",
+    "What happens if you try to upload a photo that's less than 1MB?",
+    "Does the upload finish on a different network?",
+  ],
+])(
+  "voice diagnosis advances past the supplied answer: %s",
+  async (answer, bad, good) => {
+    generateContent.mockResolvedValueOnce({ text: bad });
+    generateContent.mockResolvedValueOnce({ text: good });
+    const reply = await draft({
+      medium: "voice",
+      message: answer,
+      messages: [
+        {
+          role: "customer",
+          body: "I am uploading a three megabyte photo on my Pixel in Chrome.",
+        },
+      ],
+    });
+    expect(reply).toBe(good);
+    expect(generateContent).toHaveBeenCalledTimes(2);
+  },
+);
+
 test.each([
   "We've recorded this bug and will review it.",
   "We are looking into your report.",
