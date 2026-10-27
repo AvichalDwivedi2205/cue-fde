@@ -17,7 +17,7 @@ export function socialSource(channel: "x" | "reddit", value: string) {
     };
   }
   const match = url.pathname.match(
-    /^\/r\/[A-Za-z0-9_]+\/comments\/([a-z0-9]+)\/(?:[^/]+\/)?([a-z0-9]+)?\/?$/i,
+    /^\/(?:r\/(?:[A-Za-z0-9_]+|u_[A-Za-z0-9_-]+)|user\/[A-Za-z0-9_-]+)\/comments\/([a-z0-9]+)\/(?:[^/]+\/)?([a-z0-9]+)?\/?$/i,
   );
   if (
     ![
@@ -29,7 +29,7 @@ export function socialSource(channel: "x" | "reddit", value: string) {
     !match
   )
     throw new Error(
-      "Use a Reddit post or comment permalink under /r/.../comments/...",
+      "Use a Reddit post or comment permalink under /r/.../comments/... or /user/.../comments/...",
     );
   return {
     key:

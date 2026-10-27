@@ -34,4 +34,29 @@ describe("Social capture provenance", () => {
       expect(() => socialSource("reddit", url)).toThrow();
     expect(() => socialSource("x", "https://x.com/home")).toThrow();
   });
+  test("profile posts and comments use the same IDs as their subreddit aliases", () => {
+    const path =
+      "/user/Fuzzy-Vast4353/comments/1x2djtw/cue_bloom_support_intake_test_cuereddit1010/";
+    const post = socialSource("reddit", "https://www.reddit.com" + path);
+    expect(post.key).toBe("reddit:post:1x2djtw");
+    expect(post.key).toBe(
+      socialSource(
+        "reddit",
+        "https://www.reddit.com/r/u_Fuzzy-Vast4353/comments/1x2djtw/title/",
+      ).key,
+    );
+    const comment = socialSource(
+      "reddit",
+      "https://old.reddit.com" + path + "abc123/?context=3",
+    );
+    expect(comment.key).toBe("reddit:comment:abc123");
+    expect(comment.key).not.toBe(post.key);
+    expect(comment.url).toBe("https://www.reddit.com" + path + "abc123/");
+    expect(
+      socialSource(
+        "reddit",
+        "https://www.reddit.com/user/Fuzzy-Vast4353/comments/1x2djtw/comment/pf17by5/",
+      ).key,
+    ).toBe("reddit:comment:pf17by5");
+  });
 });
