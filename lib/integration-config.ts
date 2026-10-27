@@ -75,6 +75,7 @@ export const codingInput = z.object({
 });
 export type CodingConfig = z.infer<typeof codingInput>;
 export const slackInput = z.object({
+  deliveryMode: z.enum(["socket", "webhook"]).optional(),
   botToken: z.string().regex(/^xoxb-[A-Za-z0-9-]+$/),
   appToken: z
     .string()
@@ -137,7 +138,10 @@ export type WidgetApp = z.infer<typeof appInput> & {
   id: string;
   createdAt: number;
 };
-export type SlackConfig = z.infer<typeof slackInput>;
+export type SlackConfig = z.infer<typeof slackInput> & {
+  webhookLastEventAt?: number;
+  webhookIdentity?: string;
+};
 export type EmailConfig = z.infer<typeof emailInput> & {
   pollStartedAt?: number;
   supportPollStartedAt?: number;

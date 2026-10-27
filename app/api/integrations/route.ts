@@ -43,6 +43,7 @@ export async function GET(request: Request) {
               operatorIds: slack.operatorIds,
               members: slack.members || [],
               workspace: slack.workspace,
+              deliveryMode: slack.deliveryMode || "socket",
               socket: !!slack.appToken,
               signedWebhook: !!slack.signingSecret,
               ...(await slackRuntimeStatus()),
@@ -160,11 +161,17 @@ export async function POST(request: Request) {
         appToken: b.appToken || old?.appToken,
         signingSecret: b.signingSecret || old?.signingSecret,
         members: old?.members,
+        deliveryMode: b.deliveryMode || old?.deliveryMode,
       });
       const result = await checkSlack(config);
       await updateIntegrations((c) => ({
         ...c,
-        slack: { ...config, workspace: result.workspace },
+        slack: {
+          ...config,
+          workspace: result.workspace,
+          webhookLastEventAt: old?.webhookLastEventAt,
+          webhookIdentity: old?.webhookIdentity,
+        },
       }));
       return Response.json(result);
     }

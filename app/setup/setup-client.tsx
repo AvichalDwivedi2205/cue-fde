@@ -15,6 +15,8 @@ type Status = {
   slack: {
     configured: boolean;
     connected?: boolean;
+    deliveryMode?: "socket" | "webhook";
+    detail?: string;
     workspace?: string;
     teamId?: string;
     supportChannel?: string;
@@ -80,7 +82,7 @@ export function SetupClient({ origin }: { origin: string }) {
       setMessage(
         b.message ||
           (b.connected === false
-            ? "Token works; Socket Mode listener is not connected yet."
+            ? "Credentials work; waiting for channel delivery to be verified."
             : b.ok === false
               ? "Credentials saved. Complete the remaining provider setup."
               : "Saved and verified."),
@@ -199,9 +201,11 @@ export function SetupClient({ origin }: { origin: string }) {
           </span>
         </div>
         <p>
-          Cue uses Socket Mode, so messages and approval buttons work without
-          exposing your laptop to the internet.
+          {status?.slack.deliveryMode === "webhook"
+            ? "Messages and approval buttons are delivered directly to the hosted Cue app over HTTPS."
+            : "Socket Mode connects Slack to your local worker. Hosted installations can receive signed events over HTTPS."}
         </p>
+        {status?.slack.detail && <p>{status.slack.detail}</p>}
         <div className="links">
           <a href="https://api.slack.com/apps" target="_blank" rel="noreferrer">
             Create Slack app ↗
@@ -216,12 +220,19 @@ export function SetupClient({ origin }: { origin: string }) {
             Create an app from the manifest in your workspace and install it.
           </li>
           <li>
-            Generate an app-level token with connections:write. Copy the bot
-            token and invite Cue to support and engineering channels.
+            Copy the bot token and invite Cue to support and engineering
+            channels. For Socket Mode, generate an app-level token with
+            connections:write.
           </li>
           <li>
             Enter credentials and channel IDs below. Cue only accepts reports
             and approvals from the configured workspace and channels.
+          </li>
+          <li>
+            For hosted HTTPS delivery, save the signing secret, disable Socket
+            Mode in Slack, and set both Event Subscriptions and Interactivity to
+            <code>{origin}/api/webhooks/slack</code>. Keep bot subscriptions for
+            app_mention and message.channels.
           </li>
         </ol>
         <form
@@ -229,6 +240,16 @@ export function SetupClient({ origin }: { origin: string }) {
           onSubmit={(e) => void form(e, "slack")}
         >
           <div className="fields">
+            <label>
+              Event delivery
+              <select
+                name="deliveryMode"
+                defaultValue={status?.slack.deliveryMode || "socket"}
+              >
+                <option value="socket">Local worker · Socket Mode</option>
+                <option value="webhook">Hosted app · signed HTTPS</option>
+              </select>
+            </label>
             <label>
               Bot token
               <input

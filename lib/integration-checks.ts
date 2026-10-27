@@ -3,6 +3,8 @@ import { promisify } from "node:util";
 import { Resend } from "resend";
 import { api, db, secret } from "./server-store";
 import type { EmailConfig, SlackConfig } from "./integration-config";
+import { slackConfig } from "./integration-config";
+import { slackWebhookStatus } from "./slack-webhook-health";
 const exec = promisify(execFile);
 export async function sharedWorkerStatus() {
   const row = await db().query(api.serverState.read, {
@@ -181,6 +183,8 @@ export async function checkCodex(forceLocal = false) {
 }
 export async function slackRuntimeStatus() {
   try {
+    const config = await slackConfig();
+    if (config?.deliveryMode === "webhook") return slackWebhookStatus(config);
     let value;
     if (process.env.CUE_SHARED_CONFIG === "true")
       value = (await sharedWorkerStatus()).slack;

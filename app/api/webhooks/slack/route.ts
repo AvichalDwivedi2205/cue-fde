@@ -4,6 +4,7 @@ import { receiveSlack, decideSlack } from "@/lib/slack-events";
 import { sendSlackDecision } from "@/lib/delivery";
 import { sendSlackDecisionFeedback } from "@/lib/slack-feedback";
 import { triage } from "@/lib/triage";
+import { recordSlackWebhook } from "@/lib/slack-webhook-health";
 export const runtime = "nodejs";
 export async function POST(request: Request) {
   const raw = await request.text();
@@ -53,9 +54,10 @@ export async function POST(request: Request) {
       return Response.json({ challenge: body.challenge });
     if (!config) throw new Error("Slack not configured");
     const result = await receiveSlack(body, config, false);
-    if (result && !result.duplicate)
+    if (result)
       after(async () => {
-        await triage(result.caseId).catch(() => {});
+        await recordSlackWebhook(config).catch(() => {});
+        if (!result.duplicate) await triage(result.caseId).catch(() => {});
       });
     return Response.json({ ok: true });
   } catch {

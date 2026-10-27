@@ -17,7 +17,9 @@ export async function startSlackListener() {
     checking = true;
     try {
       const config = await slackConfig();
-      const hash = config?.appToken
+      const socketEnabled =
+        config?.appToken && config.deliveryMode !== "webhook";
+      const hash = socketEnabled
         ? createHash("sha256").update(JSON.stringify(config)).digest("hex")
         : "";
       if (hash !== fingerprint) {
@@ -25,7 +27,7 @@ export async function startSlackListener() {
         client = undefined;
         connected = false;
         fingerprint = hash;
-        if (config?.appToken) {
+        if (config?.appToken && socketEnabled) {
           client = new SocketModeClient({
             appToken: config.appToken,
             logger: {
@@ -101,7 +103,11 @@ export async function startSlackListener() {
           });
           detail = "Connecting to Slack";
           await client.start();
-        } else detail = "Add an app-level token to enable Socket Mode";
+        } else
+          detail =
+            config?.deliveryMode === "webhook"
+              ? "Slack uses hosted HTTPS delivery"
+              : "Add an app-level token to enable Socket Mode";
       }
     } catch {
       fingerprint = "";
