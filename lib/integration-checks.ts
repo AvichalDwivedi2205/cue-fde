@@ -1,9 +1,30 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { Resend } from "resend";
-import { secret } from "./server-store";
+import { api, db, secret } from "./server-store";
 import type { EmailConfig, SlackConfig } from "./integration-config";
 const exec = promisify(execFile);
+export async function sharedWorkerStatus() {
+  const row = await db().query(api.serverState.read, {
+    secret: secret(),
+    key: "worker",
+  });
+  if (!row || Date.now() - row.updatedAt > 30000)
+    throw new Error("Worker offline");
+  return JSON.parse(row.value) as {
+    slack: { connected: boolean; detail?: string; updatedAt: number };
+    notifications: {
+      connected: boolean;
+      lastPollAt: number | null;
+      imported: number;
+      needsReview: number;
+      backlog: boolean;
+      detail?: string;
+    };
+    codex: { loggedIn: boolean; workerOnline: boolean; github: boolean };
+    busy: boolean;
+  };
+}
 export async function checkSlack(config: SlackConfig) {
   const r = await fetch("https://slack.com/api/auth.test", {
     method: "POST",
@@ -81,13 +102,18 @@ export async function checkEmail(config: EmailConfig) {
 }
 export async function notificationRuntimeStatus() {
   try {
-    const response = await fetch("http://127.0.0.1:4319/status", {
-      headers: { authorization: "Bearer " + secret() },
-      signal: AbortSignal.timeout(1500),
-      cache: "no-store",
-    });
-    if (!response.ok) throw new Error("Worker unavailable");
-    const value = (await response.json()).notifications;
+    let value;
+    if (process.env.CUE_SHARED_CONFIG === "true")
+      value = (await sharedWorkerStatus()).notifications;
+    else {
+      const response = await fetch("http://127.0.0.1:4319/status", {
+        headers: { authorization: "Bearer " + secret() },
+        signal: AbortSignal.timeout(1500),
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error("Worker unavailable");
+      value = (await response.json()).notifications;
+    }
     if (!value) throw new Error("Listener unavailable");
     return {
       ...value,
@@ -107,7 +133,21 @@ export async function notificationRuntimeStatus() {
     };
   }
 }
-export async function checkCodex() {
+export async function checkCodex(forceLocal = false) {
+  if (!forceLocal && process.env.CUE_SHARED_CONFIG === "true") {
+    let current;
+    try {
+      current = (await sharedWorkerStatus()).codex;
+    } catch {}
+    return {
+      ok: !!current?.loggedIn && !!current?.workerOnline,
+      loggedIn: !!current?.loggedIn,
+      workerOnline: !!current?.workerOnline,
+      github: !!current?.github,
+      repo: process.env.CUE_GITHUB_REPO || null,
+      scope: "Connected local Codex worker",
+    };
+  }
   let loggedIn = false,
     workerOnline = false,
     github = false;
@@ -141,13 +181,18 @@ export async function checkCodex() {
 }
 export async function slackRuntimeStatus() {
   try {
-    const response = await fetch("http://127.0.0.1:4319/status", {
-      headers: { authorization: "Bearer " + secret() },
-      signal: AbortSignal.timeout(1500),
-      cache: "no-store",
-    });
-    if (!response.ok) throw new Error("Worker unavailable");
-    const value = (await response.json()).slack;
+    let value;
+    if (process.env.CUE_SHARED_CONFIG === "true")
+      value = (await sharedWorkerStatus()).slack;
+    else {
+      const response = await fetch("http://127.0.0.1:4319/status", {
+        headers: { authorization: "Bearer " + secret() },
+        signal: AbortSignal.timeout(1500),
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error("Worker unavailable");
+      value = (await response.json()).slack;
+    }
     return {
       connected:
         value.connected === true && Date.now() - value.updatedAt < 20000,

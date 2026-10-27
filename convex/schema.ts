@@ -2,6 +2,12 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  serverState: defineTable({
+    key: v.string(),
+    value: v.string(),
+    version: v.number(),
+    updatedAt: v.number(),
+  }).index("by_key", ["key"]),
   cases: defineTable({
     title: v.string(),
     customer: v.string(),

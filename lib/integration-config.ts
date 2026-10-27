@@ -7,7 +7,7 @@ import {
   randomBytes,
 } from "node:crypto";
 import { z } from "zod";
-import { secret } from "./server-store";
+import { api, db, secret } from "./server-store";
 import { membersInput } from "./roles";
 
 const originSchema = z
@@ -186,14 +186,7 @@ const key = () =>
     .digest();
 let writes = Promise.resolve();
 
-export async function readIntegrations(): Promise<IntegrationConfig> {
-  let content: string;
-  try {
-    content = await fs.readFile(file(), "utf8");
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === "ENOENT") return { apps: [] };
-    throw e;
-  }
+function decrypt(content: string): IntegrationConfig {
   const [iv, tag, data] = content.split(".");
   const decipher = createDecipheriv(
     "aes-256-gcm",
@@ -208,20 +201,62 @@ export async function readIntegrations(): Promise<IntegrationConfig> {
     ]).toString(),
   );
 }
+function encrypt(config: IntegrationConfig) {
+  const iv = randomBytes(12),
+    cipher = createCipheriv("aes-256-gcm", key(), iv);
+  const encrypted = Buffer.concat([
+    cipher.update(JSON.stringify(config)),
+    cipher.final(),
+  ]);
+  return [iv, cipher.getAuthTag(), encrypted]
+    .map((b) => b.toString("base64"))
+    .join(".");
+}
+
+export async function readIntegrations(): Promise<IntegrationConfig> {
+  if (process.env.CUE_SHARED_CONFIG === "true") {
+    const state = await db().query(api.serverState.read, {
+      secret: secret(),
+      key: "integrations",
+    });
+    return state ? decrypt(state.value) : { apps: [] };
+  }
+  let content: string;
+  try {
+    content = await fs.readFile(file(), "utf8");
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") return { apps: [] };
+    throw e;
+  }
+  return decrypt(content);
+}
 export async function updateIntegrations(
   update: (current: IntegrationConfig) => IntegrationConfig,
 ) {
   const operation = writes.then(async () => {
+    if (process.env.CUE_SHARED_CONFIG === "true") {
+      const store = db(),
+        auth = secret();
+      for (let attempt = 0; attempt < 8; attempt++) {
+        const old = await store.query(api.serverState.read, {
+          secret: auth,
+          key: "integrations",
+        });
+        const config = update(old ? decrypt(old.value) : { apps: [] });
+        if (
+          await store.mutation(api.serverState.write, {
+            secret: auth,
+            key: "integrations",
+            value: encrypt(config),
+            expectedVersion: old?.version ?? 0,
+          })
+        )
+          return config;
+      }
+      throw new Error("Configuration changed concurrently. Try again.");
+    }
     const config = update(await readIntegrations());
-    const iv = randomBytes(12),
-      cipher = createCipheriv("aes-256-gcm", key(), iv);
-    const encrypted = Buffer.concat([
-      cipher.update(JSON.stringify(config)),
-      cipher.final(),
-    ]);
-    const content = [iv, cipher.getAuthTag(), encrypted]
-      .map((b) => b.toString("base64"))
-      .join(".");
+    const content = encrypt(config);
     await fs.mkdir(path.dirname(file()), { recursive: true });
     const temp = file() + "." + randomBytes(6).toString("hex");
     await fs.writeFile(temp, content, { mode: 0o600 });

@@ -6,21 +6,24 @@ import { saveAttachment } from "@/lib/attachment";
 import { draft, geminiReady } from "@/lib/gemini";
 import { z } from "zod";
 import { triage } from "@/lib/triage";
+import { hostedUploadHealth, hostedUploadStatus } from "@/lib/bloom-upload";
 export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   try {
     const owner = await guest(request),
       store = db(),
       auth = secret();
-    let health = null;
-    try {
-      health = await (
-        await fetch("http://127.0.0.1:4318/health", {
-          signal: AbortSignal.timeout(2000),
-          cache: "no-store",
-        })
-      ).json();
-    } catch {}
+    let health =
+      process.env.CUE_HOSTED_UPLOAD === "true" ? hostedUploadHealth() : null;
+    if (!health)
+      try {
+        health = await (
+          await fetch("http://127.0.0.1:4318/health", {
+            signal: AbortSignal.timeout(2000),
+            cache: "no-store",
+          })
+        ).json();
+      } catch {}
     const conversation = await store.query(api.bloom.conversation, {
       secret: auth,
       owner,
@@ -90,15 +93,21 @@ export async function POST(request: NextRequest) {
       ];
       if (!mime || mime !== file.type)
         throw new Error("Use a valid JPG, PNG or WebP photo");
-      const r = await fetch("http://127.0.0.1:4318/upload", {
-        method: "POST",
-        headers: {
-          "content-type": mime,
-          "x-file-name": encodeURIComponent(file.name),
-        },
-        body: bytes,
-        signal: AbortSignal.timeout(15000),
-      });
+      const r =
+        process.env.CUE_HOSTED_UPLOAD === "true"
+          ? {
+              status: hostedUploadStatus(bytes, mime),
+              ok: hostedUploadStatus(bytes, mime) === 201,
+            }
+          : await fetch("http://127.0.0.1:4318/upload", {
+              method: "POST",
+              headers: {
+                "content-type": mime,
+                "x-file-name": encodeURIComponent(file.name),
+              },
+              body: bytes,
+              signal: AbortSignal.timeout(15000),
+            });
       if (!r.ok)
         return NextResponse.json(
           {

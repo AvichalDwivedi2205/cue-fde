@@ -14,6 +14,7 @@ import type * as deliveries from "../deliveries.js";
 import type * as intake from "../intake.js";
 import type * as jobs from "../jobs.js";
 import type * as releases from "../releases.js";
+import type * as serverState from "../serverState.js";
 import type * as voice from "../voice.js";
 
 import type {
@@ -29,6 +30,7 @@ declare const fullApi: ApiFromModules<{
   intake: typeof intake;
   jobs: typeof jobs;
   releases: typeof releases;
+  serverState: typeof serverState;
   voice: typeof voice;
 }>;
 

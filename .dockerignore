@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.env*
+.cue
+.convex
+.vercel
+artifacts
+coverage
+.agents
+.claude
+.cursor
+*.tsbuildinfo

@@ -55,12 +55,48 @@ const control = createServer(async (req, res) => {
 });
 control.listen(4319, "127.0.0.1");
 console.log("Cue worker ready · persistent Convex jobs · Bloom :4318");
+const { checkCodex } = await import("../lib/integration-checks");
+const workerIdentity = await checkCodex(true);
+let publishing = false;
+async function publishStatus() {
+  if (process.env.CUE_SHARED_CONFIG !== "true" || publishing) return;
+  publishing = true;
+  try {
+    const row = await store.query(api.serverState.read, {
+      secret: auth,
+      key: "worker",
+    });
+    await store.mutation(api.serverState.write, {
+      secret: auth,
+      key: "worker",
+      expectedVersion: row?.version ?? 0,
+      value: JSON.stringify({
+        busy,
+        slack: slack.status(),
+        notifications: notifications.status(),
+        codex: {
+          loggedIn: workerIdentity.loggedIn,
+          github: workerIdentity.github,
+          workerOnline: !stopping,
+        },
+      }),
+    });
+  } catch {
+    console.error("Worker status could not be published");
+  } finally {
+    publishing = false;
+  }
+}
+await publishStatus();
+const statusTimer = setInterval(() => void publishStatus(), 8000);
 const stop = async () => {
   stopping = true;
+  clearInterval(statusTimer);
   currentAbort?.abort();
   control.close();
   await slack.stop();
   await notifications.stop();
+  await publishStatus();
   await shutdownBloom();
   process.exit(0);
 };
