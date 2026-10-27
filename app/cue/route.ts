@@ -1,5 +1,6 @@
 import { design } from "@/lib/design";
 import { operator, workosReady } from "@/lib/access";
+import { workosRedirectUri } from "@/lib/auth-config";
 export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   try {
@@ -15,10 +16,7 @@ export async function GET(request: Request) {
         return new Response(null, {
           status: 302,
           headers: {
-            location: new URL(
-              "/auth/login",
-              process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI,
-            ).toString(),
+            location: new URL("/auth/login", workosRedirectUri()).toString(),
             "cache-control": "no-store",
           },
         });
