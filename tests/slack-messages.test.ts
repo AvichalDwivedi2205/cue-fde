@@ -143,3 +143,18 @@ test("engineering progress never reports success during deployment", () => {
   expect(m.text).not.toContain("Deployment verified");
   expect(runMessage(run, issue).text).toContain("Deployment verified");
 });
+
+test("review cards summarize passing checks without terminal formatting or local paths", () => {
+  const m = approvalMessage(
+    {
+      ...run,
+      status: "awaiting_approval",
+      after:
+        "npm run typecheck\ntsc --noEmit\n\u001b[32mTest Files 17 passed (17)\nTests 141 passed (141)\u001b[0m\n/Users/private/checkout",
+    },
+    "Caption search",
+  );
+  expect(m.text).toContain("141 tests passed across 17 files");
+  expect(m.text).not.toContain("/Users/");
+  expect(JSON.stringify(m.blocks)).not.toContain("\\u001b");
+});

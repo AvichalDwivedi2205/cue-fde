@@ -396,3 +396,68 @@ export async function sendSpecDecision(
     });
   }
 }
+
+// Confirm decisions in their original review thread, using the durable current state.
+export async function sendSlackDecision(
+  decision:
+    | { issueId: Id<"issues">; version: string; actor: string }
+    | { runId: Id<"runs">; commit: string; actor: string },
+  threadTs?: string,
+) {
+  if ("issueId" in decision) return sendSpecDecision(decision, threadTs);
+  const config = await slackConfig();
+  if (!config) return;
+  const snapshot = await db().query(api.cue.snapshot, { secret: secret() });
+  const run = snapshot.runs.find((r) => r._id === decision.runId);
+  const issue = snapshot.issues.find((i) => i._id === run?.issueId);
+  if (
+    !run ||
+    !issue ||
+    run.commit !== decision.commit ||
+    run.approval !== decision.actor
+  )
+    return;
+  const key = `run-decision:${run._id}:${run.commit}`;
+  if (snapshot.deliveries.some((d) => d.key === key)) return;
+  const message = runMessage(run, issue);
+  message.text += `\nReviewed by ${decision.actor}.`;
+  message.blocks.push({
+    type: "context",
+    elements: [
+      {
+        type: "plain_text",
+        text: `Reviewed by ${decision.actor}. Exact commit ${run.commit}.`,
+      },
+    ],
+  });
+  const id = await db().mutation(api.deliveries.reserve, {
+    secret: secret(),
+    key,
+    channel: "slack",
+    destination: config.engineeringChannel,
+    body: message.text,
+    actor: decision.actor,
+  });
+  try {
+    const receipt = await slackPost(
+      config.botToken,
+      config.engineeringChannel,
+      message.text,
+      message.blocks,
+      threadTs && /^\d+\.\d+$/.test(threadTs) ? threadTs : undefined,
+    );
+    await db().mutation(api.deliveries.finish, {
+      secret: secret(),
+      id,
+      status: "sent",
+      receipt: `${receipt.channel}:${receipt.ts}`,
+    });
+  } catch (e) {
+    await db().mutation(api.deliveries.finish, {
+      secret: secret(),
+      id,
+      status: "unknown",
+      receipt: e instanceof Error ? e.message : "Provider error",
+    });
+  }
+}

@@ -2,7 +2,7 @@ import { SocketModeClient, LogLevel } from "@slack/socket-mode";
 import { createHash } from "node:crypto";
 import { slackConfig, type SlackConfig } from "./integration-config";
 import { receiveSlack, decideSlack } from "./slack-events";
-import { sendSpecDecision } from "./delivery";
+import { sendSlackDecision } from "./delivery";
 import { sendSlackDecisionFeedback } from "./slack-feedback";
 export async function startSlackListener() {
   let client: SocketModeClient | undefined,
@@ -86,7 +86,7 @@ export async function startSlackListener() {
               const decision = await decideSlack(body, current);
               await ack();
               if (decision)
-                void sendSpecDecision(decision, body.message?.ts).catch(
+                void sendSlackDecision(decision, body.message?.ts).catch(
                   () => {},
                 );
             } catch (error) {

@@ -1,5 +1,6 @@
 import type { Doc } from "../convex/_generated/dataModel";
 import { createHash } from "node:crypto";
+import { stripVTControlCharacters } from "node:util";
 
 type Case = Pick<
   Doc<"cases">,
@@ -230,8 +231,14 @@ export function approvalMessage(
   const approvalDetail = prOnly
     ? "Approve this exact implementation commit for your repository's release process. This does not merge, deploy, or announce the feature."
     : "Approve to deploy this exact commit to the connected Bloom environment. Cue verifies the deployed change afterward.";
+  const cleanValidation = stripVTControlCharacters(run.after || "");
+  const tests = cleanValidation.match(/Tests\s+(\d+)\s+passed/),
+    files = cleanValidation.match(/Test Files\s+(\d+)\s+passed/);
+  const validation = tests
+    ? `${cleanValidation.includes("tsc --noEmit") ? "TypeScript check passed. " : ""}${tests[1]} tests passed${files ? ` across ${files[1]} files` : ""}. Open Cue or the PR for the complete validation log.`
+    : cleanValidation || "Review the recorded checks in Cue.";
   return {
-    text: `Review required: ${title}\nCommit: ${run.commit}\n${run.rootCause || "Review the recorded investigation in Cue."}\nValidation: ${run.after || "Review the recorded checks in Cue."}\n${approvalDetail}\nOnly configured engineering operators may approve or reject.${pr ? `\nPull request: ${pr}` : ""}${cue ? `\nOpen in Cue: ${cue}` : ""}`,
+    text: `Review required: ${title}\nCommit: ${run.commit}\n${run.rootCause || "Review the recorded investigation in Cue."}\nValidation: ${validation}\n${approvalDetail}\nOnly configured engineering operators may approve or reject.${pr ? `\nPull request: ${pr}` : ""}${cue ? `\nOpen in Cue: ${cue}` : ""}`,
     blocks: [
       header("Ready for review"),
       reviewerBlock(reviewerIds, "Engineering"),
@@ -240,9 +247,7 @@ export function approvalMessage(
       section(
         `What changed\n${(run.rootCause || "Review the recorded investigation in Cue.").slice(0, 1200)}`,
       ),
-      section(
-        `Validation\n${(run.after || "Review the recorded checks in Cue.").slice(0, 1800)}`,
-      ),
+      section(`Validation\n${validation.slice(0, 1800)}`),
       context(`Exact commit · ${run.commit}`),
       section(approvalDetail),
       {
@@ -286,9 +291,7 @@ export function approvalMessage(
           ...(cue ? [button("Open in Cue", cue, "cue")] : []),
         ],
       },
-      context(
-        "Cue · Only configured engineering operators can decide this deployment.",
-      ),
+      context("Cue · Only Engineering or the Owner can decide this change."),
     ],
   };
 }

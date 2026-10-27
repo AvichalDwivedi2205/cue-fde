@@ -62,7 +62,11 @@ test.each([true, false])(
         },
       ],
     };
-    await decideSlack(payload, config);
+    expect(await decideSlack(payload, config)).toEqual({
+      runId,
+      commit,
+      actor: "Slack operator UOPERATOR",
+    });
     const snapshot = await t.query(api.cue.snapshot, auth);
     expect(snapshot.runs.find((r) => r._id === runId)).toMatchObject({
       status: approve ? "running" : "rejected",

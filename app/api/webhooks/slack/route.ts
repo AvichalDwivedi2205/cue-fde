@@ -1,7 +1,7 @@
 import { validSlack } from "@/lib/slack";
 import { slackConfig } from "@/lib/integration-config";
 import { receiveSlack, decideSlack } from "@/lib/slack-events";
-import { sendSpecDecision } from "@/lib/delivery";
+import { sendSlackDecision } from "@/lib/delivery";
 import { sendSlackDecisionFeedback } from "@/lib/slack-feedback";
 export async function POST(request: Request) {
   const raw = await request.text();
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       }
       if (decision)
         after(async () => {
-          await sendSpecDecision(decision, p.message?.ts).catch(() => {});
+          await sendSlackDecision(decision, p.message?.ts).catch(() => {});
         });
       return Response.json({
         text: "Decision recorded for this exact version.",

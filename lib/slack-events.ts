@@ -114,4 +114,11 @@ export async function decideSlack(input: unknown, config: SlackConfig) {
     approve: action.action_id === "cue_approve",
     reason: action.action_id === "cue_reject" ? "Rejected in Slack" : undefined,
   });
+  return {
+    runId: value.runId as Id<"runs">,
+    commit: value.commit,
+    actor: config.members
+      ? `${member.name} · Slack ${p.user.id}`
+      : `Slack operator ${p.user.id}`,
+  };
 }
