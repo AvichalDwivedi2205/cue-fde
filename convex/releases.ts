@@ -21,6 +21,7 @@ export const confirmFeature = mutation({
       !r ||
       r.kind !== "feature" ||
       r.deploymentMode !== "pull_request" ||
+      !/^[a-f0-9]{40}$/.test(a.commit) ||
       r.commit !== a.commit ||
       !r.approval
     )
@@ -34,7 +35,7 @@ export const confirmFeature = mutation({
     if (
       r.status === "resolved" &&
       r.releaseCommit === a.releaseCommit &&
-      r.releaseEvidence === a.evidence
+      r.releaseEvidence === a.evidence.trim()
     )
       return null;
     if (r.status !== "approved")

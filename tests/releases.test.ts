@@ -107,6 +107,10 @@ test("verified release records proof and one customer update, and retry is idemp
   });
   await t.mutation(api.releases.confirmFeature, args);
   await t.mutation(api.releases.confirmFeature, args);
+  await t.mutation(api.releases.confirmFeature, {
+    ...args,
+    evidence: "  " + args.evidence + "  ",
+  });
   const snapshot = await t.query(api.cue.snapshot, auth),
     run = snapshot.runs.find((r) => r._id === runId)!;
   expect(run.releaseEvidence).toBe(evidence);
