@@ -68,7 +68,8 @@ const featureReply = snapshot.deliveries.find(
   (d) =>
     d.key.startsWith(`slack-reply:${featureCase._id}:`) && d.status === "sent",
 );
-assert(featureReply?.receipt?.startsWith(config.supportChannel + ":"));
+assert(featureReply);
+assert(featureReply.receipt?.startsWith(config.supportChannel + ":"));
 assert(
   featureMessages.some(
     (m) => m.role === "staff" && m.body === featureReply.body,
