@@ -2,12 +2,9 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 import { z } from "zod";
-import {
-  isSocialNotification,
-  normalizeEmail,
-  type ReceivedEmail,
-} from "./email-intake";
+import { normalizeEmail, type ReceivedEmail } from "./email-intake";
 import type { EmailConfig } from "./integration-config";
+import { receivingMode } from "./email-routing";
 
 type MailMetadata = Pick<ReceivedEmail, "id" | "from" | "subject"> & {
   created_at: string;
@@ -113,33 +110,8 @@ export function createNotificationPoller(deps: {
       state.needsReview = checkpoint.needsReview;
       const provider = deps.provider(config);
       const processed = new Set(checkpoint.processed);
-      const mode = (mail: MailMetadata): "support" | "notification" | null => {
-        const recipients = mail.received_for?.length
-          ? mail.received_for
-          : mail.to;
-        const to = recipients.map((address) => address.trim().toLowerCase());
-        const support =
-          !!config.supportReceivingAddress &&
-          to.includes(config.supportReceivingAddress.toLowerCase());
-        const notification =
-          !!config.receivingAddress &&
-          to.includes(config.receivingAddress.toLowerCase());
-        if (support && notification) return null;
-        const receivedAt = Date.parse(mail.created_at);
-        if (
-          support &&
-          receivedAt >= (config.supportPollStartedAt ?? checkpoint.startedAt)
-        )
-          return "support";
-        if (
-          notification &&
-          config.notificationImport &&
-          receivedAt >= checkpoint.startedAt &&
-          isSocialNotification(mail)
-        )
-          return "notification";
-        return null;
-      };
+      const mode = (mail: MailMetadata) =>
+        receivingMode(mail, config, checkpoint.startedAt);
       for (let page = 0; page < 5; page++) {
         const batch = await provider.list(checkpoint.after);
         for (const metadata of batch.data) {

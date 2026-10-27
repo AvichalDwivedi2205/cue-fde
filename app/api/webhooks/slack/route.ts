@@ -3,6 +3,8 @@ import { slackConfig } from "@/lib/integration-config";
 import { receiveSlack, decideSlack } from "@/lib/slack-events";
 import { sendSlackDecision } from "@/lib/delivery";
 import { sendSlackDecisionFeedback } from "@/lib/slack-feedback";
+import { triage } from "@/lib/triage";
+export const runtime = "nodejs";
 export async function POST(request: Request) {
   const raw = await request.text();
   const config = await slackConfig();
@@ -50,7 +52,11 @@ export async function POST(request: Request) {
     if (body.type === "url_verification")
       return Response.json({ challenge: body.challenge });
     if (!config) throw new Error("Slack not configured");
-    await receiveSlack(body, config);
+    const result = await receiveSlack(body, config, false);
+    if (result && !result.duplicate)
+      after(async () => {
+        await triage(result.caseId).catch(() => {});
+      });
     return Response.json({ ok: true });
   } catch {
     return Response.json(

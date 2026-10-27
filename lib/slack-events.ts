@@ -18,7 +18,11 @@ const event = z.object({
     subtype: z.string().optional(),
   }),
 });
-export async function receiveSlack(input: unknown, config: SlackConfig) {
+export async function receiveSlack(
+  input: unknown,
+  config: SlackConfig,
+  triageNew = true,
+) {
   const b = event.parse(input),
     e = b.event;
   if (b.team_id !== config.teamId) throw new Error("Wrong Slack workspace");
@@ -44,7 +48,8 @@ export async function receiveSlack(input: unknown, config: SlackConfig) {
     sourceKey: `slack:${b.team_id}:${e.channel}:${e.thread_ts || e.ts}`,
     sourceUrl: `https://app.slack.com/client/${b.team_id}/${e.channel}/thread/${e.channel}-${e.thread_ts || e.ts}`,
   });
-  if (!result.duplicate) void triage(result.caseId).catch(() => {});
+  if (!result.duplicate && triageNew)
+    void triage(result.caseId).catch(() => {});
   return result;
 }
 const interaction = z.object({

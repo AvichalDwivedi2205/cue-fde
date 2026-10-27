@@ -3,6 +3,9 @@ import { api, db, secret } from "@/lib/server-store";
 import { emailConfig } from "@/lib/integration-config";
 import { triage } from "@/lib/triage";
 import { normalizeEmail } from "@/lib/email-intake";
+import { receivingMode } from "@/lib/email-routing";
+import { after } from "next/server";
+export const runtime = "nodejs";
 export async function POST(request: Request) {
   const config = await emailConfig();
   if (!config?.webhookSecret)
@@ -20,9 +23,21 @@ export async function POST(request: Request) {
       webhookSecret: config.webhookSecret,
     });
     if (event.type !== "email.received") return Response.json({ ok: true });
+    const mode = receivingMode(event.data, config);
+    if (!mode)
+      return Response.json({
+        ok: true,
+        imported: 0,
+        ignored: "Outside configured inbox or activation boundary",
+      });
     const email = await resend.emails.receiving.get(event.data.email_id);
     if (email.error || !email.data) throw new Error("Email body unavailable");
-    const normalized = normalizeEmail(email.data, config.notificationImport);
+    if (
+      email.data.id !== event.data.email_id ||
+      receivingMode(email.data, config) !== mode
+    )
+      throw new Error("Received email metadata changed");
+    const normalized = normalizeEmail(email.data, mode === "notification");
     const store = db(),
       auth = secret();
     let imported = 0;
@@ -33,7 +48,9 @@ export async function POST(request: Request) {
       });
       if (!result.duplicate) {
         imported++;
-        void triage(result.caseId).catch(() => {});
+        after(async () => {
+          await triage(result.caseId).catch(() => {});
+        });
       }
     }
     return Response.json({ ok: true, imported, ignored: normalized.ignored });
