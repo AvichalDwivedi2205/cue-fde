@@ -109,8 +109,30 @@ export function isSocialNotification(
   );
 }
 
+function notificationPermalink(channel: "x" | "reddit", value: string) {
+  const wrapper = new URL(value);
+  if (channel !== "reddit" || wrapper.hostname !== "click.redditmail.com")
+    return value;
+  if (
+    wrapper.protocol !== "https:" ||
+    wrapper.username ||
+    wrapper.password ||
+    wrapper.port ||
+    wrapper.search ||
+    wrapper.hash
+  )
+    throw new Error("Unsupported notification wrapper");
+  // Observed Reddit mention email format. Decode its explicit destination once;
+  // never follow the tracking URL or resolve an opaque/recursive redirect.
+  const match = wrapper.pathname.match(
+    /^\/CL0\/(https:%2f%2f[^/]+)\/[12]\/[^/]+\/[^/]+$/i,
+  );
+  if (!match) throw new Error("Unsupported notification wrapper");
+  return decodeURIComponent(match[1]);
+}
+
 // The provider authenticates email delivery, not the platform sender or author.
-// Only direct permalinks in the received message are used. No remote URLs fetched.
+// Only permalinks embedded in the received message are used. No remote URLs fetched.
 export function normalizeEmail(
   mail: ReceivedEmail,
   importNotifications = false,
@@ -178,11 +200,14 @@ export function normalizeEmail(
   >();
   for (const candidate of candidates) {
     try {
-      const source = socialSource(channel, candidate.url);
+      const source = socialSource(
+        channel,
+        notificationPermalink(channel, candidate.url),
+      );
       if (!sources.has(source.key))
         sources.set(source.key, { ...source, excerpt: candidate.excerpt });
     } catch {
-      /* Non-post links and tracking redirects are not followed. */
+      /* Non-post links and unsupported tracking redirects are not followed. */
     }
   }
   if (!sources.size)

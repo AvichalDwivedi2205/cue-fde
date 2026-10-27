@@ -86,6 +86,60 @@ describe("Notification email intake", () => {
     expect(result.reports).toHaveLength(0);
     expect(result.ignored).toContain("capture it manually");
   });
+  test("Reddit CL0 notification links expose their encoded permalink without a network request", () => {
+    const permalink =
+      "https://www.reddit.com/r/u_Fuzzy-Vast4353/comments/1x2djtw/cue_bloom_support_intake_test_cuereddit1010/pf17by5/?ref=username_mention_email&target_user=Big-Simple-7204";
+    const wrapper =
+      "https://click.redditmail.com/CL0/" +
+      permalink
+        .replaceAll("/", "%2F")
+        .replaceAll("?", "%3F")
+        .replaceAll("&", "%26") +
+      "/1/notification-receipt/signature=452";
+    const result = normalizeEmail(
+      {
+        ...mention,
+        from: "Reddit <noreply@redditmail.com>",
+        subject: "u/Fuzzy-Vast4353 mentioned you in r/u_Fuzzy-Vast4353",
+        html: `<table><tr><td><a href="${wrapper}">A 3 MB journal photo fails to upload.</a><a href="${wrapper.replace("/1/notification-receipt/", "/2/notification-receipt/")}">Reply</a></td></tr></table>`,
+      },
+      true,
+    );
+    expect(result.reports).toHaveLength(1);
+    expect(result.reports[0]).toMatchObject({
+      channel: "reddit",
+      sourceKey: "reddit:comment:pf17by5",
+      sourceUrl: permalink.split("?")[0],
+      customer: "Reddit author unverified",
+    });
+    expect(result.reports[0].body).toContain("3 MB journal photo");
+    expect(result.reports[0].body).not.toContain("target_user");
+  });
+  test("Reddit tracking extraction rejects unknown wrappers and unsafe embedded destinations", () => {
+    const target =
+      "https:%2F%2Fwww.reddit.com%2Fr%2Fbloom%2Fcomments%2Fabc123%2Fhelp%2Fdef456%2F";
+    for (const url of [
+      `https://click.redditmail.com.evil.example/CL0/${target}/1/receipt/signature`,
+      `https://user:pass@click.redditmail.com/CL0/${target}/1/receipt/signature`,
+      `https://click.redditmail.com:444/CL0/${target}/1/receipt/signature`,
+      `https://click.redditmail.com/unknown/${target}/1/receipt/signature`,
+      "https://click.redditmail.com/CL0/https:%2F%2Fevil.example%2F/1/receipt/signature",
+      "https://click.redditmail.com/CL0/https:%2F%2Fuser:pass@www.reddit.com%2Fr%2Fbloom%2Fcomments%2Fabc123%2Fhelp%2Fdef456%2F/1/receipt/signature",
+      "https://click.redditmail.com/CL0/https:%2F%2Fclick.redditmail.com%2Fopaque/1/receipt/signature",
+      "https://click.redditmail.com/CL0/https:%ZZ/1/receipt/signature",
+    ]) {
+      expect(
+        normalizeEmail(
+          {
+            ...mention,
+            from: "Reddit <noreply@redditmail.com>",
+            html: `<a href="${url}">Mention</a>`,
+          },
+          true,
+        ).reports,
+      ).toHaveLength(0);
+    }
+  });
   test("ordinary support emails containing social links stay email conversations", () => {
     const report = normalizeEmail(
       {
