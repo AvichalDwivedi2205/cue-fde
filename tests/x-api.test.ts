@@ -8,7 +8,11 @@ import schema from "../convex/schema";
 import { api } from "../convex/_generated/api";
 import { createXApi, xReports, XApiError, type XPage } from "../lib/x-api";
 import { createXPoller } from "../lib/x-poller";
-import { xInput, type XConfig } from "../lib/integration-config";
+import {
+  xInput,
+  xConfigForSave,
+  type XConfig,
+} from "../lib/integration-config";
 
 const modules = import.meta.glob("../convex/**/*.{ts,js}");
 const startedAt = Date.parse("2026-10-11T00:00:00Z");
@@ -311,4 +315,24 @@ test("credential input rejects destinations and injection strings", () => {
   expect(
     xInput.safeParse({ ...config, username: "bloomwithcue.evil" }).success,
   ).toBe(false);
+});
+test("saving inactive credentials cannot begin history collection; activation time is server controlled", () => {
+  const paused = xConfigForSave(
+    xInput.parse({ ...config, enabled: false, startedAt: 1 }),
+    undefined,
+    100,
+  );
+  expect(paused.startedAt).toBe(0);
+  const active = xConfigForSave(xInput.parse(config), paused, 200);
+  expect(active.startedAt).toBe(200);
+  const pausedAgain = xConfigForSave(
+    { ...active, enabled: false },
+    active,
+    300,
+  );
+  expect(xConfigForSave(active, pausedAgain, 400).startedAt).toBe(200);
+  expect(
+    xConfigForSave({ ...active, username: "other", userId: "300" }, active, 500)
+      .startedAt,
+  ).toBe(500);
 });

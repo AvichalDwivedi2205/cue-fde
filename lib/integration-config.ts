@@ -157,6 +157,20 @@ export const xInput = z.object({
   enabled: z.boolean(),
 });
 export type XConfig = z.infer<typeof xInput> & { startedAt: number };
+export function xConfigForSave(
+  input: z.infer<typeof xInput>,
+  old?: XConfig,
+  now = Date.now(),
+): XConfig {
+  const sameBrand =
+    old?.userId === input.userId &&
+    old.username.toLowerCase() === input.username.toLowerCase();
+  return {
+    ...input,
+    startedAt:
+      sameBrand && old.startedAt > 0 ? old.startedAt : input.enabled ? now : 0,
+  };
+}
 export function emailConfigForSave(
   input: z.infer<typeof emailInput>,
   old?: EmailConfig,

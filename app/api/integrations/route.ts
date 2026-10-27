@@ -14,6 +14,7 @@ import {
   emailConfigForSave,
   codingInput,
   xInput,
+  xConfigForSave,
 } from "@/lib/integration-config";
 import {
   checkSlack,
@@ -102,14 +103,7 @@ export async function POST(request: Request) {
         ...b,
         bearerToken: b.bearerToken || old?.bearerToken,
       });
-      const config = {
-        ...input,
-        startedAt:
-          old?.userId === input.userId &&
-          old.username.toLowerCase() === input.username.toLowerCase()
-            ? old.startedAt
-            : Date.now(),
-      };
+      const config = xConfigForSave(input, old);
       if (config.enabled) {
         const provider = createXApi(config);
         await provider.credits();
