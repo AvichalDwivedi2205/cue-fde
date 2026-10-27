@@ -2,6 +2,10 @@ import nextEnv from "@next/env";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 nextEnv.loadEnvConfig(process.cwd());
+const { slackConfig, emailConfig } = await import("../lib/integration-config");
+const { slackRuntimeStatus, notificationRuntimeStatus } = await import(
+  "../lib/integration-checks"
+);
 const exec = promisify(execFile);
 const rows: Array<{ service: string; status: string }> = [];
 for (const [service, url] of [
@@ -59,18 +63,34 @@ rows.push({
       ? "Configured; sign in to verify"
       : "Credentials needed",
 });
+const [slack, email, slackRuntime, notificationRuntime] = await Promise.all([
+  slackConfig(),
+  emailConfig(),
+  slackRuntimeStatus(),
+  notificationRuntimeStatus(),
+]);
 rows.push({
   service: "Slack",
-  status:
-    process.env.SLACK_SIGNING_SECRET && process.env.SLACK_TEAM_ID
-      ? "Configured; workspace consent needed"
+  status: slackRuntime.connected
+    ? "Connected · Socket Mode"
+    : slack
+      ? "Configured · " + slackRuntime.detail
       : "Credentials needed",
 });
 rows.push({
-  service: "Email",
-  status:
-    process.env.RESEND_API_KEY && process.env.RESEND_WEBHOOK_SECRET
-      ? "Configured; domain verification needed"
-      : "Credentials needed",
+  service: "Email receiving",
+  status: notificationRuntime.connected
+    ? `Connected · local polling · ${notificationRuntime.imported} imported`
+    : email?.pollReceiving
+      ? "Configured · " + notificationRuntime.detail
+      : email?.webhookSecret
+        ? "Configured · webhook delivery unverified"
+        : "Receiving connection needed",
+});
+rows.push({
+  service: "Email sending",
+  status: email
+    ? "Configured · sender domain and inbox delivery need verification"
+    : "Credentials needed",
 });
 console.table(rows);
