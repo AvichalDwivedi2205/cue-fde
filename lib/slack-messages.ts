@@ -95,9 +95,12 @@ export function supportMessage(
   issue?: Issue,
   run?: Run,
 ): SlackMessage {
-  const verified = verifiedSlackFix(issue, run);
+  const featureVerified = replyFacts({ issue, run }).featureVerified;
+  const verified = verifiedSlackFix(issue, run) || featureVerified;
   const heading = verified
-    ? "Fix verified"
+    ? featureVerified
+      ? "Feature released"
+      : "Fix verified"
     : issue?.kind === "feature"
       ? "Feature request update"
       : "Support update";

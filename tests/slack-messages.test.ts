@@ -158,3 +158,32 @@ test("review cards summarize passing checks without terminal formatting or local
   expect(m.text).not.toContain("/Users/");
   expect(JSON.stringify(m.blocks)).not.toContain("\\u001b");
 });
+
+test("feature support cards require complete released evidence before showing success", () => {
+  const feature = { ...issue, kind: "feature" } as Doc<"issues">;
+  const released = {
+    ...run,
+    kind: "feature",
+    releaseCommit: "b".repeat(40),
+    releaseEvidence:
+      "Independently verified caption search on the deployed journal. ".repeat(
+        3,
+      ),
+  } as Doc<"runs">;
+  expect(
+    supportMessage("Caption search is available.", c, feature, released).text,
+  ).toContain("Feature released");
+  expect(
+    supportMessage("Specification recorded.", c, feature, {
+      ...released,
+      releaseEvidence: undefined,
+    }).text,
+  ).not.toContain("Feature released");
+  expect(
+    supportMessage("Awaiting deployment.", c, feature, {
+      ...released,
+      status: "approved",
+      deployed: false,
+    }).text,
+  ).not.toContain("Feature released");
+});

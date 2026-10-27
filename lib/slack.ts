@@ -49,8 +49,23 @@ export async function slackEphemeral(
 ) {
   return post("chat.postEphemeral", token, { channel, user, text, blocks });
 }
+export async function slackUpdate(
+  token: string,
+  channel: string,
+  ts: string,
+  text: string,
+  blocks: unknown[],
+) {
+  return post("chat.update", token, {
+    channel,
+    ts,
+    text,
+    blocks,
+    mrkdwn: false,
+  });
+}
 async function post(
-  method: "chat.postMessage" | "chat.postEphemeral",
+  method: "chat.postMessage" | "chat.postEphemeral" | "chat.update",
   token: string,
   body: Record<string, unknown>,
 ) {

@@ -2,7 +2,7 @@ import { Resend } from "resend";
 import { createHash } from "node:crypto";
 import { api, db, secret } from "./server-store";
 import { providerToken } from "./pipes";
-import { slackPost } from "./slack";
+import { slackPost, slackUpdate } from "./slack";
 import type { Id } from "../convex/_generated/dataModel";
 import { emailConfig, slackConfig } from "./integration-config";
 import {
@@ -13,6 +13,7 @@ import {
   specVersion,
 } from "./slack-messages";
 import { reviewers } from "./roles";
+import { replyFacts } from "./reply-policy";
 const digest = (text: string) =>
   createHash("sha256").update(text).digest("hex");
 export async function sendApproval(
@@ -238,6 +239,12 @@ export async function sendSlackRunUpdate(runId: Id<"runs">) {
   const issue = snapshot.issues.find((i) => i._id === run?.issueId);
   if (!run || !issue) return;
   const message = runMessage(run, issue, reviewers(config, "deploy"));
+  if (run.status !== "awaiting_approval") {
+    const review = snapshot.deliveries.find(
+      (d) => d.key === `approval:${runId}` && d.status === "sent",
+    );
+    await refreshReviewCard(config, review?.receipt, message);
+  }
   const key =
     run.status === "awaiting_approval"
       ? `approval:${runId}`
@@ -328,17 +335,31 @@ export async function sendSpecDecision(
   if (!config) return;
   const snapshot = await db().query(api.cue.snapshot, { secret: secret() });
   const issue = snapshot.issues.find((i) => i._id === decision.issueId);
+  const run = snapshot.runs
+    .filter((r) => r.issueId === decision.issueId)
+    .sort((a, b) => b.createdAt - a.createdAt)[0];
+  const released = replyFacts({ issue, run }).featureVerified;
   if (
     !issue?.spec ||
     specVersion(issue.spec) !== decision.version ||
-    !["approved", "spec_rejected"].includes(issue.status)
+    (!released && !["approved", "spec_rejected"].includes(issue.status)) ||
+    (issue.status !== "spec_rejected" &&
+      issue.specApprovedBy !== decision.actor)
   )
     return;
   const key = `spec-decision:${issue._id}:${decision.version}`;
-  if (snapshot.deliveries.some((d) => d.key === key)) return;
-  const approved = issue.status === "approved";
-  const heading = approved ? "Specification approved" : "Changes requested";
-  const text = `${heading}\n${issue.title}\nReviewed by ${decision.actor}.\n${approved ? "Ready for implementation planning. The feature has not shipped." : "Revise and save the specification before requesting another review."}`;
+  const approved = released || issue.status === "approved";
+  const heading = released
+    ? "Feature release verified"
+    : approved
+      ? "Specification approved"
+      : "Changes requested";
+  const detail = released
+    ? "The approved feature is now deployed and verified. Review acceptance evidence in Cue."
+    : approved
+      ? "Ready for implementation planning. The feature has not shipped."
+      : "Revise and save the specification before requesting another review.";
+  const text = `${heading}\n${issue.title}\nReviewed by ${decision.actor}.\n${detail}`;
   const message = {
     text,
     blocks: [
@@ -351,7 +372,7 @@ export async function sendSpecDecision(
         type: "section",
         text: {
           type: "plain_text",
-          text: `Reviewed by ${decision.actor}.\n${approved ? "Ready for implementation planning. The feature has not shipped." : "Revise and save the specification before requesting another review."}`,
+          text: `Reviewed by ${decision.actor}.\n${detail}`,
         },
       },
       {
@@ -365,6 +386,13 @@ export async function sendSpecDecision(
       },
     ],
   };
+  const review = snapshot.deliveries.find(
+    (d) =>
+      d.key === `spec-approval:${issue._id}:${decision.version}` &&
+      d.status === "sent",
+  );
+  await refreshReviewCard(config, review?.receipt, message);
+  if (snapshot.deliveries.some((d) => d.key === key)) return;
   const id = await db().mutation(api.deliveries.reserve, {
     secret: secret(),
     key,
@@ -418,7 +446,6 @@ export async function sendSlackDecision(
   )
     return;
   const key = `run-decision:${run._id}:${run.commit}`;
-  if (snapshot.deliveries.some((d) => d.key === key)) return;
   const message = runMessage(run, issue);
   message.text += `\nReviewed by ${decision.actor}.`;
   message.blocks.push({
@@ -430,6 +457,11 @@ export async function sendSlackDecision(
       },
     ],
   });
+  const review = snapshot.deliveries.find(
+    (d) => d.key === `approval:${run._id}` && d.status === "sent",
+  );
+  await refreshReviewCard(config, review?.receipt, message);
+  if (snapshot.deliveries.some((d) => d.key === key)) return;
   const id = await db().mutation(api.deliveries.reserve, {
     secret: secret(),
     key,
@@ -459,5 +491,29 @@ export async function sendSlackDecision(
       status: "unknown",
       receipt: e instanceof Error ? e.message : "Provider error",
     });
+  }
+}
+
+// Editing an existing bot card is safe to retry; a missing edit must not undo
+// the durable decision or block its threaded confirmation.
+async function refreshReviewCard(
+  config: NonNullable<Awaited<ReturnType<typeof slackConfig>>>,
+  receipt: string | undefined,
+  message: ReturnType<typeof runMessage>,
+) {
+  const target = receipt?.match(/^(C[A-Z0-9]+):(\d+\.\d+)$/);
+  if (!target || target[1] !== config.engineeringChannel) return;
+  try {
+    await slackUpdate(
+      config.botToken,
+      target[1],
+      target[2],
+      message.text,
+      message.blocks,
+    );
+  } catch {
+    console.warn(
+      "Slack review card refresh failed; the decision remains recorded.",
+    );
   }
 }
