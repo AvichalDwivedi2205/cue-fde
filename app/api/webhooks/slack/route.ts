@@ -2,6 +2,7 @@ import { validSlack } from "@/lib/slack";
 import { slackConfig } from "@/lib/integration-config";
 import { receiveSlack, decideSlack } from "@/lib/slack-events";
 import { sendSpecDecision } from "@/lib/delivery";
+import { sendSlackDecisionFeedback } from "@/lib/slack-feedback";
 export async function POST(request: Request) {
   const raw = await request.text();
   const config = await slackConfig();
@@ -28,8 +29,19 @@ export async function POST(request: Request) {
         )
       )
         return Response.json({ ok: true });
-      const decision = await decideSlack(p, config);
-      if (decision) await sendSpecDecision(decision, p.message?.ts);
+      let decision;
+      try {
+        decision = await decideSlack(p, config);
+      } catch (error) {
+        after(async () => {
+          await sendSlackDecisionFeedback(p, config, error).catch(() => {});
+        });
+        return Response.json({ ok: true });
+      }
+      if (decision)
+        after(async () => {
+          await sendSpecDecision(decision, p.message?.ts).catch(() => {});
+        });
       return Response.json({
         text: "Decision recorded for this exact version.",
       });
@@ -47,3 +59,4 @@ export async function POST(request: Request) {
     );
   }
 }
+import { after } from "next/server";

@@ -1,8 +1,9 @@
 import { SocketModeClient, LogLevel } from "@slack/socket-mode";
 import { createHash } from "node:crypto";
-import { slackConfig } from "./integration-config";
+import { slackConfig, type SlackConfig } from "./integration-config";
 import { receiveSlack, decideSlack } from "./slack-events";
 import { sendSpecDecision } from "./delivery";
+import { sendSlackDecisionFeedback } from "./slack-feedback";
 export async function startSlackListener() {
   let client: SocketModeClient | undefined,
     fingerprint = "",
@@ -78,8 +79,9 @@ export async function startSlackListener() {
               await ack();
               return;
             }
+            let current: SlackConfig | undefined;
             try {
-              const current = await slackConfig();
+              current = await slackConfig();
               if (!current) throw new Error("Slack disconnected");
               const decision = await decideSlack(body, current);
               await ack();
@@ -87,8 +89,12 @@ export async function startSlackListener() {
                 void sendSpecDecision(decision, body.message?.ts).catch(
                   () => {},
                 );
-            } catch {
+            } catch (error) {
               await ack();
+              if (current)
+                void sendSlackDecisionFeedback(body, current, error).catch(
+                  () => {},
+                );
               detail =
                 "Approval denied or already decided. Review the current commit or specification in Cue.";
             }

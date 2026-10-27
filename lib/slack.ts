@@ -30,21 +30,37 @@ export async function slackPost(
   blocks?: unknown[],
   threadTs?: string,
 ) {
-  const r = await fetch("https://slack.com/api/chat.postMessage", {
+  return post("chat.postMessage", token, {
+    channel,
+    text,
+    blocks,
+    thread_ts: threadTs,
+    unfurl_links: false,
+    unfurl_media: false,
+    mrkdwn: false,
+  });
+}
+export async function slackEphemeral(
+  token: string,
+  channel: string,
+  user: string,
+  text: string,
+  blocks: unknown[],
+) {
+  return post("chat.postEphemeral", token, { channel, user, text, blocks });
+}
+async function post(
+  method: "chat.postMessage" | "chat.postEphemeral",
+  token: string,
+  body: Record<string, unknown>,
+) {
+  const r = await fetch(`https://slack.com/api/${method}`, {
     method: "POST",
     headers: {
       authorization: `Bearer ${token}`,
       "content-type": "application/json",
     },
-    body: JSON.stringify({
-      channel,
-      text,
-      blocks,
-      thread_ts: threadTs,
-      unfurl_links: false,
-      unfurl_media: false,
-      mrkdwn: false,
-    }),
+    body: JSON.stringify(body),
     signal: AbortSignal.timeout(15000),
   });
   const result = await r.json();
