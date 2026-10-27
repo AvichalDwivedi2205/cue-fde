@@ -36,9 +36,9 @@ assert.equal(
   ).length,
   1,
 );
-const receipt = snapshot.deliveries.find(
-  (d) => d.key.startsWith(`email:${c._id}:`) && d.status === "sent",
-);
+const receipt = snapshot.deliveries
+  .filter((d) => d.key.startsWith(`email:${c._id}:`) && d.status === "sent")
+  .sort((a, b) => b.createdAt - a.createdAt)[0];
 assert(receipt?.receipt);
 assert(messages.some((m) => m.role === "staff" && m.body === receipt.body));
 const resend = new Resend(config.apiKey);
@@ -49,10 +49,26 @@ assert(
   `Provider delivery is ${sent.data.last_event}`,
 );
 assert(sent.data.to.includes(c.customer));
+assert.equal(sent.data.from, config.from);
 const incoming = await resend.emails.receiving.get(c.externalId!);
 assert(incoming.data && !incoming.error);
 assert(incoming.data.to.includes(config.supportReceivingAddress));
-assert(incoming.data.text?.includes("CUE-EMAIL-FOLLOWUP-1010"));
+const branded = config.from !== "onboarding@resend.dev";
+assert(
+  incoming.data.text?.includes(
+    branded ? "CUE-BRANDED-FOLLOWUP-1010" : "CUE-EMAIL-FOLLOWUP-1010",
+  ),
+);
+if (branded) {
+  assert.equal(
+    messages.filter(
+      (m) =>
+        m.role === "customer" &&
+        m.body.startsWith("CUE-BRANDED-FOLLOWUP-1010:"),
+    ).length,
+    1,
+  );
+}
 assert((await notificationRuntimeStatus()).connected);
 const checks = [
   "Real support email automatically creates one case for the expected sender",
@@ -71,14 +87,26 @@ await fs.writeFile(
       caseId: c._id,
       receipt: receipt.receipt,
       providerStatus: sent.data.last_event,
+      sender: sent.data.from,
       checks,
-      browserEvidence: [
-        "artifacts/email-live-delivered.jpg",
-        "artifacts/email-live-followup-cue.jpg",
-      ],
+      browserEvidence: branded
+        ? [
+            "artifacts/email-branded-delivered.jpg",
+            "artifacts/email-branded-followup-cue.jpg",
+          ]
+        : [
+            "artifacts/email-live-delivered.jpg",
+            "artifacts/email-live-followup-cue.jpg",
+          ],
       limits: [
-        "Provider test sender reaches the configured operator only",
-        "Branded sender domain remains unverified",
+        ...(config.from === "onboarding@resend.dev"
+          ? [
+              "Provider test sender reaches the configured operator only",
+              "Branded sender has not been tested",
+            ]
+          : [
+              "Branded reply delivery verified to the owned Gmail test recipient",
+            ]),
         "Platform notification coverage is checked separately by scripts/verify-social.ts",
       ],
     },
