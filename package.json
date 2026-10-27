@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "run-p dev:convex dev:web dev:worker",
+    "dev": "run-p dev:web dev:worker",
+    "dev:local": "run-p dev:convex dev:web dev:worker",
     "typecheck": "tsc --noEmit",
     "build": "npm run typecheck && next build",
     "start": "next start --hostname 127.0.0.1",

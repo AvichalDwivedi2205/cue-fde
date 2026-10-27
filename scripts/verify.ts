@@ -302,4 +302,4 @@ await fs.writeFile(
     2,
   ),
 );
-console.log(`${checks.length} checks passed. Evidence: .cue/verification.json`);
+console.log(`${checks.length} checks passed against ${base}.`);
