@@ -5,6 +5,7 @@ import { providerToken } from "./pipes";
 import { slackPost } from "./slack";
 import type { Id } from "../convex/_generated/dataModel";
 import { emailConfig, slackConfig } from "./integration-config";
+import { approvalMessage, supportMessage, runMessage } from "./slack-messages";
 const digest = (text: string) =>
   createHash("sha256").update(text).digest("hex");
 export async function sendApproval(
@@ -29,7 +30,11 @@ export async function sendApproval(
       actor.id,
       actor.organizationId,
     ));
-  const text = `Bloom upload fix needs review.\nCommit: ${run.commit}\n${run.prUrl || "Local repository patch"}\nIndependent HTTP checks passed. Approval deploys this exact commit to the local demo.`;
+  const message = approvalMessage(
+    run,
+    s.issues.find((i) => i._id === run.issueId)?.title || "Bloom change",
+  );
+  const text = message.text;
   const id = await store.mutation(api.deliveries.reserve, {
     secret: auth,
     key: "approval:" + runId,
@@ -39,26 +44,7 @@ export async function sendApproval(
     actor: actor.name,
   });
   try {
-    const receipt = await slackPost(token, channel, text, [
-      { type: "section", text: { type: "mrkdwn", text } },
-      {
-        type: "actions",
-        elements: [
-          {
-            type: "button",
-            text: { type: "plain_text", text: "Approve exact commit" },
-            action_id: "cue_approve",
-            value: JSON.stringify({ runId, commit: run.commit }),
-          },
-          {
-            type: "button",
-            text: { type: "plain_text", text: "Reject" },
-            action_id: "cue_reject",
-            value: JSON.stringify({ runId, commit: run.commit }),
-          },
-        ],
-      },
-    ]);
+    const receipt = await slackPost(token, channel, text, message.blocks);
     await store.mutation(api.deliveries.finish, {
       secret: auth,
       id,
@@ -176,9 +162,8 @@ export async function sendSlackReply(
   if (!config?.botToken) throw new Error("Connect Slack first");
   const store = db(),
     auth = secret(),
-    c = (await store.query(api.cue.snapshot, { secret: auth })).cases.find(
-      (c) => c._id === caseId,
-    );
+    snapshot = await store.query(api.cue.snapshot, { secret: auth }),
+    c = snapshot.cases.find((c) => c._id === caseId);
   const source = c?.sourceKey?.match(
     /^slack:(T[A-Z0-9]+):([CG][A-Z0-9]+):(\d+\.\d+)$/,
   );
@@ -190,6 +175,11 @@ export async function sendSlackReply(
     source[2] !== config.supportChannel
   )
     throw new Error("Slack case does not belong to this connection");
+  const issue = snapshot.issues.find((i) => i._id === c.issueId);
+  const run = snapshot.runs
+    .filter((r) => r.issueId === c.issueId)
+    .sort((a, b) => b.createdAt - a.createdAt)[0];
+  const message = supportMessage(body, c, issue, run);
   const id = await store.mutation(api.deliveries.reserve, {
     secret: auth,
     key: `slack-reply:${caseId}:${digest(body)}`,
@@ -202,8 +192,8 @@ export async function sendSlackReply(
     const result = await slackPost(
       config.botToken,
       source[2],
-      body,
-      undefined,
+      message.text,
+      message.blocks,
       source[3],
     );
     await store.mutation(api.deliveries.finish, {
@@ -218,6 +208,54 @@ export async function sendSlackReply(
       body,
       author: actor,
       role: "staff",
+    });
+  } catch (e) {
+    await store.mutation(api.deliveries.finish, {
+      secret: auth,
+      id,
+      status: "unknown",
+      receipt: e instanceof Error ? e.message : "Provider error",
+    });
+    throw e;
+  }
+}
+
+export async function sendSlackRunUpdate(runId: Id<"runs">) {
+  const config = await slackConfig();
+  if (!config?.botToken || !config.engineeringChannel) return;
+  const store = db(),
+    auth = secret(),
+    snapshot = await store.query(api.cue.snapshot, { secret: auth });
+  const run = snapshot.runs.find((r) => r._id === runId);
+  const issue = snapshot.issues.find((i) => i._id === run?.issueId);
+  if (!run || !issue) return;
+  const message = runMessage(run, issue);
+  const key =
+    run.status === "awaiting_approval"
+      ? `approval:${runId}`
+      : `run-update:${runId}:${run.status}:${run.phase}`;
+  // A persisted reservation prevents duplicate status messages across restarts.
+  if (snapshot.deliveries.some((d) => d.key === key)) return;
+  const id = await store.mutation(api.deliveries.reserve, {
+    secret: auth,
+    key,
+    channel: "slack",
+    destination: config.engineeringChannel,
+    body: message.text,
+    actor: "Cue",
+  });
+  try {
+    const receipt = await slackPost(
+      config.botToken,
+      config.engineeringChannel,
+      message.text,
+      message.blocks,
+    );
+    await store.mutation(api.deliveries.finish, {
+      secret: auth,
+      id,
+      status: "sent",
+      receipt: `${receipt.channel}:${receipt.ts}`,
     });
   } catch (e) {
     await store.mutation(api.deliveries.finish, {

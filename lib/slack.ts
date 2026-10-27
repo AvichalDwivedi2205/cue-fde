@@ -36,11 +36,25 @@ export async function slackPost(
       authorization: `Bearer ${token}`,
       "content-type": "application/json",
     },
-    body: JSON.stringify({ channel, text, blocks, thread_ts: threadTs }),
+    body: JSON.stringify({
+      channel,
+      text,
+      blocks,
+      thread_ts: threadTs,
+      unfurl_links: false,
+      unfurl_media: false,
+      mrkdwn: false,
+    }),
     signal: AbortSignal.timeout(15000),
   });
   const result = await r.json();
   if (!r.ok || !result.ok)
-    throw new Error("Slack: " + (result.error || "request failed"));
+    throw new Error(
+      "Slack: " +
+        (result.error || "request failed") +
+        (result.response_metadata?.messages?.length
+          ? " · " + result.response_metadata.messages.join("; ")
+          : ""),
+    );
   return result;
 }

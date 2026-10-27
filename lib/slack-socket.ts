@@ -69,6 +69,14 @@ export async function startSlackListener() {
             }
           });
           client.on("interactive", async ({ body, ack }) => {
+            if (
+              body.actions?.every((a: { action_id: string }) =>
+                ["cue_open_cue", "cue_open_pr"].includes(a.action_id),
+              )
+            ) {
+              await ack();
+              return;
+            }
             try {
               await decideSlack(body, config);
               await ack();

@@ -7,6 +7,7 @@ import { Codex } from "@openai/codex-sdk";
 import { api, db, secret } from "./server-store";
 import type { Id } from "../convex/_generated/dataModel";
 import { photo } from "../demo/bloom/fixture.mjs";
+import { sendSlackRunUpdate } from "./delivery";
 const exec = promisify(execFile),
   root = () => path.join(process.cwd(), ".cue"),
   live = () => path.join(root(), "bloom-live");
@@ -164,7 +165,15 @@ export async function investigate(
     fields: Parameters<
       typeof store.mutation<typeof api.cue.updateRun>
     >[1]["fields"],
-  ) => store.mutation(api.cue.updateRun, { secret: auth, runId, fields });
+  ) => {
+    await store.mutation(api.cue.updateRun, { secret: auth, runId, fields });
+    if (
+      ["implementing", "awaiting_approval", "failed"].includes(
+        fields.phase || "",
+      )
+    )
+      await sendSlackRunUpdate(runId).catch(() => {});
+  };
   try {
     await fs.mkdir(path.dirname(repo), { recursive: true });
     const remote = process.env.CUE_GITHUB_REPO;

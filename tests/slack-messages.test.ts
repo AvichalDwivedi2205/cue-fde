@@ -1,0 +1,112 @@
+import { expect, test, vi } from "vitest";
+import {
+  approvalMessage,
+  supportMessage,
+  verifiedSlackFix,
+  runMessage,
+} from "../lib/slack-messages";
+import type { Doc } from "../convex/_generated/dataModel";
+const c = {
+  _id: "case",
+  title: "Upload report",
+  priority: "P1",
+  status: "open",
+  tags: ["photo"],
+} as Doc<"cases">;
+const issue = {
+  title: "Upload failure",
+  kind: "bug",
+  status: "resolved",
+} as Doc<"issues">;
+const run = {
+  _id: "run",
+  status: "resolved",
+  phase: "resolved",
+  commit: "a".repeat(40),
+  verified: true,
+  deployed: true,
+} as Doc<"runs">;
+test.each([
+  { ...run, status: "running" },
+  { ...run, deployed: false },
+  { ...run, verified: false },
+  { ...run, commit: undefined },
+])(
+  "Slack never presents a verified fix without complete deployment evidence: %j",
+  (candidate) => {
+    expect(verifiedSlackFix(issue, candidate)).toBe(false);
+    expect(
+      supportMessage("Thanks for the report", c, issue, candidate).text,
+    ).not.toContain("Fix verified");
+  },
+);
+test("Slack customer content remains plain text and long replies retain every character", () => {
+  const body = "<!channel> <@USER> " + "x".repeat(11000);
+  const message = supportMessage(body, c, issue, run);
+  const content = message.blocks
+    .filter((b) => b.type === "section")
+    .map((b) => b.text)
+    .filter(Boolean) as Array<{ type: string; text: string }>;
+  expect(
+    content.every((t) => t.type === "plain_text" && t.text.length <= 3000),
+  ).toBe(true);
+  expect(
+    content
+      .slice(1)
+      .map((t) => t.text)
+      .join(""),
+  ).toBe(body);
+  expect(message.text).toContain(body);
+});
+test("approval actions bind full commit and preserve validation in accessible fallback", () => {
+  const pending = {
+    ...run,
+    status: "awaiting_approval",
+    after: "3 MB: accepted; 6 MB: rejected",
+    rootCause: "Wrong size threshold",
+  };
+  const m = approvalMessage(pending, "Bloom photo uploads");
+  const actions = m.blocks.find((b) => b.type === "actions")
+    ?.elements as Array<{
+    action_id: string;
+    value?: string;
+    confirm?: unknown;
+  }>;
+  for (const a of actions.filter((a) => !a.action_id.startsWith("cue_open_"))) {
+    expect(JSON.parse(a.value || "{}")).toEqual({
+      runId: "run",
+      commit: "a".repeat(40),
+    });
+    expect(a.confirm).toBeDefined();
+  }
+  expect(m.text).toContain(pending.after);
+  expect(m.text).toContain("a".repeat(40));
+  expect(() => approvalMessage(run, "Already deployed")).toThrow("No pending");
+});
+test("invalid origins and unsafe pull request URLs do not create buttons", () => {
+  vi.stubEnv("CUE_PUBLIC_URL", "javascript:alert(1)");
+  const m = supportMessage("Reply", c, issue, {
+    ...run,
+    prUrl: "data:text/html,hello",
+  });
+  expect(m.blocks.some((b) => b.type === "actions")).toBe(false);
+  vi.unstubAllEnvs();
+});
+test("Slack link actions have distinct IDs within each action block", () => {
+  const m = supportMessage("Reply", c, issue, {
+    ...run,
+    prUrl: "https://github.com/owner/repo/pull/1",
+  });
+  const actions = m.blocks.find((b) => b.type === "actions")
+    ?.elements as Array<{ action_id: string }>;
+  expect(new Set(actions.map((a) => a.action_id)).size).toBe(actions.length);
+});
+test("engineering progress never reports success during deployment", () => {
+  const m = runMessage(
+    { ...run, status: "running", phase: "deploying", verified: false },
+    issue,
+  );
+  expect(m.text).toContain("verification is still pending");
+  expect(m.text).not.toContain("Deployment verified");
+  expect(runMessage(run, issue).text).toContain("Deployment verified");
+});

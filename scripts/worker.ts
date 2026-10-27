@@ -23,6 +23,7 @@ const { startNotificationListener } = await import(
   "../lib/notification-listener"
 );
 const notifications = startNotificationListener();
+const { sendSlackRunUpdate } = await import("../lib/delivery");
 const control = createServer(async (req, res) => {
   if (req.headers.authorization !== `Bearer ${auth}`) {
     res.writeHead(403);
@@ -93,6 +94,7 @@ while (!stopping) {
       8000,
     );
     try {
+      await sendSlackRunUpdate(run._id).catch(() => {});
       if (job.kind === "investigate")
         await investigate(run._id, run.issueId, abort.signal);
       else await approveAndDeploy(run._id);
@@ -109,6 +111,7 @@ while (!stopping) {
         })
         .catch(() => {});
     } finally {
+      await sendSlackRunUpdate(run._id).catch(() => {});
       currentAbort = undefined;
       clearInterval(heartbeat);
       clearTimeout(deadline);
