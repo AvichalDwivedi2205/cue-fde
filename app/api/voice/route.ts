@@ -24,6 +24,7 @@ const input = z.object({
   name: z.string().max(80).optional(),
 });
 export async function POST(request: NextRequest) {
+  let phase = "validation";
   let claimed:
     | { owner: string; sessionId: Id<"voiceSessions">; key: string }
     | undefined;
@@ -74,8 +75,10 @@ export async function POST(request: NextRequest) {
     }
     if (!b.audio || !b.mimeType)
       throw new Error("Record a voice message first");
+    phase = "decode";
     const audio = await decodeVoiceAudio(b.audio, b.mimeType),
       key = b.key || randomUUID();
+    phase = "claim";
     const done = await store.mutation(api.voice.claim, {
       secret: auth,
       owner,
@@ -89,11 +92,13 @@ export async function POST(request: NextRequest) {
         caseId: session.caseId,
       });
     claimed = { owner, sessionId, key };
+    phase = "transcribe";
     const transcript = await transcribeAudio(audio.bytes, audio.mimeType);
     const conversation = await store.query(api.bloom.conversation, {
       secret: auth,
       owner,
     });
+    phase = "reply";
     const reply = await draft({
       conversation:
         conversation?.case._id === session.caseId ? conversation : null,
@@ -101,6 +106,7 @@ export async function POST(request: NextRequest) {
       channel: "chat",
       message: transcript,
     });
+    phase = "persist";
     const caseId = await store.mutation(api.voice.finish, {
       secret: auth,
       ...claimed,
@@ -108,9 +114,19 @@ export async function POST(request: NextRequest) {
       reply,
     });
     claimed = undefined;
+    phase = "triage";
     if (!session.caseId) await triage(caseId);
     return Response.json({ transcript, reply, caseId });
   } catch (e) {
+    if (phase !== "validation") {
+      // Diagnose hosted failures without logging audio, transcripts, identity,
+      // provider messages or private Convex arguments.
+      const status = (e as { status?: unknown } | null)?.status;
+      console.error("Cue voice processing failed", {
+        phase,
+        status: typeof status === "number" ? status : null,
+      });
+    }
     if (claimed)
       await db()
         .mutation(api.voice.release, { secret: secret(), ...claimed })
