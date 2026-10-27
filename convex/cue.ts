@@ -785,10 +785,19 @@ export const triage = mutation({
       : null;
     if (a.tags.length > 6 || a.tags.some((t) => !t.trim() || t.length > 30))
       throw new ConvexError("Invalid tags");
-    const matched = a.issueId ? await ctx.db.get("issues", a.issueId) : null;
-    if (a.issueId && !matched) throw new ConvexError("Issue not found");
-    if (matched && matched.appId !== report.appId)
+    const suggestion = a.issueId ? await ctx.db.get("issues", a.issueId) : null;
+    if (a.issueId && !suggestion) throw new ConvexError("Issue not found");
+    if (suggestion && suggestion.appId !== report.appId)
       throw new ConvexError("Cannot link reports across connected apps");
+    // A model result may arrive after a human review or an implementation starts.
+    // Read the current workflow in this transaction before applying suggestions.
+    const workflowStarted =
+      current &&
+      (current.spec ||
+        current.specApprovedAt ||
+        current.specApprovedBy ||
+        !["open", "requested"].includes(current.status));
+    const matched = workflowStarted ? null : suggestion;
     const priority =
       current?.fingerprint === "bloom:upload:413" ? "P1" : a.priority;
     await ctx.db.patch("cases", report._id, {
@@ -801,6 +810,8 @@ export const triage = mutation({
       current?.fingerprint.startsWith(
         current.appId ? `${current.appId}:report:` : "report:",
       ) &&
+      current.kind !== "feature" &&
+      !workflowStarted &&
       !matched &&
       a.kind === "feature"
     )
@@ -810,6 +821,34 @@ export const triage = mutation({
         status: "requested",
         tags: a.tags,
       });
+    // The old re-triage path reset approved features to requested while leaving
+    // the exact spec and approval intact. Restore only that inconsistent state,
+    // before any run exists; retain the original reviewer and decision time.
+    if (
+      current?.kind === "feature" &&
+      current.status === "requested" &&
+      current.spec &&
+      current.specApprovedAt &&
+      current.specApprovedBy
+    ) {
+      const run = await ctx.db
+        .query("runs")
+        .withIndex("by_issueId_and_createdAt", (q) =>
+          q.eq("issueId", current._id),
+        )
+        .order("desc")
+        .first();
+      if (!run) {
+        await ctx.db.patch("issues", current._id, { status: "approved" });
+        await ctx.db.insert("events", {
+          issueId: current._id,
+          title: "Specification approval status restored",
+          detail: `Reconciled a legacy triage reset with the retained approval by ${current.specApprovedBy}. The specification, reviewer and original approval timestamp are unchanged; no new approval or implementation was created.`,
+          kind: "intake",
+          createdAt: stamp(),
+        });
+      }
+    }
     await ctx.db.insert("messages", {
       caseId: report._id,
       author: "Cue",
