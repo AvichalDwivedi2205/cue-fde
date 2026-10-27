@@ -105,7 +105,7 @@ Integration credentials saved through setup are AES-GCM encrypted in the local `
 
 ### Team roles and Product reviews
 
-Owner assigns team identities at `/setup#team`. The four roles are **Avichal — Owner**, **Ganesh — Engineering**, **Holly — Product**, and **Aria — Support**. The three additional accounts use aliases of the dedicated Gmail account and are owned test accounts. Their invitations were sent. Holly completed Slack signup and is connected as `U0C93UX8GL8`; Ganesh and Aria remain pending until their signup is completed and their actual member IDs are saved. Pending identities cannot approve in Slack.
+Owner assigns team identities at `/setup#team`. The four roles are **Avichal — Owner**, **Ganesh — Engineering**, **Holly — Product**, and **Aria — Support**. The three additional accounts use distinct Gmail plus aliases of the dedicated inbox and are owned test accounts. All four joined the Slack workspace with those names: Avichal `U0C8C15CFBN`, Ganesh `U0C849008SH`, Holly `U0C93UX8GL8`, and Aria `U0C93UXLZL0`. Their actual member IDs are saved and survive a Cue reload. The live team verifier checks distinct emails/IDs, Engineering and Product reviewer routing, and denial of Engineering/Support attempts to overwrite the actual Product approval. Screenshots are `artifacts/slack-four-team-members.jpg` and `artifacts/cue-four-team-roles.jpg`. New members without a saved Slack ID cannot approve in Slack.
 
 WorkOS supplies the verified account identity; Cue checks its current server-side membership on every operator request. This is Cue's app-local role configuration, not WorkOS organization RBAC. Engineering can investigate and approve exact-commit deployments. Product can generate, edit and approve exact feature specifications. Support can triage, tag and reply to customers. Owner can perform all actions and manage integrations. Neither client-supplied roles nor Slack display names confer access. Once explicit membership is configured, the old Slack operator allowlist no longer grants access. Socket Mode rereads current membership before each decision.
 
@@ -133,7 +133,7 @@ npm run build
 npm run test:backend       # Convex, widget session/config, social URL and email gateway tests
 npx tsx scripts/verify-widget.ts # Nine live checks against the registered local widget app
 npx tsx scripts/verify-slack.ts  # Eleven live checks; publishes the verified engineering card once
-npx tsx scripts/verify-team.ts   # Five live Product review checks; reports any pending Slack identities
+npx tsx scripts/verify-team.ts   # Seven live team checks with all four identities connected
 npx tsx scripts/verify-email.ts  # Six live receipt and email-thread checks
 npm run verify             # After a completed deployed run and X sample capture
 npm run evaluate:triage    # Four live Vertex calls with independent controls

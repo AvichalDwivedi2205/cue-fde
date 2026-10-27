@@ -6,7 +6,7 @@ const { slackConfig } = await import("../lib/integration-config");
 const { api, db, secret } = await import("../lib/server-store");
 const { decideSlack } = await import("../lib/slack-events");
 const { specVersion } = await import("../lib/slack-messages");
-const { reviewers } = await import("../lib/roles");
+const { reviewers, membersInput } = await import("../lib/roles");
 const config = await slackConfig();
 assert(config?.members, "Save team roles first");
 const checks: string[] = [];
@@ -15,6 +15,9 @@ const pass = (name: string) => {
   console.log(`PASS · ${name}`);
 };
 const product = config.members.find((m) => m.role === "product");
+const engineering = config.members.find((m) => m.role === "engineering");
+const support = config.members.find((m) => m.role === "support");
+membersInput.parse(config.members);
 assert(product?.slackId, "Connect Product's real Slack member ID");
 assert.equal(
   config.members.find((m) => m.email === process.env.CUE_OPERATOR_EMAIL)?.role,
@@ -42,7 +45,7 @@ pass(
 );
 const version = specVersion(issue.spec);
 for (const prefix of ["spec-approval", "spec-decision"]) {
-  const deliveries = snapshot.deliveries.filter(
+  const deliveries: typeof snapshot.deliveries = snapshot.deliveries.filter(
     (d) => d.key === `${prefix}:${issue._id}:${version}`,
   );
   assert.equal(deliveries.length, 1);
@@ -93,6 +96,48 @@ await assert.rejects(
 pass(
   "Repeated native decision and Product deployment attempt are denied without side effects",
 );
+if (engineering?.slackId && support?.slackId) {
+  assert.deepEqual(reviewers(config, "deploy"), [engineering.slackId]);
+  assert.equal(new Set(config.members.map((m) => m.slackId)).size, 4);
+  assert.equal(new Set(config.members.map((m) => m.email)).size, 4);
+  pass(
+    "Four distinct saved identities route Engineering and Product reviews separately",
+  );
+  for (const member of [engineering, support])
+    await assert.rejects(
+      () => decideSlack({ ...payload, user: { id: member.slackId } }, config),
+      /not authorized/,
+    );
+  await assert.rejects(
+    () =>
+      decideSlack(
+        {
+          ...payload,
+          user: { id: support.slackId },
+          actions: [
+            {
+              action_id: "cue_approve",
+              value: JSON.stringify({
+                runId: "unused",
+                commit: "a".repeat(40),
+              }),
+            },
+          ],
+        },
+        config,
+      ),
+    /not authorized/,
+  );
+  const after = await db().query(api.cue.snapshot, { secret: secret() });
+  assert.equal(
+    after.issues.find((i) => i._id === issue._id)?.specApprovedBy,
+    issue.specApprovedBy,
+  );
+  assert.equal(after.runs.length, snapshot.runs.length);
+  pass(
+    "Actual Engineering and Support IDs cannot overwrite Product approval or start an unauthorized deployment",
+  );
+}
 const members = config.members.map(({ name, role, slackId }) => ({
   name,
   role,
