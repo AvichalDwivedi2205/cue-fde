@@ -20,6 +20,7 @@ import {
 import {
   slackRuntimeStatus,
   notificationRuntimeStatus,
+  xRuntimeStatus,
 } from "@/lib/integration-checks";
 import { socialSource } from "@/lib/social-source";
 export const runtime = "nodejs";
@@ -55,6 +56,10 @@ export async function GET(request: NextRequest) {
         notifications: email?.pollReceiving
           ? await notificationRuntimeStatus()
           : null,
+        x: {
+          configured: !!(await readIntegrations()).x,
+          ...(await xRuntimeStatus()),
+        },
         workos: workosReady(),
         codingApps:
           (await readIntegrations()).coding?.map((c) => c.appId) || [],

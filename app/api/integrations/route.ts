@@ -13,6 +13,7 @@ import {
   emailConfig,
   emailConfigForSave,
   codingInput,
+  xInput,
 } from "@/lib/integration-config";
 import {
   checkSlack,
@@ -20,7 +21,9 @@ import {
   checkCodex,
   slackRuntimeStatus,
   notificationRuntimeStatus,
+  xRuntimeStatus,
 } from "@/lib/integration-checks";
+import { createXApi } from "@/lib/x-api";
 export const runtime = "nodejs";
 export async function GET(request: Request) {
   try {
@@ -33,6 +36,13 @@ export async function GET(request: Request) {
       {
         apps: config.apps,
         coding: config.coding || [],
+        x: {
+          configured: !!config.x,
+          enabled: !!config.x?.enabled,
+          username: config.x?.username,
+          userId: config.x?.userId,
+          ...(await xRuntimeStatus()),
+        },
         ownerEmail: process.env.CUE_OPERATOR_EMAIL,
         slack: slack
           ? {
@@ -86,6 +96,33 @@ export async function POST(request: Request) {
   }
   try {
     const b = await request.json();
+    if (b.action === "x") {
+      const old = (await readIntegrations()).x;
+      const input = xInput.parse({
+        ...b,
+        bearerToken: b.bearerToken || old?.bearerToken,
+      });
+      const config = {
+        ...input,
+        startedAt:
+          old?.userId === input.userId &&
+          old.username.toLowerCase() === input.username.toLowerCase()
+            ? old.startedAt
+            : Date.now(),
+      };
+      if (config.enabled) {
+        const provider = createXApi(config);
+        await provider.credits();
+        await provider.verifyBrand();
+      }
+      await updateIntegrations((c) => ({ ...c, x: config }));
+      return Response.json({
+        ok: true,
+        message: config.enabled
+          ? "X credentials verified. Collection starts with new mentions when the connected worker polls. Public replies remain drafts."
+          : "X API credentials saved; collection paused.",
+      });
+    }
     if (b.action === "coding") {
       const target = codingInput.parse(b);
       const current = await readIntegrations();

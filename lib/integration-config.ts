@@ -146,6 +146,17 @@ export type EmailConfig = z.infer<typeof emailInput> & {
   pollStartedAt?: number;
   supportPollStartedAt?: number;
 };
+export const xInput = z.object({
+  bearerToken: z
+    .string()
+    .min(20)
+    .max(3000)
+    .regex(/^[A-Za-z0-9%._~+\/-]+$/),
+  userId: z.string().regex(/^\d{1,30}$/),
+  username: z.string().regex(/^[A-Za-z0-9_]{1,15}$/),
+  enabled: z.boolean(),
+});
+export type XConfig = z.infer<typeof xInput> & { startedAt: number };
 export function emailConfigForSave(
   input: z.infer<typeof emailInput>,
   old?: EmailConfig,
@@ -182,6 +193,7 @@ export type IntegrationConfig = {
   slack?: SlackConfig;
   email?: EmailConfig;
   coding?: CodingConfig[];
+  x?: XConfig;
 };
 const file = () => path.join(process.cwd(), ".cue", "integrations.enc");
 const key = () =>

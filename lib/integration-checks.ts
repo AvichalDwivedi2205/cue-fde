@@ -5,6 +5,7 @@ import { api, db, secret } from "./server-store";
 import type { EmailConfig, SlackConfig } from "./integration-config";
 import { slackConfig } from "./integration-config";
 import { slackWebhookStatus } from "./slack-webhook-health";
+import type { XStatus } from "./x-poller";
 const exec = promisify(execFile);
 export async function sharedWorkerStatus() {
   const row = await db().query(api.serverState.read, {
@@ -25,7 +26,41 @@ export async function sharedWorkerStatus() {
     };
     codex: { loggedIn: boolean; workerOnline: boolean; github: boolean };
     busy: boolean;
+    x?: XStatus;
   };
+}
+export async function xRuntimeStatus(): Promise<XStatus> {
+  try {
+    let value: XStatus | undefined;
+    if (process.env.CUE_SHARED_CONFIG === "true")
+      value = (await sharedWorkerStatus()).x;
+    else {
+      const response = await fetch("http://127.0.0.1:4319/status", {
+        headers: { authorization: "Bearer " + secret() },
+        signal: AbortSignal.timeout(1500),
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error("Worker unavailable");
+      value = (await response.json()).x;
+    }
+    if (!value) throw new Error("X listener unavailable");
+    return {
+      ...value,
+      connected:
+        value.connected &&
+        typeof value.lastPollAt === "number" &&
+        Date.now() - value.lastPollAt < 90000,
+    };
+  } catch {
+    return {
+      connected: false,
+      detail: "X API worker not connected",
+      imported: 0,
+      lastPollAt: null,
+      retryAt: null,
+      backlog: false,
+    };
+  }
 }
 export async function checkSlack(config: SlackConfig) {
   const r = await fetch("https://slack.com/api/auth.test", {

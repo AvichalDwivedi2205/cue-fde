@@ -3,6 +3,16 @@ import { useEffect, useState, type FormEvent } from "react";
 import type { TeamMember } from "@/lib/roles";
 type App = { id: string; name: string; origins: string[] };
 type Status = {
+  x: {
+    configured: boolean;
+    enabled: boolean;
+    username?: string;
+    userId?: string;
+    connected: boolean;
+    detail: string;
+    imported: number;
+    lastPollAt: number | null;
+  };
   apps: App[];
   ownerEmail?: string;
   coding: Array<{
@@ -114,12 +124,14 @@ export function SetupClient({ origin }: { origin: string }) {
                 .split(/[\s,]+/)
                 .filter(Boolean),
             }
-          : {
-              action,
-              ...values,
-              notificationImport: values.notificationImport === "on",
-              pollReceiving: values.pollReceiving === "on",
-            };
+          : action === "x"
+            ? { action, ...values, enabled: values.enabled === "on" }
+            : {
+                action,
+                ...values,
+                notificationImport: values.notificationImport === "on",
+                pollReceiving: values.pollReceiving === "on",
+              };
     if (await send(data))
       for (const input of target.querySelectorAll<HTMLInputElement>(
         'input[type="password"]',
@@ -187,6 +199,94 @@ export function SetupClient({ origin }: { origin: string }) {
           data-name identifies a visitor by their supplied display name.
           Screenshots are uploaded only when selected. Cross-site embeds may
           need your CSP to allow Cue’s script and frame origins.
+        </p>
+      </section>
+      <section id="x">
+        <div className="section-heading">
+          <h2>X</h2>
+          <span className="badge">
+            {status?.x.connected
+              ? "API polling active"
+              : status?.x.configured
+                ? "Configured"
+                : "Setup needed"}
+          </span>
+        </div>
+        <p>
+          Collect public posts that tag your brand through the official X API.
+          Cue checks free credits before each poll and pauses below a $1
+          reserve. API replies remain reviewable drafts.
+        </p>
+        <p>
+          {status?.x.detail}{" "}
+          {status?.x.configured && `${status.x.imported} posts collected.`}
+        </p>
+        <div className="links">
+          <a href="https://console.x.com" target="_blank" rel="noreferrer">
+            X developer console ↗
+          </a>
+          <a
+            href="https://docs.x.com/x-api/getting-started/free-credits"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Free-credit eligibility ↗
+          </a>
+        </div>
+        <form key={status?.x.userId || "x"} onSubmit={(e) => void form(e, "x")}>
+          <div className="fields">
+            <label>
+              Brand handle
+              <input
+                name="username"
+                required
+                pattern="[A-Za-z0-9_]{1,15}"
+                placeholder="bloomwithcue"
+                defaultValue={status?.x.username}
+              />
+            </label>
+            <label>
+              Brand user ID
+              <input
+                name="userId"
+                required
+                pattern="[0-9]{1,30}"
+                placeholder="Numeric X user ID"
+                defaultValue={status?.x.userId}
+              />
+            </label>
+            <label>
+              App bearer token
+              <input
+                name="bearerToken"
+                type="password"
+                autoComplete="off"
+                required={!status?.x.configured}
+                placeholder={
+                  status?.x.configured
+                    ? "Leave empty to keep current token"
+                    : "From your own X developer app"
+                }
+              />
+            </label>
+          </div>
+          <label className="check">
+            <input
+              name="enabled"
+              type="checkbox"
+              defaultChecked={status?.x.enabled}
+            />
+            Enable automatic collection using available free credits
+          </label>
+          <button disabled={busy}>Save X connection</button>
+        </form>
+        <p className="small">
+          Your developer account must already have free credits. Availability
+          varies; adding a payment method does not guarantee eligibility. Cue
+          never buys credits or configures auto-recharge. Keep auto-recharge
+          disabled in X. A connected worker is required. Only mentions after
+          activation are imported. Email notifications remain available as a
+          best-effort fallback.
         </p>
       </section>
       <section id="slack">

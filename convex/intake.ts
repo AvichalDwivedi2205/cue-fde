@@ -72,7 +72,9 @@ export const receive = mutation({
       v.literal("x"),
       v.literal("reddit"),
     ),
-    transport: v.optional(v.literal("notification_email")),
+    transport: v.optional(
+      v.union(v.literal("notification_email"), v.literal("x_api")),
+    ),
     eventKey: v.string(),
     sourceKey: v.string(),
     messageKey: v.optional(v.string()),
@@ -92,7 +94,14 @@ export const receive = mutation({
         a.channel as "x" | "reddit",
         a.sourceUrl || "",
       );
-      if (a.transport !== "notification_email" || source.key !== a.sourceKey)
+      const nativeX = a.channel === "x" && a.transport === "x_api";
+      if (
+        (!nativeX && a.transport !== "notification_email") ||
+        source.key !== a.sourceKey ||
+        (nativeX &&
+          (a.eventKey !== `x-api:${source.key}` ||
+            a.externalId !== `x-api:${source.key}`))
+      )
         throw new ConvexError("Invalid notification source");
     } else if (a.transport) throw new ConvexError("Wrong notification channel");
     if (
@@ -169,7 +178,10 @@ export const receive = mutation({
         await ctx.db.patch("cases", caseId, { externalId: a.externalId });
       if (social)
         await ctx.db.patch("cases", caseId, {
-          provenance: `Imported ${a.channel === "x" ? "X" : "Reddit"} notification email · content and author unverified`,
+          provenance:
+            a.transport === "x_api"
+              ? "Imported from official X API · public post and author supplied by X"
+              : `Imported ${a.channel === "x" ? "X" : "Reddit"} notification email · content and author unverified`,
         });
     }
     await ctx.db.insert("externalEvents", {

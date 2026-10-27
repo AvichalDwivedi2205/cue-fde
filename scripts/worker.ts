@@ -23,6 +23,8 @@ const { startNotificationListener } = await import(
   "../lib/notification-listener"
 );
 const notifications = startNotificationListener();
+const { startXListener } = await import("../lib/x-listener");
+const x = startXListener();
 const { sendSlackRunUpdate } = await import("../lib/delivery");
 const { implementFeature } = await import("../lib/feature-runner");
 const control = createServer(async (req, res) => {
@@ -38,6 +40,7 @@ const control = createServer(async (req, res) => {
         busy,
         slack: slack.status(),
         notifications: notifications.status(),
+        x: x.status(),
       }),
     );
   }
@@ -74,6 +77,7 @@ async function publishStatus() {
         busy,
         slack: slack.status(),
         notifications: notifications.status(),
+        x: x.status(),
         codex: {
           loggedIn: workerIdentity.loggedIn,
           github: workerIdentity.github,
@@ -96,6 +100,7 @@ const stop = async () => {
   control.close();
   await slack.stop();
   await notifications.stop();
+  await x.stop();
   await publishStatus();
   await shutdownBloom();
   process.exit(0);
