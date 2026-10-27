@@ -1,6 +1,13 @@
 import { handleAuth } from "@workos-inc/authkit-nextjs";
 import { NextRequest } from "next/server";
-const callback = handleAuth({ returnPathname: "/cue" });
+import { workosRedirectUri } from "@/lib/auth-config";
+const callbackOrigin = workosRedirectUri()
+  ? new URL(workosRedirectUri()!).origin
+  : undefined;
+const callback = handleAuth({
+  returnPathname: "/cue",
+  baseURL: callbackOrigin,
+});
 export async function GET(request: NextRequest) {
   const response = await callback(request);
   const location = response.headers.get("location");
@@ -9,7 +16,7 @@ export async function GET(request: NextRequest) {
     // Finish the callback document before opening the hash-based workspace.
     // This also avoids carrying the cross-site OAuth redirect chain into Cue.
     if (
-      target.origin === new URL(request.url).origin &&
+      target.origin === (callbackOrigin || new URL(request.url).origin) &&
       target.pathname === "/cue"
     ) {
       const headers = new Headers(response.headers);
