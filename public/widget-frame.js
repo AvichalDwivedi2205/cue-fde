@@ -94,6 +94,13 @@
   });
   document.getElementById("close").onclick = () =>
     parent.postMessage({ type: "cue:close" }, origin);
+  document.getElementById("voice").onclick = () => {
+    if (!session) return;
+    window.CueVoice.open(
+      { app, origin, token: session, name: context.name },
+      () => void read(),
+    );
+  };
   form.onsubmit = async (e) => {
     e.preventDefault();
     if (busy || !session || !input.value.trim()) return;

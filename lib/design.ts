@@ -33,6 +33,10 @@ export async function design(name: "bloom" | "cue") {
       .replaceAll("a3f9c2e", "example")
       .replaceAll("bloom/bloom-app#128", "Example pull request");
   html = html
+    .replace(
+      "</head>",
+      '<link rel="stylesheet" href="/cue-voice.css"><script src="/cue-voice.js"></script></head>',
+    )
     .replaceAll('href="bloom.html"', 'href="/bloom"')
     .replaceAll('href="cue.html"', 'href="/cue"');
   return new Response(html, {

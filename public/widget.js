@@ -25,6 +25,7 @@
   frame.style.cssText =
     "display:none;position:fixed;right:24px;bottom:90px;width:min(380px,calc(100vw - 32px));height:min(560px,calc(100dvh - 120px));border:1px solid #ddd;border-radius:18px;z-index:2147483001;background:white;box-shadow:0 10px 48px #0003";
   frame.referrerPolicy = "origin";
+  frame.allow = "microphone";
   const context = () => ({
     type: "cue:init",
     app,

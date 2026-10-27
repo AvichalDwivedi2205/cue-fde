@@ -13,6 +13,7 @@ import type * as cue from "../cue.js";
 import type * as deliveries from "../deliveries.js";
 import type * as intake from "../intake.js";
 import type * as jobs from "../jobs.js";
+import type * as voice from "../voice.js";
 
 import type {
   ApiFromModules,
@@ -26,6 +27,7 @@ declare const fullApi: ApiFromModules<{
   deliveries: typeof deliveries;
   intake: typeof intake;
   jobs: typeof jobs;
+  voice: typeof voice;
 }>;
 
 /**

@@ -21,12 +21,45 @@ export async function GET(request: NextRequest) {
         })
       ).json();
     } catch {}
+    const conversation = await store.query(api.bloom.conversation, {
+      secret: auth,
+      owner,
+    });
     return NextResponse.json({
       memories: await store.query(api.bloom.memories, { secret: auth, owner }),
-      conversation: await store.query(api.bloom.conversation, {
-        secret: auth,
-        owner,
-      }),
+      conversation: conversation
+        ? {
+            case: {
+              _id: conversation.case._id,
+              title: conversation.case.title,
+              status: conversation.case.status,
+            },
+            messages: conversation.messages
+              .filter((m) => ["customer", "cue", "staff"].includes(m.role))
+              .map((m) => ({
+                _id: m._id,
+                role: m.role,
+                author: m.author,
+                body: m.body,
+                createdAt: m.createdAt,
+              })),
+            issue: conversation.issue
+              ? {
+                  kind: conversation.issue.kind,
+                  title: conversation.issue.title,
+                  status: conversation.issue.status,
+                }
+              : null,
+            run: conversation.run
+              ? {
+                  status: conversation.run.status,
+                  deployed: conversation.run.deployed,
+                  verified: conversation.run.verified,
+                  commit: conversation.run.commit,
+                }
+              : null,
+          }
+        : null,
       health,
       customer: "Oliver Park",
     });

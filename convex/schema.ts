@@ -64,6 +64,12 @@ export default defineSchema({
     verified: v.optional(v.boolean()),
     approval: v.optional(v.string()),
     summary: v.optional(v.string()),
+    kind: v.optional(v.string()),
+    repository: v.optional(v.string()),
+    targetId: v.optional(v.string()),
+    approvedSpec: v.optional(v.string()),
+    baseCommit: v.optional(v.string()),
+    deploymentMode: v.optional(v.string()),
   }).index("by_issueId_and_createdAt", ["issueId", "createdAt"]),
   events: defineTable({
     runId: v.optional(v.id("runs")),
@@ -128,4 +134,23 @@ export default defineSchema({
   })
     .index("by_key", ["key"])
     .index("by_messageKey", ["messageKey"]),
+  voiceSessions: defineTable({
+    owner: v.string(),
+    appId: v.optional(v.string()),
+    customer: v.string(),
+    caseId: v.optional(v.id("cases")),
+    status: v.string(),
+    createdAt: v.number(),
+    endedAt: v.optional(v.number()),
+    turnCount: v.number(),
+    pendingTurn: v.optional(v.string()),
+    pendingAt: v.optional(v.number()),
+  }).index("by_owner_and_status", ["owner", "status"]),
+  voiceTurns: defineTable({
+    sessionId: v.id("voiceSessions"),
+    key: v.string(),
+    transcript: v.string(),
+    reply: v.string(),
+    createdAt: v.number(),
+  }).index("by_sessionId_and_key", ["sessionId", "key"]),
 });
