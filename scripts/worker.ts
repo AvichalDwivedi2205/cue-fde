@@ -24,6 +24,7 @@ const { startNotificationListener } = await import(
 );
 const notifications = startNotificationListener();
 const { sendSlackRunUpdate } = await import("../lib/delivery");
+const { implementFeature } = await import("../lib/feature-runner");
 const control = createServer(async (req, res) => {
   if (req.headers.authorization !== `Bearer ${auth}`) {
     res.writeHead(403);
@@ -77,7 +78,10 @@ while (!stopping) {
       run = state.runs.find((r) => r._id === job.runId);
     if (!run) throw new Error("Missing run");
     const abort = new AbortController(),
-      deadline = setTimeout(() => abort.abort(), 300000);
+      deadline = setTimeout(
+        () => abort.abort(),
+        job.kind === "feature" ? 900000 : 300000,
+      );
     currentAbort = abort;
     const heartbeat = setInterval(
       () =>
@@ -97,7 +101,10 @@ while (!stopping) {
       await sendSlackRunUpdate(run._id).catch(() => {});
       if (job.kind === "investigate")
         await investigate(run._id, run.issueId, abort.signal);
-      else await approveAndDeploy(run._id);
+      else if (job.kind === "feature")
+        await implementFeature(run._id, abort.signal);
+      else if (job.kind === "deploy") await approveAndDeploy(run._id);
+      else throw new Error("Unsupported worker job kind");
     } catch (e) {
       await store
         .mutation(api.cue.updateRun, {

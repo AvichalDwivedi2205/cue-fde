@@ -465,6 +465,73 @@ export const startRun = mutation({
   },
 });
 
+export const startFeature = mutation({
+  args: {
+    secret: v.string(),
+    issueId: v.id("issues"),
+    expectedSpec: v.string(),
+    targetId: v.string(),
+    repository: v.string(),
+  },
+  returns: v.id("runs"),
+  handler: async (ctx, a) => {
+    authorize(a.secret);
+    const issue = await ctx.db.get("issues", a.issueId);
+    if (
+      !issue ||
+      issue.kind !== "feature" ||
+      issue.status !== "approved" ||
+      !issue.specApprovedAt ||
+      issue.spec !== a.expectedSpec
+    )
+      throw new ConvexError(
+        "Implementation requires the current approved specification",
+      );
+    if (
+      (issue.appId || "bloom") !== a.targetId ||
+      !/^[\w.-]+\/[\w.-]+$/.test(a.repository)
+    )
+      throw new ConvexError("Repository must belong to this connected app");
+    const old = await ctx.db
+      .query("runs")
+      .withIndex("by_issueId_and_createdAt", (q) => q.eq("issueId", a.issueId))
+      .order("desc")
+      .first();
+    if (
+      old &&
+      ["running", "awaiting_approval", "approved", "resolved"].includes(
+        old.status,
+      )
+    )
+      throw new ConvexError(
+        "An active or approved implementation already exists",
+      );
+    const runId = await ctx.db.insert("runs", {
+      issueId: issue._id,
+      status: "running",
+      phase: "preparing",
+      provider: "Codex",
+      kind: "feature",
+      approvedSpec: a.expectedSpec,
+      targetId: a.targetId,
+      repository: a.repository,
+      deploymentMode: "pull_request",
+      createdAt: stamp(),
+      updatedAt: stamp(),
+    });
+    await ctx.db.patch("issues", issue._id, { status: "implementing" });
+    await ctx.db.insert("jobs", {
+      runId,
+      kind: "feature",
+      status: "queued",
+      leaseUntil: 0,
+      cancel: false,
+      createdAt: stamp(),
+    });
+    return runId;
+  },
+});
+
 export const updateRun = mutation({
   args: {
     secret: v.string(),
@@ -484,6 +551,7 @@ export const updateRun = mutation({
       verified: v.optional(v.boolean()),
       approval: v.optional(v.string()),
       summary: v.optional(v.string()),
+      baseCommit: v.optional(v.string()),
     }),
   },
   returns: v.null(),
@@ -492,9 +560,14 @@ export const updateRun = mutation({
     const run = await ctx.db.get("runs", args.runId);
     if (!run) throw new ConvexError("Run not found");
     if (
-      ["canceled", "rejected", "resolved", "failed", "archived"].includes(
-        run.status,
-      )
+      [
+        "canceled",
+        "rejected",
+        "resolved",
+        "failed",
+        "archived",
+        "approved",
+      ].includes(run.status)
     )
       throw new ConvexError("Run is terminal");
     if (
@@ -511,7 +584,9 @@ export const updateRun = mutation({
         status: "awaiting_approval",
       });
     if (args.fields.status === "failed" || args.fields.status === "canceled")
-      await ctx.db.patch("issues", run.issueId, { status: "open" });
+      await ctx.db.patch("issues", run.issueId, {
+        status: run.kind === "feature" ? "approved" : "open",
+      });
     if (args.fields.status === "resolved") {
       await ctx.db.patch("issues", run.issueId, { status: "resolved" });
       for (const c of await ctx.db.query("cases").take(100)) {

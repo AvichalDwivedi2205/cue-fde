@@ -23,7 +23,9 @@ export const claim = mutation({
             error: "Worker lease expired. Review the checkout and retry.",
             updatedAt: Date.now(),
           });
-          await ctx.db.patch("issues", run.issueId, { status: "open" });
+          await ctx.db.patch("issues", run.issueId, {
+            status: run.kind === "feature" ? "approved" : "open",
+          });
         }
       }
     }
@@ -79,15 +81,34 @@ export const decide = mutation({
     const r = await ctx.db.get("runs", a.runId);
     if (!r || r.status !== "awaiting_approval" || r.commit !== a.commit)
       throw new ConvexError("Approval must match the pending commit");
+    if (a.approve && r.kind === "feature") {
+      const issue = await ctx.db.get("issues", r.issueId);
+      if (!issue?.specApprovedAt || issue.spec !== r.approvedSpec)
+        throw new ConvexError("Product must approve the current specification");
+    }
     await ctx.db.patch("runs", r._id, {
-      status: a.approve ? "running" : "rejected",
-      phase: a.approve ? "deploying" : "rejected",
+      status: a.approve
+        ? r.deploymentMode === "pull_request"
+          ? "approved"
+          : "running"
+        : "rejected",
+      phase: a.approve
+        ? r.deploymentMode === "pull_request"
+          ? "approved"
+          : "deploying"
+        : "rejected",
       approval: a.actor,
       error: a.approve ? undefined : a.reason,
       updatedAt: Date.now(),
     });
     await ctx.db.patch("issues", r.issueId, {
-      status: a.approve ? "investigating" : "open",
+      status: a.approve
+        ? r.deploymentMode === "pull_request"
+          ? "implemented"
+          : "investigating"
+        : r.kind === "feature"
+          ? "approved"
+          : "open",
     });
     await ctx.db.insert("events", {
       runId: r._id,
@@ -97,7 +118,7 @@ export const decide = mutation({
       kind: a.approve ? "approval" : "failure",
       createdAt: Date.now(),
     });
-    if (a.approve)
+    if (a.approve && r.deploymentMode !== "pull_request")
       await ctx.db.insert("jobs", {
         runId: r._id,
         kind: "deploy",
@@ -128,7 +149,9 @@ export const cancel = mutation({
       phase: "canceled",
       updatedAt: Date.now(),
     });
-    await ctx.db.patch("issues", r.issueId, { status: "open" });
+    await ctx.db.patch("issues", r.issueId, {
+      status: r.kind === "feature" ? "approved" : "open",
+    });
     await ctx.db.insert("events", {
       runId: r._id,
       issueId: r.issueId,

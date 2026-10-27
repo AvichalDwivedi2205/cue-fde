@@ -5,6 +5,13 @@ type App = { id: string; name: string; origins: string[] };
 type Status = {
   apps: App[];
   ownerEmail?: string;
+  coding: Array<{
+    appId: string;
+    repository: string;
+    baseBranch: string;
+    allowedPaths: string[];
+    testCommands: Array<{ program: string; args: string[] }>;
+  }>;
   slack: {
     configured: boolean;
     connected?: boolean;
@@ -403,6 +410,92 @@ export function SetupClient({ origin }: { origin: string }) {
           </p>
         </form>
       </section>
+      <section id="coding">
+        <div className="section-heading">
+          <h2>App repositories</h2>
+          <span className="badge">Codex implementation</span>
+        </div>
+        <p>
+          Connect a repository and fixed validation commands. Product approves
+          specifications; Codex prepares scoped, tested PRs; Engineering reviews
+          the exact commit. Your repository’s release process controls
+          deployment.
+        </p>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const data = new FormData(e.currentTarget);
+            try {
+              void send({
+                action: "coding",
+                appId: data.get("appId"),
+                repository: data.get("repository"),
+                baseBranch: data.get("baseBranch"),
+                allowedPaths: String(data.get("allowedPaths"))
+                  .split(/\s+/)
+                  .filter(Boolean),
+                testCommands: JSON.parse(String(data.get("testCommands"))),
+              });
+            } catch {
+              setMessage(
+                "Validation commands must be a JSON array of program and args objects.",
+              );
+            }
+          }}
+        >
+          <label>
+            App
+            <select name="appId">
+              <option value="bloom">Bloom</option>
+              {status?.apps.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            GitHub repository
+            <input name="repository" required placeholder="owner/repository" />
+          </label>
+          <label>
+            Base branch
+            <input name="baseBranch" required defaultValue="main" />
+          </label>
+          <label>
+            Allowed changed files or directories
+            <textarea
+              name="allowedPaths"
+              required
+              placeholder="src/ tests/new-feature.test.ts"
+            />
+          </label>
+          <label>
+            Fixed validation commands
+            <textarea
+              name="testCommands"
+              required
+              defaultValue={
+                '[{"program":"npm","args":["run","typecheck"]},{"program":"npm","args":["run","test:backend"]}]'
+              }
+            />
+          </label>
+          <button disabled={busy}>Save repository policy</button>
+        </form>
+        {status?.coding?.map((c) => (
+          <div className="install" key={c.appId}>
+            <h3>{c.repository}</h3>
+            <p>
+              {c.appId === "bloom"
+                ? "Bloom"
+                : status.apps.find((a) => a.id === c.appId)?.name}{" "}
+              · {c.baseBranch}
+            </p>
+            <p>Allowed changes: {c.allowedPaths.join(", ")}</p>
+            <pre>{JSON.stringify(c.testCommands, null, 2)}</pre>
+          </div>
+        ))}
+      </section>
       <section id="email">
         <div className="section-heading">
           <h2>Email</h2>
@@ -605,8 +698,9 @@ export function SetupClient({ origin }: { origin: string }) {
           </ul>
         )}
         <p className="small">
-          Automated implementation currently covers Bloom’s upload limit in
-          isolated checkouts. Other repositories require runner configuration.
+          Bloom upload fixes run through deployment verification. Approved
+          features use the connected app repository policy above to produce
+          tested PRs for Engineering review.
         </p>
       </section>
     </main>

@@ -12,7 +12,11 @@ import {
   sendSpecApproval,
 } from "@/lib/delivery";
 import { actionPermission, requirePermission, can } from "@/lib/roles";
-import { emailConfig, slackConfig } from "@/lib/integration-config";
+import {
+  emailConfig,
+  slackConfig,
+  readIntegrations,
+} from "@/lib/integration-config";
 import {
   slackRuntimeStatus,
   notificationRuntimeStatus,
@@ -52,6 +56,8 @@ export async function GET(request: NextRequest) {
           ? await notificationRuntimeStatus()
           : null,
         workos: workosReady(),
+        codingApps:
+          (await readIntegrations()).coding?.map((c) => c.appId) || [],
         actor: actor.name,
         role: actor.role,
         members:
@@ -152,6 +158,26 @@ export async function POST(request: NextRequest) {
             issueId: body.issueId,
           }),
         });
+      case "implementFeature": {
+        const s = await store.query(api.cue.snapshot, { secret: auth });
+        const issue = s.issues.find((i) => i._id === body.issueId);
+        if (!issue?.spec)
+          throw new Error("Approve a feature specification first");
+        const target = (await readIntegrations()).coding?.find(
+          (c) => c.appId === (issue.appId || "bloom"),
+        );
+        if (!target)
+          throw new Error("Connect this app's repository in settings first");
+        return NextResponse.json({
+          runId: await store.mutation(api.cue.startFeature, {
+            secret: auth,
+            issueId: issue._id,
+            expectedSpec: issue.spec,
+            targetId: target.appId,
+            repository: target.repository,
+          }),
+        });
+      }
       case "approve":
         await store.mutation(api.jobs.decide, {
           secret: auth,

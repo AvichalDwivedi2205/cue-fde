@@ -12,6 +12,7 @@ import {
   slackConfig,
   emailConfig,
   emailConfigForSave,
+  codingInput,
 } from "@/lib/integration-config";
 import {
   checkSlack,
@@ -31,6 +32,7 @@ export async function GET(request: Request) {
     return Response.json(
       {
         apps: config.apps,
+        coding: config.coding || [],
         ownerEmail: process.env.CUE_OPERATOR_EMAIL,
         slack: slack
           ? {
@@ -83,6 +85,27 @@ export async function POST(request: Request) {
   }
   try {
     const b = await request.json();
+    if (b.action === "coding") {
+      const target = codingInput.parse(b);
+      const current = await readIntegrations();
+      if (
+        target.appId !== "bloom" &&
+        !current.apps.some((a) => a.id === target.appId)
+      )
+        throw new Error("Register this app before connecting its repository");
+      await updateIntegrations((c) => ({
+        ...c,
+        coding: [
+          ...(c.coding || []).filter((t) => t.appId !== target.appId),
+          target,
+        ],
+      }));
+      return Response.json({
+        ok: true,
+        message:
+          "Repository policy saved. Approved specifications can be implemented in isolated checkouts. Changes require Engineering review; deployment uses your repository's release process.",
+      });
+    }
     if (b.action === "team") {
       const members = membersInput.parse(b.members);
       if (

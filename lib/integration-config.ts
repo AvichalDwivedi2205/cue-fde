@@ -39,6 +39,41 @@ export const appInput = z.object({
   name: z.string().trim().min(1).max(60),
   origins: z.array(originSchema).min(1).max(20),
 });
+export const codingInput = z.object({
+  appId: z.string().min(1).max(100),
+  repository: z.string().regex(/^[\w.-]+\/[\w.-]+$/),
+  baseBranch: z
+    .string()
+    .regex(/^[\w./-]+$/)
+    .refine((v) => !v.includes("..") && !v.startsWith("-")),
+  allowedPaths: z
+    .array(
+      z
+        .string()
+        .min(1)
+        .max(200)
+        .refine(
+          (p) =>
+            !p.startsWith("/") &&
+            !p.includes("..") &&
+            !p.includes("\\") &&
+            !p.startsWith(".") &&
+            !p.includes("node_modules"),
+        ),
+    )
+    .min(1)
+    .max(30),
+  testCommands: z
+    .array(
+      z.object({
+        program: z.enum(["node", "npm"]),
+        args: z.array(z.string().min(1).max(200)).min(1).max(10),
+      }),
+    )
+    .min(1)
+    .max(6),
+});
+export type CodingConfig = z.infer<typeof codingInput>;
 export const slackInput = z.object({
   botToken: z.string().regex(/^xoxb-[A-Za-z0-9-]+$/),
   appToken: z
@@ -142,6 +177,7 @@ export type IntegrationConfig = {
   apps: WidgetApp[];
   slack?: SlackConfig;
   email?: EmailConfig;
+  coding?: CodingConfig[];
 };
 const file = () => path.join(process.cwd(), ".cue", "integrations.enc");
 const key = () =>

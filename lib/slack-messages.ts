@@ -17,6 +17,8 @@ type Run = Pick<
   | "verified"
   | "rootCause"
   | "after"
+  | "kind"
+  | "deploymentMode"
 >;
 export type SlackMessage = { text: string; blocks: Record<string, unknown>[] };
 const plain = (text: string) => ({ type: "plain_text", text, emoji: false });
@@ -224,8 +226,12 @@ export function approvalMessage(
     cue = cueLink("agent"),
     pr = link(run.prUrl);
   const value = JSON.stringify({ runId: run._id, commit: run.commit });
+  const prOnly = run.deploymentMode === "pull_request";
+  const approvalDetail = prOnly
+    ? "Approve this exact implementation commit for your repository's release process. This does not merge, deploy, or announce the feature."
+    : "Approve to deploy this exact commit to the connected Bloom environment. Cue verifies the deployed change afterward.";
   return {
-    text: `Review required: ${title}\nCommit: ${run.commit}\n${run.rootCause || "Review the recorded investigation in Cue."}\nValidation: ${run.after || "Review the recorded checks in Cue."}\nApproval deploys this exact commit to the connected Bloom environment.\nOnly configured engineering operators may approve or reject.${pr ? `\nPull request: ${pr}` : ""}${cue ? `\nOpen in Cue: ${cue}` : ""}`,
+    text: `Review required: ${title}\nCommit: ${run.commit}\n${run.rootCause || "Review the recorded investigation in Cue."}\nValidation: ${run.after || "Review the recorded checks in Cue."}\n${approvalDetail}\nOnly configured engineering operators may approve or reject.${pr ? `\nPull request: ${pr}` : ""}${cue ? `\nOpen in Cue: ${cue}` : ""}`,
     blocks: [
       header("Ready for review"),
       reviewerBlock(reviewerIds, "Engineering"),
@@ -238,24 +244,26 @@ export function approvalMessage(
         `Validation\n${(run.after || "Review the recorded checks in Cue.").slice(0, 1800)}`,
       ),
       context(`Exact commit · ${run.commit}`),
-      section(
-        "Approve to deploy this exact commit to the connected Bloom environment. Cue verifies the deployed change afterward.",
-      ),
+      section(approvalDetail),
       {
         type: "actions",
         elements: [
           {
             type: "button",
-            text: plain("Approve & deploy"),
+            text: plain(prOnly ? "Approve change" : "Approve & deploy"),
             style: "primary",
             action_id: "cue_approve",
             value,
             confirm: {
-              title: plain("Approve deployment?"),
-              text: plain(
-                `Deploy commit ${short} to Bloom. This decision is recorded under your Slack member ID.`,
+              title: plain(
+                prOnly ? "Approve implementation?" : "Approve deployment?",
               ),
-              confirm: plain("Approve & deploy"),
+              text: plain(
+                prOnly
+                  ? `Approve commit ${short} for the repository release process. No code is deployed. This decision is recorded under your Slack member ID.`
+                  : `Deploy commit ${short} to Bloom. This decision is recorded under your Slack member ID.`,
+              ),
+              confirm: plain(prOnly ? "Approve change" : "Approve & deploy"),
               deny: plain("Cancel"),
             },
           },
@@ -298,7 +306,9 @@ export function runMessage(
     ? "Deployment verified"
     : failed
       ? "Investigation needs attention"
-      : "Investigation in progress";
+      : run.status === "approved"
+        ? "Implementation approved"
+        : "Investigation in progress";
   const status = verified
     ? "Deployed and verified"
     : run.phase.replaceAll("_", " ");
@@ -306,11 +316,15 @@ export function runMessage(
     ? "The approved change is deployed and has passed independent verification. Customer replies can now use this evidence."
     : failed
       ? "Work stopped. Review the investigation in Cue before retrying."
-      : run.phase === "implementing"
-        ? "Cue reproduced the issue. Codex is preparing a scoped change in an isolated checkout."
-        : run.phase === "deploying"
-          ? "The exact commit was approved. Deployment is in progress; verification is still pending."
-          : "Cue is investigating the reported problem. Review the timeline for current evidence.";
+      : run.status === "approved"
+        ? "Engineering approved the exact implementation commit. The PR remains subject to your repository's merge and deployment process; customer resolution has not been claimed."
+        : run.phase === "implementing"
+          ? run.kind === "feature"
+            ? "Codex is implementing the approved specification in an isolated checkout. Independent checks and Engineering review follow."
+            : "Cue reproduced the issue. Codex is preparing a scoped change in an isolated checkout."
+          : run.phase === "deploying"
+            ? "The exact commit was approved. Deployment is in progress; verification is still pending."
+            : "Cue is investigating the reported problem. Review the timeline for current evidence.";
   const cue = cueLink("agent"),
     pr = link(run.prUrl);
   const actions = [
