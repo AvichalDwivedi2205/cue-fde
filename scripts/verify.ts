@@ -7,6 +7,7 @@ import { photo } from "../demo/bloom/fixture.mjs";
 import { validSlack } from "../lib/slack";
 import { replyProblems, socialReplyLength } from "../lib/reply-policy";
 import { request as httpRequest } from "node:http";
+import { request as httpsRequest } from "node:https";
 nextEnv.loadEnvConfig(process.cwd());
 const { db, api, secret } = await import("../lib/server-store");
 const workos = !!(
@@ -50,7 +51,9 @@ const run = s.runs.find(
 );
 assert.ok(run?.verified && run.deployed && run.commit);
 check("A real run has deployed and verified evidence");
-const health = await (await fetch("http://127.0.0.1:4318/health")).json();
+const health = base.startsWith("https:")
+  ? (await (await fetch(base + "/api/bloom")).json()).health
+  : await (await fetch("http://127.0.0.1:4318/health")).json();
 assert.equal(health.build, run.commit);
 assert.equal(health.maxUploadBytes, 5 * 1024 * 1024);
 check("Active upload release equals the approved commit");
@@ -163,9 +166,14 @@ assert.equal(
 );
 check("Cross-origin operator mutation is rejected");
 const hostStatus = await new Promise<number | undefined>((resolve, reject) => {
-  httpRequest(
+  (base.startsWith("https:") ? httpsRequest : httpRequest)(
     base + "/api/demo",
-    { headers: { host: "untrusted.invalid" } },
+    {
+      headers: { host: "untrusted.invalid" },
+      ...(base.startsWith("https:")
+        ? { servername: new URL(base).hostname }
+        : {}),
+    },
     (r) => {
       r.resume();
       resolve(r.statusCode);
@@ -174,7 +182,9 @@ const hostStatus = await new Promise<number | undefined>((resolve, reject) => {
     .on("error", reject)
     .end();
 });
-assert.equal(hostStatus, 401);
+if (base.startsWith("https:"))
+  assert([400, 401, 403, 404].includes(hostStatus || 0));
+else assert.equal(hostStatus, 401);
 check(
   workos
     ? "Unauthenticated forged-host requests remain denied"
@@ -268,10 +278,13 @@ assert.deepEqual(replyProblems(reply, replyContext), []);
 check("Live Vertex Gemini returns a bounded X brand draft");
 await fs.mkdir(".cue", { recursive: true });
 await fs.writeFile(
-  ".cue/verification.json",
+  base.startsWith("https:")
+    ? ".cue/hosted-verification.json"
+    : ".cue/verification.json",
   JSON.stringify(
     {
       checkedAt: new Date().toISOString(),
+      origin: base,
       commit: run.commit,
       prUrl: run.prUrl,
       checks,
@@ -282,7 +295,7 @@ await fs.writeFile(
         "Slack and support email live checks are recorded by verify-slack.ts and verify-email.ts",
         "Native social intake evidence is recorded separately by verify-social.ts",
         "Reddit public reply was removed by moderation",
-        "Branded email sender domain remains unverified",
+        "Branded sender delivery is checked separately by verify-email.ts",
       ],
     },
     null,

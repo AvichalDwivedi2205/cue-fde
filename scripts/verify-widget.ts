@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 nextEnv.loadEnvConfig(process.cwd());
 const { readIntegrations } = await import("../lib/integration-config");
 const { api, db, secret } = await import("../lib/server-store");
-const base = "http://127.0.0.1:3000";
+const base = process.env.CUE_VERIFY_ORIGIN || "http://127.0.0.1:3000";
 const app = (await readIntegrations()).apps.find((a) =>
   a.origins.includes("http://localhost:4400"),
 );
@@ -114,19 +114,17 @@ assert(
 );
 checks.push("iframe restricts embedding to registered origins");
 await fs.writeFile(
-  ".cue/widget-verification.json",
+  base.startsWith("https:")
+    ? ".cue/hosted-widget-verification.json"
+    : ".cue/widget-verification.json",
   JSON.stringify(
     {
       checkedAt: new Date().toISOString(),
+      origin: base,
       checks,
       caseId: first.body.id,
-      browser: [
-        "cross-origin report submitted",
-        "reload persistence",
-        "operator reply received",
-        "operator note absent",
-        "fresh browser has an empty conversation",
-      ],
+      browser:
+        "Browser proof is recorded separately; these checks use live HTTP requests.",
       screenshotPicker:
         "Browser automation could not open iframe file chooser; screenshot endpoint tested with real PNG bytes",
     },

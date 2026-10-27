@@ -4,7 +4,7 @@ import { promises as fs } from "node:fs";
 import { randomUUID } from "node:crypto";
 nextEnv.loadEnvConfig(process.cwd());
 const { api, db, secret } = await import("../lib/server-store");
-const base = "http://127.0.0.1:3000";
+const base = process.env.CUE_VERIFY_ORIGIN || "http://127.0.0.1:3000";
 let cookie = "";
 const call = async (body: object, useCookie = true) => {
   const r = await fetch(base + "/api/voice", {
@@ -100,10 +100,13 @@ assert(
 );
 pass("Cue records one spoken report plus a private session-end note");
 await fs.writeFile(
-  ".cue/voice-verification.json",
+  base.startsWith("https:")
+    ? ".cue/hosted-voice-verification.json"
+    : ".cue/voice-verification.json",
   JSON.stringify(
     {
       checkedAt: new Date().toISOString(),
+      origin: base,
       caseId: turn.data.caseId,
       transcript: turn.data.transcript,
       reply: turn.data.reply,
