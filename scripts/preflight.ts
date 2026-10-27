@@ -2,10 +2,11 @@ import nextEnv from "@next/env";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 nextEnv.loadEnvConfig(process.cwd());
-const { slackConfig, emailConfig } = await import("../lib/integration-config");
-const { slackRuntimeStatus, notificationRuntimeStatus } = await import(
-  "../lib/integration-checks"
+const { slackConfig, emailConfig, readIntegrations } = await import(
+  "../lib/integration-config"
 );
+const { slackRuntimeStatus, notificationRuntimeStatus, xRuntimeStatus } =
+  await import("../lib/integration-checks");
 const exec = promisify(execFile);
 const rows: Array<{ service: string; status: string }> = [];
 for (const [service, url] of [
@@ -94,5 +95,13 @@ rows.push({
       ? "Provider test sender · account owner's inbox only"
       : "Configured · sender domain and inbox delivery need verification"
     : "Credentials needed",
+});
+const x = (await readIntegrations()).x;
+const xStatus = await xRuntimeStatus();
+rows.push({
+  service: "X API intake",
+  status: x?.enabled
+    ? xStatus.detail
+    : "Disabled · developer access and free credits required",
 });
 console.table(rows);
