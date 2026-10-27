@@ -43,7 +43,7 @@ After deployment, native follow-up `CUE-CLOUD-SLACK-AFTER-FIX-1011` persisted on
 
 ## Fresh X experiment
 
-The authorized `dwivediavichal926` Chrome profile's account menu showed `@ConfusedAF2205` before posting. The fresh public [tagging test](https://x.com/ConfusedAF2205/status/2109012253718773827), marker `CUE-X-AUTO-1011`, visibly links `@bloomwithcue`. Brand email notifications were enabled, advanced notification mutes were off, and the quality filter was disabled for the test. The brand's X tab was closed after saving these preferences. Gmail's all-folder sender search still showed only X's welcome email at the recorded check, and no automatic case for this source was present. This isolates the unverified step to native notification arrival; it does not prove X will never deliver a delayed digest. X documents incomplete mention email coverage, so this remains best-effort intake, not comprehensive brand monitoring. Manual capture remains available as an explicit fallback.
+The authorized `dwivediavichal926` Chrome profile's account menu showed `@ConfusedAF2205` before posting. The fresh public [tagging test](https://x.com/ConfusedAF2205/status/2109012253718773827), marker `CUE-X-AUTO-1011`, visibly links `@bloomwithcue`. Brand email notifications were enabled, advanced notification mutes were off, and the quality filter was disabled for the test. The brand's X tab was closed after saving these preferences. Gmail's all-folder sender search still showed only X's welcome email at the recorded check, and no automatic case for this source was present. A later native check, signed in as `@bloomwithcue`, also showed an empty Mentions timeline. The unverified step is X's own notification delivery; this does not prove X will never deliver a delayed digest. X documents incomplete mention email coverage, so this remains best-effort intake, not comprehensive brand monitoring. Manual capture remains available as an explicit fallback.
 
 ## Actual voice exchange
 
@@ -72,6 +72,8 @@ Private local evidence:
 - `artifacts/slack-hosted-spec-approved.png`, `artifacts/slack-post-fix-followup.png`, `artifacts/cue-domain-approved-spec-preserved.png`: native decision, follow-up and custom-domain state.
 - `artifacts/latchgrid-domain-ownership-verified.png`, `artifacts/cue-domain-dns-saved.png`: completed domain ownership and DNS changes.
 - `artifacts/x-native-tagging-test-1011.png`, `artifacts/x-quality-filter-off.png`, `artifacts/x-email-notifications-enabled.png`: real tagging and saved notification preferences.
+- `artifacts/x-brand-mentions-empty-1011.png`: the brand's empty native mention timeline after the visible tagged post.
+- `artifacts/bloom-domain-voice-panel.png`: the updated voice UI on the public custom domain.
 
 ## Reproduction and remaining constraints
 
