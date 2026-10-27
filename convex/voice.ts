@@ -230,3 +230,47 @@ export const end = mutation({
     return null;
   },
 });
+
+// Called only by the trusted verification harness. Preserve transcripts and
+// failures while accurately excluding generated test reports from live intake.
+export const markVerificationCase = mutation({
+  args: {
+    secret: v.string(),
+    caseId: v.id("cases"),
+    expectedTranscript: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, a) => {
+    authorize(a.secret);
+    const c = await ctx.db.get("cases", a.caseId);
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_caseId_and_createdAt", (q) => q.eq("caseId", a.caseId))
+      .take(100);
+    if (
+      !c ||
+      c.channel !== "chat" ||
+      c.sourceUrl ||
+      c.externalId ||
+      c.body !== a.expectedTranscript ||
+      !messages.some(
+        (m) =>
+          m.role === "note" &&
+          m.body.startsWith("Customer opted into a voice session."),
+      )
+    )
+      throw new ConvexError("Verification fixture does not match");
+    if (c.provenance === "Synthetic voice verification") return null;
+    await ctx.db.patch("cases", c._id, {
+      provenance: "Synthetic voice verification",
+    });
+    await ctx.db.insert("messages", {
+      caseId: c._id,
+      author: "Verification harness",
+      role: "note",
+      body: `Generated audio fixture, not a customer report. Original provenance: ${c.provenance}. Transcript and any failure evidence retained.`,
+      createdAt: Date.now(),
+    });
+    return null;
+  },
+});

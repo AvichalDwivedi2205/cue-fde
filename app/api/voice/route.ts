@@ -6,7 +6,8 @@ import { api, db, secret } from "@/lib/server-store";
 import { readIntegrations } from "@/lib/integration-config";
 import { verifyWidgetSession, widgetRateLimit } from "@/lib/widget-session";
 import { draft, geminiReady, transcribeAudio } from "@/lib/gemini";
-import { VOICE_DISCLOSURE, voiceAudio } from "@/lib/voice-audio";
+import { VOICE_DISCLOSURE, publicVoiceError } from "@/lib/voice-audio";
+import { decodeVoiceAudio } from "@/lib/voice-decoder";
 import { triage } from "@/lib/triage";
 import type { Id } from "@/convex/_generated/dataModel";
 export const runtime = "nodejs";
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
     }
     if (!b.audio || !b.mimeType)
       throw new Error("Record a voice message first");
-    const audio = voiceAudio(b.audio, b.mimeType),
+    const audio = await decodeVoiceAudio(b.audio, b.mimeType),
       key = b.key || randomUUID();
     const done = await store.mutation(api.voice.claim, {
       secret: auth,
@@ -114,7 +115,7 @@ export async function POST(request: NextRequest) {
       await db()
         .mutation(api.voice.release, { secret: secret(), ...claimed })
         .catch(() => {});
-    const error = e instanceof Error ? e.message : "Voice request failed";
+    const error = publicVoiceError(e);
     return Response.json(
       { error },
       {

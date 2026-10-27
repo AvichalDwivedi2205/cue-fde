@@ -20,6 +20,45 @@ async function setup() {
   return { t, sessionId, args: { ...auth, owner, sessionId, key } };
 }
 describe("Voice session ownership and lifecycle", () => {
+  test("verification labeling retains evidence and requires the exact spoken fixture", async () => {
+    const { t, args } = await setup();
+    await t.mutation(api.voice.claim, args);
+    const caseId = await t.mutation(api.voice.finish, {
+      ...args,
+      transcript: "Controlled spoken fixture",
+      reply: "Saved",
+    });
+    await expect(
+      t.mutation(api.voice.markVerificationCase, {
+        ...auth,
+        caseId,
+        expectedTranscript: "Different",
+      }),
+    ).rejects.toThrow("does not match");
+    await t.mutation(api.voice.markVerificationCase, {
+      ...auth,
+      caseId,
+      expectedTranscript: "Controlled spoken fixture",
+    });
+    await t.mutation(api.voice.markVerificationCase, {
+      ...auth,
+      caseId,
+      expectedTranscript: "Controlled spoken fixture",
+    });
+    const conversation = await t.query(api.bloom.conversation, {
+      ...auth,
+      owner,
+    });
+    expect(conversation?.case.provenance).toBe("Synthetic voice verification");
+    expect(
+      conversation?.messages.filter((m) => m.role === "customer"),
+    ).toHaveLength(1);
+    expect(
+      conversation?.messages.filter((m) =>
+        m.body.startsWith("Generated audio fixture"),
+      ),
+    ).toHaveLength(1);
+  });
   test("start reuses an active session and rejects cross-owner access", async () => {
     const { t, sessionId } = await setup();
     expect(

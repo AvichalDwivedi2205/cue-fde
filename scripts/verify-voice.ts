@@ -37,16 +37,23 @@ const payload = {
   action: "turn",
   sessionId,
   key,
-  audio: (await fs.readFile(".cue/voice-check.wav")).toString("base64"),
-  mimeType: "audio/wav",
+  audio: (await fs.readFile(".cue/voice-check.webm")).toString("base64"),
+  mimeType: "audio/webm",
 };
 const began = Date.now();
 const turn = await call(payload);
 assert.equal(turn.status, 200, JSON.stringify(turn.data));
+await db().mutation(api.voice.markVerificationCase, {
+  secret: secret(),
+  caseId: turn.data.caseId,
+  expectedTranscript: turn.data.transcript,
+});
 assert(/three|3/i.test(turn.data.transcript));
 assert(/chrome/i.test(turn.data.transcript));
 assert(turn.data.reply.trim());
-pass("Real WAV → live Vertex Gemini transcript → contextual support reply");
+pass(
+  "Real WebM → validated PCM → live Vertex Gemini transcript → contextual support reply",
+);
 const repeated = await call(payload);
 assert.equal(repeated.data.caseId, turn.data.caseId);
 assert.equal(repeated.data.reply, turn.data.reply);
