@@ -1,3 +1,4 @@
+import { expectedFailure } from "./expected-failure";
 import nextEnv from "@next/env";
 import assert from "node:assert/strict";
 import { promises as fs } from "node:fs";
@@ -103,7 +104,7 @@ const payload = {
 };
 await assert.rejects(
   () => decideSlack(payload, config),
-  /pending specification/,
+  expectedFailure(/pending specification/),
 );
 await assert.rejects(
   () =>
@@ -119,7 +120,7 @@ await assert.rejects(
       },
       config,
     ),
-  /not authorized/,
+  expectedFailure(/not authorized/),
 );
 pass(
   "Repeated native decision and Product deployment attempt are denied without side effects",
@@ -134,7 +135,7 @@ if (engineering?.slackId && support?.slackId) {
   for (const member of [engineering, support])
     await assert.rejects(
       () => decideSlack({ ...payload, user: { id: member.slackId } }, config),
-      /not authorized/,
+      expectedFailure(/not authorized/),
     );
   await assert.rejects(
     () =>
@@ -154,7 +155,7 @@ if (engineering?.slackId && support?.slackId) {
         },
         config,
       ),
-    /not authorized/,
+    expectedFailure(/not authorized/),
   );
   const after = await db().query(api.cue.snapshot, { secret: secret() });
   assert.equal(

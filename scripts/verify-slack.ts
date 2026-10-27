@@ -1,3 +1,4 @@
+import { expectedFailure } from "./expected-failure";
 import nextEnv from "@next/env";
 import assert from "node:assert/strict";
 import { promises as fs } from "node:fs";
@@ -136,7 +137,7 @@ const input = {
 };
 await assert.rejects(
   () => receiveSlack({ ...input, team_id: "TWRONG" }, config),
-  /Wrong Slack workspace/,
+  expectedFailure(/Wrong Slack workspace/),
 );
 assert.equal(
   await receiveSlack(
@@ -172,7 +173,7 @@ const interaction = {
 };
 await assert.rejects(
   () => decideSlack({ ...interaction, user: { id: "UUNAUTHORIZED" } }, config),
-  /Operator not authorized/,
+  expectedFailure(/Operator not authorized/),
 );
 await assert.rejects(
   () =>
@@ -180,9 +181,12 @@ await assert.rejects(
       { ...interaction, channel: { id: config.supportChannel } },
       config,
     ),
-  /Operator not authorized/,
+  expectedFailure(/Operator not authorized/),
 );
-await assert.rejects(() => decideSlack(interaction, config), /pending commit/);
+await assert.rejects(
+  () => decideSlack(interaction, config),
+  expectedFailure(/pending commit/),
+);
 pass(
   "Unauthorized operators, wrong approval channels and resolved commit replay are denied",
 );
