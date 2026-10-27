@@ -8,6 +8,8 @@ export async function decodeVoiceAudio(data: string, mime: string) {
   if (input.mimeType === "audio/wav") return input;
   const pcm = await new Promise<Buffer>((resolve, reject) => {
     const child = spawn(
+      // FFmpeg is an installed system dependency, never a bundled project file.
+      /* turbopackIgnore: true */
       process.env.CUE_FFMPEG_PATH || "ffmpeg",
       [
         "-nostdin",
