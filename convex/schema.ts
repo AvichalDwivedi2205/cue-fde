@@ -35,6 +35,8 @@ export default defineSchema({
     tags: v.array(v.string()),
     createdAt: v.number(),
     spec: v.optional(v.string()),
+    specApprovedAt: v.optional(v.number()),
+    specApprovedBy: v.optional(v.string()),
   }).index("by_fingerprint", ["fingerprint"]),
   messages: defineTable({
     caseId: v.id("cases"),

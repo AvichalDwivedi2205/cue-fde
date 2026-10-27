@@ -175,8 +175,15 @@ export async function POST(request: NextRequest) {
         if (!issue || issue.kind !== "feature")
           throw new Error("Feature not found");
         const spec = await generateSpec({
-          issue,
-          requests: s.cases.filter((c) => c.issueId === issue._id),
+          issue: { title: issue.title, description: issue.description },
+          requests: s.cases
+            .filter(
+              (c) =>
+                c.issueId === issue._id &&
+                c.provenance !== "Seeded demo report" &&
+                !c.provenance.startsWith("Synthetic "),
+            )
+            .map((c) => ({ title: c.title, body: c.body })),
         });
         await store.mutation(api.cue.spec, {
           secret: auth,
@@ -225,6 +232,7 @@ export async function POST(request: NextRequest) {
           issueId: body.issueId,
           spec: z.string().max(18000).parse(body.spec),
           approved: !!body.approved,
+          actor: actor.name,
         });
         break;
       default:

@@ -556,12 +556,25 @@ describe("Cue permissions and lifecycle", () => {
       issueId: feature._id,
       spec,
       approved: true,
+      actor: "Feature reviewer",
     });
     expect(
       (await t.query(api.cue.snapshot, auth)).issues.find(
         (i) => i._id === feature._id,
       ),
-    ).toMatchObject({ spec, status: "approved" });
+    ).toMatchObject({
+      spec,
+      status: "approved",
+      specApprovedBy: "Feature reviewer",
+      specApprovedAt: expect.any(Number),
+    });
+    await t.mutation(api.cue.spec, { ...auth, issueId: feature._id, spec });
+    const edited = (await t.query(api.cue.snapshot, auth)).issues.find(
+      (i) => i._id === feature._id,
+    );
+    expect(edited?.status).toBe("spec_ready");
+    expect(edited?.specApprovedAt).toBeUndefined();
+    expect(edited?.specApprovedBy).toBeUndefined();
   });
 
   test("tag editing normalizes duplicates and validates limits", async () => {

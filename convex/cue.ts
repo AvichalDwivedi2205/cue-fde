@@ -566,6 +566,7 @@ export const spec = mutation({
     issueId: v.id("issues"),
     spec: v.string(),
     approved: v.optional(v.boolean()),
+    actor: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -597,6 +598,10 @@ export const spec = mutation({
     await ctx.db.patch("issues", args.issueId, {
       spec: args.spec,
       status: args.approved ? "approved" : "spec_ready",
+      specApprovedAt: args.approved ? stamp() : undefined,
+      specApprovedBy: args.approved
+        ? (args.actor?.trim() || "Operator").slice(0, 100)
+        : undefined,
     });
     await ctx.db.insert("events", {
       issueId: args.issueId,
