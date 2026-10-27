@@ -202,7 +202,7 @@ await fs.writeFile(
         "artifacts/slack-live-reconnect-cue.jpg",
       ],
       approvalCoverage:
-        "Gateway approval/rejection against actual Convex lifecycle in isolation and live denial/replay checks; new live pending-commit approval not exercised",
+        "Gateway lifecycle isolation and live denial/replay checks. The separate caption-search feature also passed Ganesh's native exact-commit approval, merge and local release verification; see feature-release-verification.json.",
     },
     null,
     2,

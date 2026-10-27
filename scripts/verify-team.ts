@@ -34,7 +34,11 @@ const c = snapshot.cases.find(
 assert(c, "Send the marked live Slack feature report");
 assert.equal(c.customer, `Slack ${product.slackId}`);
 const issue = snapshot.issues.find((i) => i._id === c.issueId);
-assert(issue?.spec && issue.kind === "feature" && issue.status === "approved");
+assert(
+  issue?.spec &&
+    issue.kind === "feature" &&
+    ["approved", "resolved"].includes(issue.status),
+);
 assert.equal(
   issue.specApprovedBy,
   `${product.name} · Slack ${product.slackId}`,
@@ -55,13 +59,37 @@ for (const prefix of ["spec-approval", "spec-decision"]) {
 pass(
   "Exact-version review and threaded decision each have one Slack provider receipt",
 );
-assert(!snapshot.runs.some((r) => r.issueId === issue._id));
-assert(
-  !(await db().query(api.jobs.status, { secret: secret() })).some((j) =>
-    snapshot.runs.some((r) => r._id === j.runId && r.issueId === issue._id),
-  ),
-);
-pass("Specification approval did not create a coding run or deployment");
+const featureRuns = snapshot.runs.filter((r) => r.issueId === issue._id);
+if (!featureRuns.length) {
+  pass("Specification approval has no coding run or deployment");
+} else {
+  for (const run of featureRuns) {
+    assert.equal(run.kind, "feature");
+    assert.equal(run.approvedSpec, issue.spec);
+    assert(run.createdAt >= issue.specApprovedAt!);
+  }
+  pass(
+    "Later coding runs remain bound to the exact Product-approved specification and approval time",
+  );
+  if (issue.status === "resolved") {
+    const released = featureRuns
+      .filter((r) => r.status === "resolved")
+      .sort((a, b) => b.createdAt - a.createdAt)[0];
+    assert(
+      released?.deployed &&
+        released.verified &&
+        released.releaseCommit &&
+        released.releaseEvidence,
+    );
+    assert.equal(
+      released.approval,
+      `${engineering?.name} · Slack ${engineering?.slackId}`,
+    );
+    pass(
+      "Released feature retains the actual Engineering reviewer plus deployed acceptance evidence",
+    );
+  }
+}
 const payload = {
   team: { id: config.teamId },
   channel: { id: config.engineeringChannel },
