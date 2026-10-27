@@ -19,6 +19,18 @@ On a fresh machine, copy `.env.example` to `.env.local`, initialize a local Conv
 
 Vertex uses Application Default Credentials for `GOOGLE_CLOUD_PROJECT`. Authenticate with `gcloud auth application-default login`, use a project with Vertex AI enabled and billing, or configure `GEMINI_API_KEY`. Codex uses `codex login`; set `CUE_CODEX_PATH` if needed. GitHub uses `gh auth login` and `CUE_GITHUB_REPO=owner/repository`. The repository must contain the deliberately broken Bloom fixture on its main branch. If no GitHub repository is configured, Cue produces a tested local commit and shows that no PR was opened.
 
+## Public deployment and verification
+
+Both applications are live over HTTPS: [Bloom](https://cue-987049542259.us-central1.run.app/bloom#/journal), [Cue](https://cue-987049542259.us-central1.run.app/cue#/inbox), and [integration setup](https://cue-987049542259.us-central1.run.app/setup). The public Cue dashboard requires WorkOS sign-in and a saved team membership. The final Cloud Run revision serves release `1cb9bd59ee0f2c63148cb4df449404eb10e14a6a`; subsequent documentation and local development-command changes do not change that deployed release.
+
+Public verification passed 18 core checks, nine widget HTTP checks, eight real WebM/Gemini voice checks and five hosting checks. Native Chrome also passed WorkOS sign-in, creation and reload of a Bloom customer conversation, persisted tags, customer reply delivery, and private-note isolation. A newly registered public widget passed report creation, reload, dashboard reply delivery, private-note isolation and a separate browser profile's empty conversation. Replies sent from the public dashboard reached the original Slack thread and Gmail support thread; the branded email has a delivered Resend receipt.
+
+The website and Convex are hosted. The persistent worker still runs on this machine for Slack Socket Mode, receiving-email polling and personal-account Codex jobs; leave `npm run dev` running to retain those paths. Cloud Gemini uses the Cloud Run service account's permission in the selected Gemini project. Saved integration keys are encrypted in private Convex server state and are not sent to visitors.
+
+`cue.latchgrid.in` is **not** serving the website yet: its Google ownership-verification step awaits approval. The four approved email DNS records are complete, and `support@cue.latchgrid.in` sends verified email. Direct new mail to that branded address has no receiving route; replies use the managed support receiving address.
+
+X native notification arrival and automatic intake remain unverified. Reddit automatic intake passed, but Reddit removed the public test comment. Chrome's extension file-access toggle and real microphone/speaker checks remain unfinished. A synthetic audio fixture proves the live gateway, not hardware. The complete status and reproduction commands are in [the October 10 verification record](docs/verification-2026-10-10.md). Local browser evidence is `.cue/hosting-browser-verification.json` and ignored `artifacts/` screenshots.
+
 ## Use the apps
 
 Bloom's upload fix is currently deployed and verified. Choose a real JPEG, PNG or WebP up to 5 MB, upload it, save a memory, then reload to check persistence. Demo photo controls and seeded memories are hidden; real saved memories remain visible.
