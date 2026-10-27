@@ -1,0 +1,127 @@
+# Cue × Bloom
+
+A working local demo of customer support turning into an engineering fix. Both applications use the supplied designs in `design/bloom.html` and `design/cue.html`; live adapters replace their browser-only story state.
+
+## Run
+
+The current machine is configured for Convex, Vertex Gemini, the existing Codex ChatGPT login, WorkOS staging, and the private GitHub fixture repository. Cue requires Google sign-in with the configured demo operator. From this directory:
+
+```sh
+npm install
+CONVEX_AGENT_MODE=anonymous npm run dev
+```
+
+Open **http://127.0.0.1:3000/bloom#/journal** and **http://127.0.0.1:3000/cue#/inbox**. Use `127.0.0.1` consistently so the same customer cookie is retained. Do not start a second copy while the demo is running.
+
+Three processes run together: Next.js on 3000, Convex on 3210, and the persistent worker with Bloom's upload service on 4318. Worker control on 4319 is bound to loopback and requires the server secret. Stop with Ctrl-C.
+
+On a fresh machine, copy `.env.example` to `.env.local`, initialize a local Convex deployment with `CONVEX_AGENT_MODE=anonymous npx convex dev`, and generate a random `CUE_DEMO_SECRET`. Set the same secret in Convex with `npx convex env set CUE_DEMO_SECRET` (interactive input) or `npx convex env set --from-file .env.convex`. Keep secret files private and out of Git. The existing `.env.convex` is private local configuration, not a checked-in default.
+
+Vertex uses Application Default Credentials for `GOOGLE_CLOUD_PROJECT`. Authenticate with `gcloud auth application-default login`, use a project with Vertex AI enabled and billing, or configure `GEMINI_API_KEY`. Codex uses `codex login`; set `CUE_CODEX_PATH` if needed. GitHub uses `gh auth login` and `CUE_GITHUB_REPO=owner/repository`. The repository must contain the deliberately broken Bloom fixture on its main branch. If no GitHub repository is configured, Cue produces a tested local commit and shows that no PR was opened.
+
+## Use the apps
+
+Bloom's upload fix is currently deployed and verified. Choose a real JPEG, PNG or WebP up to 5 MB, upload it, save a memory, then reload to check persistence. Demo photo controls and seeded memories are hidden; real saved memories remain visible.
+
+Open Bloom's help chat to send a customer report with an optional screenshot. Cue keeps the customer conversation, identifies matching symptoms and supports tags, internal notes and customer replies. In Cue, inspect the retained upload investigation, actual repository diff, independent before/after HTTP tests and draft PR in Changes. The worker's original workflow reproduced the 2 MB regression, delegated the scoped fix through the logged-in Codex SDK, requested approval of the exact commit, deployed it locally and verified a valid 3 MB image plus a rejected 6 MB control before resolving the issue. Reset/replay controls are no longer exposed in the UI.
+
+Feature specifications use Gemini to derive acceptance criteria from actual requests. Specification approval records a reviewed proposal; executable feature implementation beyond Bloom's scoped upload fix still requires runner work. Synthetic support cases and scripted landing-page stories are hidden from the UI, with their records preserved in storage.
+
+## Install Cue in your own app
+
+Open `/setup#widget` as the operator. Register an app name and exact allowed website origins. Paste the generated `<script async src="http://127.0.0.1:3000/widget.js" data-app="cue_app_..."></script>` before the closing body tag. Set `CUE_PUBLIC_URL` to the hosted HTTPS origin for a shared deployment; a remote app cannot reach your local laptop through this localhost snippet.
+
+The public install script embeds an isolated support iframe. Each visitor gets a signed, expiring bearer session bound to that app and website origin; their host page saves only that token. Reports and follow-ups share a durable conversation, screenshots are validated and stored, and operator replies appear in the widget. Internal notes and drafts are filtered from the visitor response. Context includes the app and page path; query strings and host application storage are not collected. Display names are visitor supplied, not verified identities. Reports from different registered apps cannot merge with Bloom's fixture issue or invoke its runner.
+
+`http://localhost:4400` is a separate example website with a working installed widget. To restart it:
+
+```sh
+python3 -m http.server 4400 --bind 127.0.0.1 --directory demo/widget-host
+```
+
+The checked-in example references this local demo's registered public app ID. Generate your own snippet on another installation. Browser checks verified a report, reload persistence, a dashboard reply, private-note isolation, and a fresh visitor's empty conversation. `npx tsx scripts/verify-widget.ts` adds nine live HTTP checks, including real PNG storage, origin rejection and token forgery rejection. Browser automation could not activate the iframe file chooser; attachment storage was tested through the actual HTTP endpoint. Evidence is `.cue/widget-verification.json`.
+
+The local development command uses Next.js's webpack compiler. Browser testing found repeated form resets with Turbopack; webpack kept the setup page stable. The optimized production build remains supported.
+
+## X without an API
+
+Customers tag the brand account. The user completed **@bloomwithcue**, display name Bloom, using **e34396372@gmail.com**. The signed-in account menu and the welcome email were verified on October 10, 2026. X email notifications and New notifications are enabled. The supplied historical sample designs still use **@bloomapp**; those samples are not the live brand account.
+
+In Cue click **Capture X post** and paste the post URL, author, text, and optional screenshot. This is operator-assisted capture; Cue does not fetch mentions or post replies to X. A post ID is the idempotency key, so capturing the same link twice returns the same case.
+
+Storage, grouping, tagging, Gemini drafting and issue-resolution updates use the real backend. X replies remain drafts for the brand operator to post. The brand is tagged; Cue runs behind the brand. Sample controls, story animations and synthetic reports are removed or hidden in the UI; historical records remain in storage.
+
+## Reddit mentions and demo capture
+
+Cue → Integrations → Reddit → Capture post accepts a Reddit post/comment permalink, author, text and optional screenshot. Capturing the same comment again reuses its case; a parent post has a different key. Replies are saved as drafts for the brand operator to post. This does not fetch or post to Reddit.
+
+### Fallback when Reddit Data API access is unavailable
+
+Use `http://127.0.0.1:3000/bloom#/support` for a presentation on this laptop. It opens the real Bloom support chat immediately; there is also a **Bloom support** link on Cue's Reddit integration card. A human can invite a tester to open that link and describe their own problem directly. Reports use the existing signed guest session, durable conversation, screenshots, Gemini triage, grouping, and operator replies. They are chat reports, not automatically collected Reddit mentions. Opening the link alone does not create a case or send a message. Host the app at an accessible HTTPS origin before sharing its equivalent support URL with remote users; other devices cannot reach this laptop's loopback address.
+
+For a controlled demonstration of a Reddit source, manually capture a self-authored post/comment (or a consenting tester's report) with its real permalink and text. This preserves Reddit source attribution without fetching the platform. The support link is the dependable baseline: it needs no Reddit developer credentials, does not poll Reddit, and makes the user explicitly submit the report to Bloom. Verify the support link opens chat, a real submitted report appears in Cue, and a reply returns to that same visitor before presenting the workflow. Do not present this as automatic mention monitoring.
+
+Devvit is a separate approved development route, rather than an unrestricted fallback. Ordinary community `onCommentCreate`/`onPostSubmit` triggers can support a test-subreddit experiment, but forwarding their data to Cue requires an allow-listed HTTPS destination. App-wide mention triggers are limited-access and require an approved published app for delivery across Reddit. Since those permissions are unconfirmed, neither route is connected here. Start with the direct support link; only add Devvit if the scoped trigger and external destination are actually permitted and a real test event reaches Cue. Sources: [community triggers](https://developers.reddit.com/docs/capabilities/server/triggers), [HTTP fetch](https://developers.reddit.com/docs/capabilities/server/http-fetch), and [app mention triggers](https://developers.reddit.com/docs/capabilities/server/global-triggers).
+
+## Notification email import without social API spending
+
+The email gateway includes an opt-in notification parser. In `/setup#email`, select **Import X and Reddit mention notification emails** when saving the receiving connection. Environment-only setups can set `CUE_EMAIL_NOTIFICATIONS=true`. Enable mention/reply notification emails on the dedicated brand accounts and forward only those notifications to the receiving inbox. Keep security and password-reset emails out of the forwarding rule.
+
+The signed Resend webhook retrieves the email, normalizes supported mention/reply subjects from known platform notification sender addresses, extracts direct HTTPS post/comment permalinks, and imports notification excerpts as X or Reddit cases. HTML is parsed as inert data; scripts and hidden content are excluded. Each permalink has an idempotency key, so repeat digests, webhook retries and existing operator captures cannot append duplicate reports. A digest can contain up to 20 distinct posts; larger digests and messages with only opaque tracking links are held for manual review in the receiving inbox. Ordinary customer email stays an email conversation with its original threading.
+
+For local use, select **Poll notification inbox locally every 30 seconds** and enter a dedicated Resend receiving address. This path needs no public webhook or custom domain. Resend provides a managed receiving domain; see [receiving setup](https://resend.com/docs/dashboard/receiving/introduction). The persistent worker checks known notification senders and mention/reply subjects before retrieving a body, restricts the envelope recipient to the configured address and imports only mail received after activation. It uses bounded pagination, a private checkpoint, retry on failure and the same atomic Convex deduplication receipts as webhook intake. `/setup#email` shows inbox health, imported counts and notifications held for review. Inbox connection does not prove either platform delivered a mention. Environment-only setups use `CUE_EMAIL_POLL=true` and `CUE_EMAIL_POLL_RECIPIENT`; their first activation time persists in the checkpoint across restarts.
+
+The email provider verifies delivery to its inbox, not the platform sender or post author. Imported social cases explicitly record unverified content and identity. The parser does not fetch full posts, expand redirects, scan timelines, collect all brand mentions, or post social replies. Replies remain operator drafts.
+
+X documents [activity digests and incomplete mention email delivery](https://help.x.com/en/managing-your-account/updating-email-preferences). Reddit supports [mention and reply notification emails](https://support.reddithelp.com/hc/en-us/articles/360053879992-Managing-Your-E-mail-Preferences). This transport costs no X API credits, but coverage and timing depend on the platform sending an email. Cue's current use is a personal, non-commercial demo. Native Reddit API access still requires approval; forwarding notifications is not evidence of permission to bypass a denied data-access request or collect data in bulk. The receiving inbox connection and real platform notification delivery must be verified independently.
+
+Backend tests cover representative email formats, multi-post digests, malicious/hidden links, signature checks, concurrent deduplication, inbox recipient isolation, activation-time gating, restarts, pagination, corrupt checkpoints and partial failure retry through actual Convex handlers. The dedicated Resend account is connected and the local polling worker successfully reaches its receiving API. No actual X or Reddit mention notification has been received end to end yet. Selective Gmail forwarding and a real tester mention are still pending. Verify a real notification's format and delivery time before presenting platform collection as working.
+
+Automatic X brand mentions use the [official mentions endpoint](https://docs.x.com/x-api/users/get-mentions). [X's automation rules](https://help.x.com/en/rules-and-policies/x-automation) prohibit website scripting as an API-free automation workaround. [Current pricing](https://docs.x.com/x-api/getting-started/pricing) lists owned mentions reads at $0.001 per resource only when the authenticated brand owns the developer app; a shared Cue app may not qualify. Developer setup, OAuth and credits remain necessary.
+
+Reddit's [global mention trigger](https://developers.reddit.com/docs/capabilities/server/global-triggers) can deliver `u/<AppName>` mentions of an approved Devvit app username across comments. It requires limited-access approval, an approved published app and installation on the app profile subreddit. Playtests are limited to a test subreddit. An ordinary brand username is not automatically eligible for that trigger. [HTTP fetch](https://developers.reddit.com/docs/capabilities/server/http-fetch) requires an approved HTTPS destination. Reddit's [Responsible Builder Policy](https://support.reddithelp.com/hc/en-us/articles/42728983564564-Responsible-Builder-Policy) recommends Devvit for non-commercial apps and requires explicit approval for Data API access. No live automatic social connector is enabled here.
+
+## WorkOS, Slack and email
+
+WorkOS AuthKit uses the official Next.js SDK, callback, proxy, session checks, sign-out and an operator email allowlist. A separate **Cue Demo / Staging** project is configured, with live Google sign-in, sign-out and sign-in after sign-out verified. The callback completes an HTML document before opening the hash-based workspace, avoiding an observed OAuth redirect loop. A different signed-in account was denied Cue access with HTTP 403 and could not use provider connections. Authenticated tags and internal notes persisted after reload. `/connections` reads the enabled providers from WorkOS and shows an explicit empty state until a provider exists; then it renders the official Pipes widget. WorkOS Pipes providers remain disabled. The separate Slack bot setup described below uses local Socket Mode. This is separate from the existing Creatii application.
+
+On a fresh machine add `WORKOS_API_KEY`, `WORKOS_CLIENT_ID`, `WORKOS_COOKIE_PASSWORD` and `CUE_OPERATOR_EMAIL`. Configure `http://127.0.0.1:3000/auth/callback` as the callback, `/auth/login` on that same origin as the initiate-login URI, and the origin root as the sign-out URI. Restart the server after changing WorkOS credentials; SDK configuration is loaded at startup.
+
+`CUE_LOCAL_DEMO=true` permits an operator only on loopback while credentials are absent. Start scripts bind to 127.0.0.1. For shared hosting, disable this bypass and configure WorkOS. Bloom uses an anonymous signed guest session for this demo; this is not consumer account management or multi-tenant production authorization.
+
+A new **Cue** Slack workspace was created through Google sign-in as `e34396372@gmail.com`: `https://cuedemo.slack.com`, team `T0C8A8MJTA5`. Its channels are `cue-support` (`C0C8A9JSCGH`) and `cue-engineering` (`C0C86DRQVML`). A fresh Cue app (`A0C8873PNBC`) has four bot scopes: app mentions, public channel history, public channel metadata, and message sending. Installation consent and token generation remain pending; the workspace exists but the bot is not connected.
+
+Use `/setup#slack` with the downloadable app manifest. Install the bot, generate an app-level token with `connections:write`, invite it to both channels, and enter tokens, IDs and allowed operator member IDs. Socket Mode runs in the persistent worker and avoids exposing the laptop to receive Slack events. Incoming root messages and thread follow-ups commit with their deduplication receipts in one transaction. Cue can explicitly send composed replies back to the original Slack thread. Exact-commit approval buttons are restricted to configured operators in the engineering channel. `/api/webhooks/slack` is the signed HTTP alternative for a reachable deployment.
+
+Integration credentials saved through setup are AES-GCM encrypted in the local `.cue/integrations.enc` file with mode 0600, using a key derived from `CUE_DEMO_SECRET`. The browser receives connection metadata, not saved keys. Keep that secret stable; changing it makes existing encrypted configuration unreadable. This single-host configuration store is a demo implementation, not a multi-tenant credentials service. Connection status comes from the authenticated worker health endpoint.
+
+Use `/setup#email` with a Resend account, verified sender domain and API key. The dedicated account `e34396372@gmail.com` and a Cue worker key are connected, with credentials encrypted on the server. An unused setup key was revoked. Local notification intake uses `mentions@tenuetkel.resend.app`. The proposed sender `avichal@latchgrid.in` is not verified; outbound support sending remains blocked until its domain is verified. Setup can send a test only to the configured operator inbox. Provider acceptance is recorded separately from inbox delivery.
+
+Email ingress is `/api/webhooks/email`. Resend requires a reachable HTTPS receiving endpoint; localhost alone cannot receive provider webhooks. Use a dedicated receiving subdomain or Resend-provided receiving address to preserve existing mailbox MX routing. The route verifies the raw webhook with Resend's SDK before retrieving the email, normalizes the sender address, and deduplicates both provider IDs and RFC message IDs. References link follow-ups to the same sender's case. Outbound replies use In-Reply-To and References headers, a delivery ledger and provider idempotency keys. Seed email cases cannot send real messages. Automated tests cover signature tampering, stale signatures and threading, but live email sending/receiving remains unverified until connected.
+
+Installing a Codex or Clerk plugin is unnecessary for these paths. Codex runs through its SDK; authentication uses WorkOS. The social notification collector is implemented and its receiving inbox is connected; platform delivery still needs live verification. Claude Code, native X/Reddit API connectors, voice calls and general feature implementation are extension points, not connected capabilities in this demo.
+
+## Architecture and checks
+
+Next.js is the trusted gateway for AuthKit, signed guest sessions, upload validation, Gemini and provider credentials. Browsers never receive the Convex server secret. Convex stores cases, issues, messages, screenshots, memories, jobs, exact-commit approvals and delivery receipts. Jobs use atomic claims and expiring leases. Worker interruption is visible as failure; uncertain execution is never blindly replayed. The single local worker executes one job at a time.
+
+Gemini assists replies, tagging, feature specifications and semantic matching. A strict symptom gate prevents unrelated photo problems or files above the documented 5 MB limit from joining the known upload regression. Model confidence is uncalibrated; it never authorizes code or deployment. A raw-model smoke test did misgroup an oversized file, which is why the independent contract gate is enforced. The four-case smoke evaluation is not an accuracy claim.
+
+The runner gives Codex an allowlisted environment and a workspace-write sandbox with network/web search disabled. It checks the changed-file scope and protected-file hashes, then reruns independent tests outside the agent sandbox. This is a trusted local fixture runner, not a hardened service for executing arbitrary third-party repositories.
+
+```sh
+npm run preflight
+npm run typecheck
+npm run lint
+npm run build
+npm run test:backend       # Convex, widget session/config, social URL and email gateway tests
+npx tsx scripts/verify-widget.ts # Nine live checks against the registered local widget app
+npm run verify             # After a completed deployed run and X sample capture
+npm run evaluate:triage    # Four live Vertex calls with independent controls
+```
+
+`verify` passes 18 checks: the active approved release, real HTTP uploads, calendar validation, ownership boundaries, soft deletion, origin rejection, approval replay, X deduplication, Slack signatures, direct Convex authorization and a live Gemini draft. With WorkOS configured, it proves unauthenticated operator HTTP requests are rejected and performs operator-domain checks directly through the trusted Convex client. Authenticated browser actions are verified separately; the CLI suite does not bypass WorkOS login.
+
+`test:backend` passes 51 isolated tests across six files, including the actual Convex functions using [convex-test](https://docs.convex.dev/testing/convex-test). These include encrypted configuration, signed widget sessions, app boundaries, concurrent widget creation, social permalink validation, Slack thread retries, email signature/thread verification, notification polling and failure/restart recovery, concurrent X deduplication, duplicate investigation prevention, wrong-commit/replayed approval, rejection/cancellation, worker leases, terminal immutability, verified resolution, feature approval, tags, latest-message retention, delivery idempotency and calendar/owner validation. The Convex tests use a mock runtime; the isolated suite never mutates the live demo database. Live HTTP checks complement it. Evidence is saved in `.cue/verification.json`, `.cue/auth-verification.json`, `.cue/widget-verification.json` and `.cue/triage-evaluation.json`. The worker's eight HTTP checks cover both size boundaries and invalid-image rejection. `npm run test:regression` against the original fixture intentionally fails; the same unchanged test passes against the Codex checkout after its fix.
+
+The current demo repository and PR evidence: https://github.com/AvichalDwivedi2205/cue-bloom-demo/pull/2. The product apps and Convex demo database run locally; support text and specifications are processed by Vertex Gemini. PRs are draft changes; deploying the demo does not merge a GitHub PR.
