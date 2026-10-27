@@ -4,7 +4,7 @@ This updates the October 10 record. It separates provider evidence, isolated reg
 
 ## Deployed changes
 
-Cloud Run revision `cue-00006-pqf`, container release `c047a91`, serves [Bloom](https://cue.latchgrid.in/bloom#/journal) and [Cue](https://cue.latchgrid.in/cue#/inbox). Build `b86b6b44-eab4-4ca5-a028-75bc9bf131ee` succeeded, and the revision receives all service traffic. The Convex workflow fix in `99c0fda` was subsequently deployed to production `tangible-kiwi-777`; it changes the backend without replacing the container.
+Cloud Run revision `cue-00007-ggh`, container release `e21122b`, serves [Bloom](https://cue.latchgrid.in/bloom#/journal) and [Cue](https://cue.latchgrid.in/cue#/inbox). Build `960a4943-93ad-469b-b977-dc373dbd3524` succeeded, and the revision receives all service traffic. The public API reports the full release SHA. The production Convex deployment `tangible-kiwi-777` also includes workflow preservation (`99c0fda`) and native X receipt validation (`ff1d65d`). Later verifier/documentation commits do not replace the container.
 
 Google Search Console domain ownership is verified. The approved GoDaddy `cue` CNAME points to `ghs.googlehosted.com`; Cloud Run reports Ready and CertificateProvisioned. Normal TLS requests, the WorkOS PKCE callback, authenticated operator access and the five hosting checks passed at the custom domain. Bloom's registered widget permits the custom origin as well as the existing Cloud Run origin. Existing root-domain DNS records were preserved.
 
@@ -16,7 +16,7 @@ Customer progress now derives from trusted issue/run evidence. Saving a report a
 
 | Path | Result | Evidence and limits |
 | --- | --- | --- |
-| Isolated regression suite | Passed: 190 tests, 26 files | Includes reply-history guards, speech failures, signed webhook health, honest progress and preservation of reviewed feature workflows. Does not contact providers. |
+| Isolated regression suite | Passed: 205 tests, 27 files | Includes reply-history guards, speech failures, signed webhook health, honest progress and preservation of reviewed feature workflows. Does not contact providers. |
 | TypeScript, lint, production build | Passed | Completed before the image build and deployment. |
 | Hosted three-turn voice conversation | Passed: seven checks | Controlled audio passes through the live Gemini and Cloud TTS services, one case and persisted transcript/replies. Reply MP3s decode. This is not a substitute for human review of novel complaints or voice naturalness. |
 | Widget gateway at the custom domain | Passed: nine checks | Separate visitors, app/request origin rejection, forged-token denial, one conversation across follow-ups, real screenshot storage, stripped query strings, private-note isolation and restricted iframe embedding. Native installed-widget/browser checks remain separate earlier evidence. |
@@ -28,8 +28,8 @@ Customer progress now derives from trusted issue/run evidence. Saving a report a
 | Hosted Slack intake, replies and specification decision | Passed: nine checks | Native mention and three follow-ups reached one case through signed HTTPS events. Dashboard reply, exact-spec review and Owner decision have real provider receipts. Socket Mode is disabled. Original approval survived the post-fix follow-up. Earlier native Product/Engineering routing and Support denial remain separate evidence. |
 | Personal Codex worker and email polling fallback | Running | Local worker is idle and notification polling is healthy. Personal-account coding jobs still depend on this machine; hosted Slack and receiving-email webhooks do not. |
 | X automatic intake | Still unverified | A second native mention from the authorized tester was published after notification settings were checked; no mention email arrived at the recorded Gmail check. Do not substitute manual capture or synthetic mail for this held-out check. |
-| Reddit automatic intake | Previously passed | Native forwarded notification reached Cue. Public comment visibility failed because Reddit removed it; the webhook test does not resolve that moderation outcome. |
-| Website at `cue.latchgrid.in` | Passed | Valid public TLS, authenticated operator page and five hosting checks, including upload boundary, storage persistence, foreign-origin denial, secure customer cookies and custom-domain WorkOS callback. |
+| Reddit automatic intake | Passed; four checks re-run after the backend update | Native forwarded notification reached Cue. Public comment visibility failed because Reddit removed it; the receipt test does not resolve that moderation outcome. |
+| Website at `cue.latchgrid.in` | Passed again on `e21122b` | Valid public TLS, authenticated operator page and five hosting checks, including upload boundary, storage persistence, foreign-origin denial, secure customer cookies and custom-domain WorkOS callback. Nine widget checks also passed on this release. |
 
 ## Hosted Slack and workflow regression
 
@@ -44,6 +44,16 @@ After deployment, native follow-up `CUE-CLOUD-SLACK-AFTER-FIX-1011` persisted on
 ## Fresh X experiment
 
 The authorized `dwivediavichal926` Chrome profile's account menu showed `@ConfusedAF2205` before posting. The fresh public [tagging test](https://x.com/ConfusedAF2205/status/2109012253718773827), marker `CUE-X-AUTO-1011`, visibly links `@bloomwithcue`. Brand email notifications were enabled, advanced notification mutes were off, and the quality filter was disabled for the test. The brand's X tab was closed after saving these preferences. Gmail's all-folder sender search still showed only X's welcome email at the recorded check, and no automatic case for this source was present. A later native check, signed in as `@bloomwithcue`, also showed an empty Mentions timeline. The unverified step is X's own notification delivery; this does not prove X will never deliver a delayed digest. X documents incomplete mention email coverage, so this remains best-effort intake, not comprehensive brand monitoring. Manual capture remains available as an explicit fallback.
+
+### Official API fallback
+
+Commits `ff1d65d` and `e21122b` add a disabled-by-default official X connector with encrypted credentials, exact brand validation, five-post bounded polling, a first-enablement history cutoff, a private restart cursor, rate-limit cooldown and transactional cross-transport deduplication. The existing worker now exposes X polling health independently of notification-email health. Fifteen new isolated checks passed; the complete suite passed 205 checks across 27 files, followed by TypeScript and lint. Convex's native API receipt validation was deployed to production. These tests use mocks for X and do not establish provider access or a real captured mention.
+
+The user approved X developer terms and submission of the accurate support use case. Signup briefly returned “This account already has a project on this product.” After the same browser extension reconnected, the existing Bloom developer account (`2109018601000686072`) and app (`33521926`) were visible. The displayed OAuth access is Read; Project Access is Not connected. The prepared Default Project offers Development, Staging and Production connections. The account shows $0 total/free credits, no saved payment method, and a concrete offer of $20 free credits after adding a first card without a purchase. No card was saved, credit purchased, auto-recharge enabled or bearer token generated at this recorded point. Project connection, credential creation and owner-entered card setup are pending; official intake stays disabled. The public setup page visibly shows X API intake disabled, with no saved X credential. The newly deployed dashboard loads real provider state: Slack connected, email configured and X notification inbox connected with an explicit delivery caveat.
+
+Before every mentions page Cue checks free credit availability, a $1 reserve and unexpired grants. It cannot buy credits or configure auto-recharge, and paid balance alone cannot enable collection. The [first-card offer](https://docs.x.com/x-api/getting-started/free-credits) is conditional and expiring. A separate process spending the same account can defeat a client-side reserve; this is not an absolute provider billing cap. Public reply posting remains an operator action. The new `verify-x-api.ts` requires a native receipt, re-reads the actual source/author, and verifies tags, classification, deduplication and the worker cursor before writing live success evidence. No such success file exists yet.
+
+The brand can open the tester's public post in native X, confirming that it is visible to Bloom. Bloom followed the authorized tester for a fresh notification-filter experiment; Following was verified. A new controlled mention still requires that tester's Chrome profile to be reopened. Earlier held-out posts remain uncaptured manually. Screenshots `artifacts/x-followed-tester.png`, `artifacts/x-developer-app-ready.png` and `artifacts/x-free-credit-offer.png` record these observations. `artifacts/x-project-access-prepared.png` and `artifacts/hosted-x-setup-ready.png` show the remaining access grant and live paused connector.
 
 ## Actual voice exchange
 
@@ -87,6 +97,8 @@ CUE_VERIFY_ORIGIN=https://cue.latchgrid.in npx tsx scripts/verify-widget.ts
 CUE_VERIFY_ORIGIN=https://cue.latchgrid.in npx tsx scripts/verify-voice-conversation.ts
 CUE_VERIFY_ORIGIN=https://cue.latchgrid.in npx tsx scripts/verify-email-webhook.ts
 npx tsx scripts/verify-slack-webhook.ts
+# After first enablement and a fresh native mention, with verified free credits:
+npx tsx scripts/verify-x-api.ts <fresh-post-url> <unique-marker> <bug-or-feature> [expected-tags...]
 ```
 
 The voice verifier creates a labelled synthetic verification case using the real services. The email verifier is read-only: it requires a uniquely marked real report, actual provider replay and sent dashboard reply already present. For a fresh email use `CUE_VERIFY_EMAIL_MARKER`, send it to the configured support inbox, replay its event in Resend and send a reviewed reply from Cue. It does not manufacture an event or establish that a worker was stopped. Cloud speech requires an enabled Text-to-Speech API, ADC and service-usage permission in the billable AI project. A failed provider request cannot authorize an unsupported claim that a fix is released or that investigation has begun.
