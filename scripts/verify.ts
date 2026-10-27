@@ -44,7 +44,10 @@ check(
     ? "Trusted server can read the Convex backend"
     : "Operator backend reachable",
 );
-const run = s.runs.find((r: { status: string }) => r.status === "resolved");
+const uploadIssue = s.issues.find((i) => i.fingerprint === "bloom:upload:413");
+const run = s.runs.find(
+  (r) => r.issueId === uploadIssue?._id && r.status === "resolved",
+);
 assert.ok(run?.verified && run.deployed && run.commit);
 check("A real run has deployed and verified evidence");
 const health = await (await fetch("http://127.0.0.1:4318/health")).json();

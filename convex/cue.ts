@@ -559,6 +559,8 @@ export const updateRun = mutation({
     authorize(args.secret);
     const run = await ctx.db.get("runs", args.runId);
     if (!run) throw new ConvexError("Run not found");
+    if (run.kind === "feature" && args.fields.status === "resolved")
+      throw new ConvexError("Use the repository release verifier for features");
     if (
       [
         "canceled",

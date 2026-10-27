@@ -23,6 +23,7 @@ export default defineSchema({
   })
     .index("by_updatedAt", ["updatedAt"])
     .index("by_sourceKey", ["sourceKey"])
+    .index("by_issueId", ["issueId"])
     .index("by_owner", ["owner"]),
   issues: defineTable({
     title: v.string(),
@@ -70,6 +71,8 @@ export default defineSchema({
     approvedSpec: v.optional(v.string()),
     baseCommit: v.optional(v.string()),
     deploymentMode: v.optional(v.string()),
+    releaseEvidence: v.optional(v.string()),
+    releaseCommit: v.optional(v.string()),
   }).index("by_issueId_and_createdAt", ["issueId", "createdAt"]),
   events: defineTable({
     runId: v.optional(v.id("runs")),

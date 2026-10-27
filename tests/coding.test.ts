@@ -144,7 +144,7 @@ describe("Approved feature implementation", () => {
         runId,
         fields: { status: "resolved", deployed: true, verified: true },
       }),
-    ).rejects.toThrow("terminal");
+    ).rejects.toThrow("release verifier");
   });
   test("PR approval card uses the correct action and explains release limits", async () => {
     const { t, args } = await setup();

@@ -27,6 +27,10 @@ export async function design(name: "bloom" | "cue") {
       )
       .replaceAll("@bloomapp", "@bloomwithcue")
       .replace(
+        "const frStatus = f => ",
+        "const frStatus = f => f.status === 'released' ? '<span class=\"chip ok\">Released · verified</span>' : ",
+      )
+      .replace(
         "<span>Tagged @bloomwithcue</span>",
         "<span>${/@bloomwithcue\\b/i.test(m.text) ? 'Tagged @bloomwithcue' : 'X post'}</span>",
       )

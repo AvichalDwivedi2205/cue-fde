@@ -1,6 +1,7 @@
 import type { Doc } from "../convex/_generated/dataModel";
 import { createHash } from "node:crypto";
 import { stripVTControlCharacters } from "node:util";
+import { replyFacts } from "./reply-policy";
 
 type Case = Pick<
   Doc<"cases">,
@@ -20,6 +21,8 @@ type Run = Pick<
   | "after"
   | "kind"
   | "deploymentMode"
+  | "releaseEvidence"
+  | "releaseCommit"
 >;
 export type SlackMessage = { text: string; blocks: Record<string, unknown>[] };
 const plain = (text: string) => ({ type: "plain_text", text, emoji: false });
@@ -303,10 +306,13 @@ export function runMessage(
 ): SlackMessage {
   if (run.status === "awaiting_approval")
     return approvalMessage(run, issue.title, reviewerIds);
-  const verified = verifiedSlackFix(issue, run);
+  const featureVerified = replyFacts({ issue, run }).featureVerified;
+  const verified = verifiedSlackFix(issue, run) || featureVerified;
   const failed = ["failed", "cancelled", "rejected"].includes(run.status);
   const heading = verified
-    ? "Deployment verified"
+    ? featureVerified
+      ? "Feature release verified"
+      : "Deployment verified"
     : failed
       ? "Investigation needs attention"
       : run.status === "approved"
