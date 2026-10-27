@@ -7,6 +7,7 @@ import { draft, geminiReady } from "@/lib/gemini";
 import { z } from "zod";
 import { triage } from "@/lib/triage";
 import { hostedUploadHealth, hostedUploadStatus } from "@/lib/bloom-upload";
+import { supportProgress } from "@/lib/support-progress";
 export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   try {
@@ -32,6 +33,7 @@ export async function GET(request: NextRequest) {
       memories: await store.query(api.bloom.memories, { secret: auth, owner }),
       conversation: conversation
         ? {
+            progress: supportProgress(conversation),
             case: {
               _id: conversation.case._id,
               title: conversation.case.title,
@@ -64,7 +66,7 @@ export async function GET(request: NextRequest) {
           }
         : null,
       health,
-      customer: "Oliver Park",
+      customer: "Bloom user",
     });
   } catch (e) {
     return NextResponse.json(
@@ -194,7 +196,7 @@ export async function POST(request: NextRequest) {
         if (geminiReady())
           try {
             ack = await draft({
-              customer: "Oliver Park",
+              customer: "Bloom user",
               channel: "chat",
               message: b.text,
               conversation: c,
@@ -205,7 +207,7 @@ export async function POST(request: NextRequest) {
             secret: auth,
             caseId: c.case._id,
             body: b.text,
-            author: "Oliver Park",
+            author: "Bloom user",
             role: "customer",
           });
           await store.mutation(api.cue.message, {
@@ -223,7 +225,7 @@ export async function POST(request: NextRequest) {
           secret: auth,
           title: b.text.slice(0, 80),
           body: b.text,
-          customer: "Oliver Park",
+          customer: "Bloom user",
           channel: "chat",
           owner,
           ack,
