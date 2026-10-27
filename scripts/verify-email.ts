@@ -79,7 +79,7 @@ await fs.writeFile(
       limits: [
         "Provider test sender reaches the configured operator only",
         "Branded sender domain remains unverified",
-        "Social notification forwarding is not enabled",
+        "Platform notification coverage is checked separately by scripts/verify-social.ts",
       ],
     },
     null,
