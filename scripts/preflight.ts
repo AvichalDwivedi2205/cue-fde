@@ -72,7 +72,7 @@ const [slack, email, slackRuntime, notificationRuntime] = await Promise.all([
 rows.push({
   service: "Slack",
   status: slackRuntime.connected
-    ? "Connected · Socket Mode"
+    ? "Connected · " + slackRuntime.detail
     : slack
       ? "Configured · " + slackRuntime.detail
       : "Credentials needed",
