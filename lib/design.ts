@@ -25,6 +25,11 @@ export async function design(name: "bloom" | "cue") {
         "const commit = () => S.run.rev ? 'b71e04d' : 'a3f9c2e';",
         "const commit = () => S.liveRun?.commit?.slice(0,8) || 'pending';",
       )
+      .replaceAll("@bloomapp", "@bloomwithcue")
+      .replace(
+        "<span>Tagged @bloomwithcue</span>",
+        "<span>${/@bloomwithcue\\b/i.test(m.text) ? 'Tagged @bloomwithcue' : 'X post'}</span>",
+      )
       .replaceAll("a3f9c2e", "example")
       .replaceAll("bloom/bloom-app#128", "Example pull request");
   html = html
