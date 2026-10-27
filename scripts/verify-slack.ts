@@ -50,6 +50,33 @@ assert.equal(
   1,
 );
 pass("Live threaded follow-up appends once to the original case");
+const featureCase = snapshot.cases.find(
+  (c) => c.channel === "slack" && c.body.includes("CUE-FEATURE-1010"),
+);
+assert(featureCase, "Send the controlled feature request through Slack UI");
+const featureMessages = snapshot.messages.filter(
+  (m) => m.caseId === featureCase._id,
+);
+assert.equal(
+  featureMessages.filter(
+    (m) =>
+      m.role === "customer" && m.body.startsWith("CUE-SLACK-RECONNECT-1010:"),
+  ).length,
+  1,
+);
+const featureReply = snapshot.deliveries.find(
+  (d) =>
+    d.key.startsWith(`slack-reply:${featureCase._id}:`) && d.status === "sent",
+);
+assert(featureReply?.receipt?.startsWith(config.supportChannel + ":"));
+assert(
+  featureMessages.some(
+    (m) => m.role === "staff" && m.body === featureReply.body,
+  ),
+);
+pass(
+  "Feature reply is delivered and fresh post-restart follow-up reaches its original conversation once",
+);
 assert(c.tags.includes("integration-check"));
 pass("Operator tag survives reload in Convex");
 const delivery = snapshot.deliveries.find(
@@ -168,9 +195,11 @@ await fs.writeFile(
       browserEvidence: [
         "artifacts/slack-polished-reply.jpg",
         "artifacts/slack-engineering-result.jpg",
+        "artifacts/slack-feature-reply.jpg",
+        "artifacts/slack-live-reconnect-cue.jpg",
       ],
       approvalCoverage:
-        "Gateway denial and Convex lifecycle tests; new live pending-commit approval not exercised",
+        "Gateway approval/rejection against actual Convex lifecycle in isolation and live denial/replay checks; new live pending-commit approval not exercised",
     },
     null,
     2,
