@@ -12,7 +12,19 @@ const marker = "/* ---------- Boot ---------- */";
 if (!shell.includes(marker) || !bridge.includes("loadBloom();"))
   throw new Error("Bloom design boot marker is missing");
 const html = shell
-  .replace(marker, bridge.replace("loadBloom();","const bloomInitialLoad = loadBloom();") + "\n" + upload + "\n" + growth + "\n" + marker)
+  .replace(
+    marker,
+    bridge.replace(
+      "\nloadBloom();\n",
+      "\nconst bloomInitialLoad = loadBloom();\n",
+    ) +
+      "\n" +
+      upload +
+      "\n" +
+      growth +
+      "\n" +
+      marker,
+  )
   .replace(
     "</head>",
     '<link rel="stylesheet" href="/cue-voice.css"><script src="/cue-voice.js"></script></head>',
