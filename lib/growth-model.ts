@@ -13,11 +13,17 @@ export function growthPolicy(
   text: string,
   result: z.infer<typeof growthQualification>,
 ) {
-  const { unsupported, explicit, matched: match } = sourcePolicy(text);
+  const {
+    unsupported,
+    explicit,
+    promotional,
+    matched: match,
+  } = sourcePolicy(text);
   return {
     ...result,
-    matched: result.matched && match && !unsupported,
-    eligible: result.eligible && explicit && match && !unsupported,
+    matched: result.matched && match && !unsupported && !promotional,
+    eligible:
+      result.eligible && explicit && match && !unsupported && !promotional,
     reasons: unsupported
       ? [
           "Unsupported need: no verified export, sync or collaboration capability",

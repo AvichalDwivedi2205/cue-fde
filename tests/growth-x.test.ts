@@ -135,3 +135,31 @@ test("server policy separates explicit recommendation need from complaints, unre
   ])
     expect(growthPolicy(text, proposed).eligible).toBe(false);
 });
+
+test("caption editing and promotional copy cannot grant recommendation eligibility", () => {
+  const yes = {
+    need: "caption search",
+    eligible: true,
+    matched: true,
+    fit: "High" as const,
+    reasons: [],
+  };
+  expect(
+    growthPolicy(
+      "Please recommend a photo editor to add text captions to an image",
+      yes,
+    ).eligible,
+  ).toBe(false);
+  expect(
+    growthPolicy(
+      "Try our journal! Looking for memory caption search? Subscribe now",
+      yes,
+    ).eligible,
+  ).toBe(false);
+  expect(
+    growthPolicy(
+      "Is there a photo diary app to search captions of saved memories?",
+      yes,
+    ).eligible,
+  ).toBe(true);
+});

@@ -472,9 +472,10 @@ export const qualify = mutation({
     const {
       unsupported,
       explicit,
+      promotional,
       matched: sourceMatched,
     } = sourcePolicy(o.text);
-    const matched = a.matched && sourceMatched && !unsupported;
+    const matched = a.matched && sourceMatched && !unsupported && !promotional;
     const eligible = a.eligible && explicit;
     await ctx.db.patch("growthOpportunities", o._id, {
       need: a.need.slice(0, 500),
