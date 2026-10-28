@@ -15,6 +15,7 @@ const growthAction = v.union(
   v.literal("qualify"),
   v.literal("draft"),
 );
+const QUALIFICATION_POLICY_VERSION = 2;
 function permit(role: string, allowed: string[]) {
   if (!allowed.includes(role))
     throw new ConvexError("Saved role cannot perform this Growth action");
@@ -410,7 +411,8 @@ export const request = mutation({
       !a.revision &&
       old?.status === "completed" &&
       old.capabilityVersion === currentCapability.version &&
-      (a.action === "qualify" ||
+      ((a.action === "qualify" &&
+        old.qualificationPolicyVersion === QUALIFICATION_POLICY_VERSION) ||
         (a.action === "draft" && latestDraft?._id === old.resultDraftId))
     )
       return old.taskId;
@@ -444,6 +446,9 @@ export const request = mutation({
       ...(o ? { opportunityId: o._id } : {}),
       key,
       capabilityVersion: currentCapability.version,
+      ...(a.action === "qualify"
+        ? { qualificationPolicyVersion: QUALIFICATION_POLICY_VERSION }
+        : {}),
       status: "queued",
       ...(o
         ? {
@@ -546,11 +551,24 @@ export const qualify = mutation({
     } = sourcePolicy(o.text);
     const matched = a.matched && sourceMatched && !unsupported && !promotional;
     const eligible = a.eligible && explicit;
+    const gateReason = unsupported
+      ? "Unsupported need: no verified export, sync or collaboration capability"
+      : promotional
+        ? "Promotional source; no consumer recommendation is authorized"
+        : !explicit
+          ? "Source contains no explicit consumer request for a recommendation or help"
+          : !sourceMatched
+            ? "Source does not ask to find or search photo-journal memories"
+            : null;
     await ctx.db.patch("growthOpportunities", o._id, {
-      need: a.need.slice(0, 500),
+      // The deterministic source gate also owns the explanation. Model-supplied
+      // fit or need text cannot contradict the gate that rejected eligibility.
+      need: (gateReason ? o.text : a.need).slice(0, 500),
       eligible: eligible && matched,
-      fit: a.fit,
-      reasons: a.reasons.slice(0, 8).map((r) => r.slice(0, 300)),
+      fit: gateReason ? "Low" : a.fit,
+      reasons: gateReason
+        ? [gateReason]
+        : a.reasons.slice(0, 8).map((r) => r.slice(0, 300)),
       capabilityId: matched ? cap._id : undefined,
       status:
         matched && eligible

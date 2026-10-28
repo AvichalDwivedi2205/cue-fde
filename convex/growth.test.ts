@@ -198,6 +198,54 @@ async function qualified(s: Awaited<ReturnType<typeof setup>>) {
   });
   return r;
 }
+
+test("rejected source gates cannot retain model-invented high fit, need or approval reasons", async () => {
+  for (const text of [
+    "Shutora | Flutter Photo Diary App with Laravel Cloud Backup",
+    "Try our photo journal app to search your memories!",
+    "Can anyone recommend an app for a photo journal with audio captions?",
+  ]) {
+    const s = await setup(text);
+    await qualified(s); // Intentionally supplies High fit and a fictional caption-search need.
+    const o = (await s.t.query(api.growth.snapshot, { ...auth, appId }))
+      .opportunities[0];
+    expect(o).toMatchObject({
+      status: "dismissed",
+      eligible: false,
+      fit: "Low",
+      need: text,
+    });
+    expect(o.reasons.join(" ")).not.toContain("Explicit request");
+    expect(o.reasons[0]).toMatch(/no explicit|Promotional|does not ask/);
+    expect(o.capabilityId).toBeUndefined();
+  }
+});
+
+test("an explicit qualification refresh recomputes old policy evidence once without changing capability or publication", async () => {
+  const s = await setup("A photo diary app for sale");
+  const receipt = await qualified(s);
+  await s.t.run((ctx) =>
+    ctx.db.patch("growthReceipts", receipt._id, {
+      qualificationPolicyVersion: undefined,
+    }),
+  );
+  const args = {
+    ...auth,
+    actor,
+    appId,
+    release,
+    campaignId: s.campaignId,
+    opportunityId: s.opportunityId,
+    action: "qualify" as const,
+  };
+  const refreshed = await s.t.mutation(api.growth.request, args);
+  expect(refreshed).not.toBe(receipt.taskId);
+  expect(await s.t.mutation(api.growth.request, args)).toBe(refreshed);
+  const snapshot = await s.t.query(api.growth.snapshot, { ...auth, appId });
+  expect(snapshot.capabilities[0].version).toBe(1);
+  expect(snapshot.drafts).toHaveLength(0);
+  expect(snapshot.touches).toHaveLength(0);
+});
 async function drafted(s: Awaited<ReturnType<typeof setup>>) {
   await qualified(s);
   const link = "https://cue.test/g/opaque";
