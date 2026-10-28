@@ -1,6 +1,7 @@
 import { v, ConvexError } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { authorize } from "./access";
+import { emit } from "./growth";
 export const list = query({
   args: { secret: v.string(), owner: v.string() },
   returns: v.array(
@@ -84,7 +85,7 @@ export const save = mutation({
     )
       throw new ConvexError("Photo not found in your verified uploads");
     await ctx.db.patch("photoUploads", upload._id, { used: true });
-    return await ctx.db.insert("memories", {
+    const id = await ctx.db.insert("memories", {
       ...fields,
       owner: a.owner,
       fileId: a.fileId,
@@ -92,6 +93,18 @@ export const save = mutation({
       h: upload.h,
       deleted: false,
     });
+    const attribution = await ctx.db
+      .query("growthAttributions")
+      .withIndex("by_owner", (q) => q.eq("owner", a.owner))
+      .unique();
+    if (attribution && !attribution.firstMemoryId) {
+      await ctx.db.patch("growthAttributions", attribution._id, {
+        firstMemoryId: id,
+        savedAt: Date.now(),
+      });
+      await emit(ctx, attribution, "memory_created");
+    }
+    return id;
   },
 });
 export const remove = mutation({

@@ -10,6 +10,8 @@
 
 import type * as access from "../access.js";
 import type * as crons from "../crons.js";
+import type * as growth from "../growth.js";
+import type * as growthDelivery from "../growthDelivery.js";
 import type * as http from "../http.js";
 import type * as journal from "../journal.js";
 import type * as support from "../support.js";
@@ -24,6 +26,8 @@ import type {
 declare const fullApi: ApiFromModules<{
   access: typeof access;
   crons: typeof crons;
+  growth: typeof growth;
+  growthDelivery: typeof growthDelivery;
   http: typeof http;
   journal: typeof journal;
   support: typeof support;

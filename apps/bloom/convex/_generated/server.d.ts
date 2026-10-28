@@ -31,7 +31,10 @@ type Env = {
   readonly CONVEX_CLOUD_URL: string;
   readonly CONVEX_SITE_URL: string;
   readonly BLOOM_ALLOWED_ORIGINS: string | undefined;
+  readonly BLOOM_GROWTH_EVENT_SECRET: string | undefined;
   readonly BLOOM_SERVER_SECRET: string | undefined;
+  readonly CUE_PUBLIC_URL: string | undefined;
+  readonly CUE_WIDGET_APP_ID: string | undefined;
 };
 
 /**

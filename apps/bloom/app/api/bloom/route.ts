@@ -1,4 +1,5 @@
 import sharp from "sharp";
+import { attachCampaign } from "../../../lib/growth";
 import { z } from "zod";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -68,6 +69,12 @@ export async function GET() {
   }
 }
 const input = z.discriminatedUnion("action", [
+  z
+    .object({ action: z.literal("attribution"), token: z.string().max(200) })
+    .strict(),
+  z
+    .object({ action: z.literal("search"), query: z.string().max(280) })
+    .strict(),
   z.object({ action: z.literal("uploadTicket") }),
   z.object({ action: z.literal("finishUpload"), fileId: z.string().max(100) }),
   z.object({
@@ -101,6 +108,16 @@ export async function POST(request: Request) {
       store = db(),
       auth = { secret: secret(), owner };
     switch (b.action) {
+      case "attribution":
+        await attachCampaign(owner, b.token);
+        return Response.json({ ok: true });
+      case "search":
+        return Response.json({
+          ids: await store.mutation(api.growth.search, {
+            ...auth,
+            query: b.query,
+          }),
+        });
       case "uploadTicket": {
         const t = ticket();
         await store.mutation(api.uploads.issue, { ...auth, tokenHash: t.hash });

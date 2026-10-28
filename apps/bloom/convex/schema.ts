@@ -1,6 +1,38 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 export default defineSchema({
+  growthAttributions: defineTable({
+    owner: v.string(),
+    touchId: v.string(),
+    expiresAt: v.number(),
+    browser: v.string(),
+    internal: v.boolean(),
+    returning: v.boolean(),
+    firstMemoryId: v.optional(v.id("memories")),
+    savedAt: v.optional(v.number()),
+    searchedAt: v.optional(v.number()),
+  }).index("by_owner", ["owner"]),
+  growthOutbox: defineTable({
+    touchId: v.string(),
+    browser: v.string(),
+    type: v.union(
+      v.literal("session_confirmed"),
+      v.literal("memory_created"),
+      v.literal("caption_search_match"),
+    ),
+    occurredAt: v.number(),
+    internal: v.boolean(),
+    returning: v.boolean(),
+    state: v.union(
+      v.literal("pending"),
+      v.literal("delivered"),
+      v.literal("failed"),
+    ),
+    attempts: v.number(),
+    retryAt: v.number(),
+    lease: v.optional(v.string()),
+    leaseUntil: v.optional(v.number()),
+  }).index("by_state_and_retryAt", ["state", "retryAt"]),
   memories: defineTable({
     owner: v.string(),
     fileId: v.id("_storage"),
