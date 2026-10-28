@@ -5,6 +5,7 @@ import type { Id } from "../convex/_generated/dataModel";
 import { triage } from "./triage";
 import { can, slackMember } from "./roles";
 import { specVersion } from "./slack-messages";
+import { receiveWorkspaceSlack } from "./workspace-slack";
 const event = z.object({
   team_id: z.string(),
   event: z.object({
@@ -26,6 +27,7 @@ export async function receiveSlack(
   const b = event.parse(input),
     e = b.event;
   if (b.team_id !== config.teamId) throw new Error("Wrong Slack workspace");
+  if (await receiveWorkspaceSlack(input, config)) return null;
   if (
     !["message", "app_mention"].includes(e.type) ||
     e.bot_id ||
