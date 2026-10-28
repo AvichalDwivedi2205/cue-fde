@@ -9,7 +9,7 @@ import { actor } from "./workspaceValidators";
 import schema from "./schema";
 import { pool } from "./triageQueue";
 import { journey, transition } from "./growthTasks";
-import { sourcePolicy } from "./growthPolicy";
+import { sourcePolicy, growthDraftSupported } from "./growthPolicy";
 const growthAction = v.union(
   v.literal("discover"),
   v.literal("qualify"),
@@ -569,10 +569,9 @@ export const saveDraft = mutation({
         "Draft must include its current campaign link before review",
       );
     if (
-      !a.text.trim() ||
-      a.text.length > 280 ||
+      !growthDraftSupported(a.text, touch.link) ||
       !/^[a-f0-9]{64}$/.test(a.hash) ||
-      /\b(pdf|export|sync|guarantee|free forever|unlimited)\b/i.test(a.text)
+      a.text !== a.text.trim()
     )
       throw new ConvexError(
         "Draft contains unsupported claims or invalid content",

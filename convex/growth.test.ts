@@ -521,3 +521,30 @@ test("completed qualification and draft commands attach to evidence; an explicit
     await s.t.mutation(api.growth.request, { ...args, revision: true }),
   ).not.toBe(taskId);
 });
+
+test("human edits cannot bypass claim or exact-destination policy", async () => {
+  const s = await setup(),
+    d = await drafted(s);
+  for (const text of [
+    "Bloom supports collaborative albums: " + d.touch.link,
+    "Bloom syncs memories across devices: " + d.touch.link,
+    "Find captions using any query word: " + d.touch.link,
+    "Find saved captions: " + d.touch.link + " " + d.touch.link,
+    "Find saved captions: " + d.touch.link + " https://unrelated.test",
+  ]) {
+    await expect(
+      s.t.mutation(api.growth.saveDraft, {
+        ...auth,
+        actor,
+        appId,
+        opportunityId: s.opportunityId,
+        release,
+        text,
+        hash: hash(text),
+      }),
+    ).rejects.toThrow("unsupported claims");
+  }
+  const saved = await s.t.query(api.growth.snapshot, { ...auth, appId });
+  expect(saved.drafts.map((x) => x._id)).toEqual([d.draftId]);
+  expect(saved.drafts[0].text).toBe(d.text);
+});

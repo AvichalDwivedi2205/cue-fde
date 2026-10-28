@@ -155,6 +155,7 @@ export async function processGrowth(receiptId: Id<"growthReceipts">) {
         job.opportunity.text,
         job.capability.claims,
         touch.link,
+        (await workspaceApp(job.receipt.appId)).app.name,
       );
       await db().mutation(api.growthExecution.commitDraft, {
         secret: secret(),

@@ -44,7 +44,7 @@ for (const item of growth) {
   try {
     const result = await qualifyGrowth(item.text, { claims });
     const draft = result.eligible
-      ? await draftGrowth(item.text, claims, destination)
+      ? await draftGrowth(item.text, claims, destination, "Bloom")
       : null;
     growthResults.push({
       ...item,
