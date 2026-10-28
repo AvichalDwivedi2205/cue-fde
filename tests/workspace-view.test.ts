@@ -32,7 +32,7 @@ async function workspaceBrowser(selected: string) {
     script.replace(
       /hydrateIcons\(\);\s*initLanding\(\);\s*route\(\);\s*\}\)\(\);\s*$/,
       `agRefresh = () => {}; gRerender = () => {};
-     window.controls = { state: S, workspace: loadWorkspace, growth: loadGrowth }; })();`,
+     window.controls = { state: S, workspace: loadWorkspace, growth: loadGrowth, action: growthAction }; })();`,
     ),
     context,
   );
@@ -77,6 +77,7 @@ test("reload restores selected application and app switch rejects old workspace 
     fn({ target: { id: "ag-app", value: "current-app" } }),
   );
   expect(browser.storage.get("cue-agent-app")).toBe("current-app");
+  expect(browser.controls.state.ag.connected).toBe(false);
   browser.reads
     .find((r) => r.url.startsWith("/api/agents"))!
     .resolve({ ok: true, json: async () => snapshot("legacy-app") });
@@ -96,6 +97,27 @@ test("reload restores selected application and app switch rejects old workspace 
     browser.storage.get("cue-agent-app")!,
   );
   expect(reloaded.controls.state.ag.appId).toBe("current-app");
+});
+
+test("Activity app switch cannot submit a Growth action using previous app data", async () => {
+  const browser = await workspaceBrowser("legacy-app");
+  browser.reads
+    .find((r) => r.url.startsWith("/api/agents"))!
+    .resolve({ ok: true, json: async () => snapshot("legacy-app") });
+  browser.reads
+    .find((r) => r.url.startsWith("/api/growth"))!
+    .resolve({ ok: true, json: async () => growth("legacy-app") });
+  await flush();
+  browser.changes.forEach((fn) =>
+    fn({ target: { id: "ta-app", value: "current-app" } }),
+  );
+  const before = browser.reads.length;
+  await expect(
+    browser.controls.action("capture", { url: "https://x.test/source" }),
+  ).rejects.toThrow("selected application");
+  expect(browser.reads).toHaveLength(before);
+  expect(browser.controls.state.ag.tasks).toHaveLength(0);
+  expect(browser.controls.state.growth.opps).toHaveLength(0);
 });
 
 test("failed refresh for previous app cannot mark newly selected app unavailable", async () => {
