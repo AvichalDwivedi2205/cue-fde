@@ -22,6 +22,53 @@ beforeEach(() => vi.stubEnv("CUE_DEMO_SECRET", secret));
 afterEach(() => vi.unstubAllEnvs());
 
 describe("Cue permissions and lifecycle", () => {
+  test("customer screenshot projection is scoped to the case owner and excludes storage credentials", async () => {
+    const { t } = await setup();
+    const owner = "widget:cue_app_test:screenshot-owner";
+    const { caseId } = await t.mutation(api.intake.widgetMessage, {
+      ...auth,
+      owner,
+      appId: "cue_app_test",
+      customer: "Guest",
+      title: "Upload hangs",
+      body: "Upload hangs",
+      initialBody: "Upload hangs",
+      sourceUrl: "https://app.example.com",
+    });
+    const fileId = await t.run((ctx) =>
+      ctx.storage.store(new Blob(["controlled image"], { type: "image/png" })),
+    );
+    await t.mutation(api.bloom.attachment, {
+      ...auth,
+      owner,
+      caseId,
+      fileId,
+      name: "Customer screenshot",
+    });
+    await t.mutation(api.bloom.attachment, {
+      ...auth,
+      owner: "another-owner",
+      caseId,
+      fileId,
+      name: "Different visitor's screenshot",
+    });
+    const conversation = await t.query(api.bloom.conversation, {
+      ...auth,
+      owner,
+    });
+    expect(conversation!.attachments).toEqual([
+      { name: "Customer screenshot", url: expect.any(String) },
+    ]);
+    expect(
+      await t.query(api.bloom.conversation, {
+        ...auth,
+        owner: "another-owner",
+      }),
+    ).toBeNull();
+    await expect(
+      t.query(api.bloom.conversation, { secret: "wrong", owner }),
+    ).rejects.toThrow("Unauthorized");
+  });
   test.each([
     { deployed: true, verified: true, resolved: true, expectResolution: true },
     {

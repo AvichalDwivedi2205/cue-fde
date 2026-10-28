@@ -6,7 +6,7 @@ import {
   REPLY_POLICY,
   replyFacts,
   replyProblems,
-  voiceDiagnosticQuestion,
+  diagnosticQuestion,
   type ReplyContext,
 } from "./reply-policy";
 export const geminiReady = () =>
@@ -76,7 +76,7 @@ export async function draft(context: unknown) {
     },
     latestCustomerMessage: c.message,
     medium: c.medium || "text",
-    missingDiagnosticDetail: voiceDiagnosticQuestion(c),
+    missingDiagnosticDetail: diagnosticQuestion(c),
     // Unsent drafts and internal notes aren't facts told to this customer.
     conversation: c.messages
       ?.filter((m) => ["customer", "staff", "cue"].includes(m.role || ""))

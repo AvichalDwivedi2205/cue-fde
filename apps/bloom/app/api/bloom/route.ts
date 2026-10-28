@@ -36,6 +36,7 @@ export async function GET() {
         conversation = {
           case: { ...c, _id: c.id },
           messages: current.messages,
+          attachments: current.attachments,
           progress: current.progress,
         };
       }

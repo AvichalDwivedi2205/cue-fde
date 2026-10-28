@@ -159,6 +159,9 @@ export const conversation = query({
     v.object({
       case: schema.doc("cases"),
       messages: v.array(schema.doc("messages")),
+      attachments: v.array(
+        v.object({ name: v.string(), url: v.union(v.string(), v.null()) }),
+      ),
       issue: v.union(schema.doc("issues"), v.null()),
       run: v.union(schema.doc("runs"), v.null()),
     }),
@@ -180,6 +183,20 @@ export const conversation = query({
           .order("desc")
           .take(100)
       ).reverse(),
+      attachments: await Promise.all(
+        (
+          await ctx.db
+            .query("attachments")
+            .withIndex("by_caseId", (q) => q.eq("caseId", c._id))
+            .order("desc")
+            .take(20)
+        )
+          .filter((a) => a.owner === c.owner)
+          .map(async (a) => ({
+            name: a.name,
+            url: await ctx.storage.getUrl(a.fileId),
+          })),
+      ),
       issue: c.issueId ? await ctx.db.get("issues", c.issueId) : null,
       run: c.issueId
         ? await ctx.db

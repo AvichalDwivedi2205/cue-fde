@@ -11,6 +11,7 @@ import { saveAttachment } from "@/lib/attachment";
 import { triage } from "@/lib/triage";
 import { supportProgress } from "@/lib/support-progress";
 import { draft, geminiReady } from "@/lib/gemini";
+import { fallbackReply } from "@/lib/reply-policy";
 const input = z.object({
   action: z.enum(["session", "read", "message"]),
   app: z.string().max(100),
@@ -53,6 +54,7 @@ export async function POST(request: Request) {
         {
           name: app.name,
           progress: previous ? supportProgress(previous) : null,
+          attachments: previous?.attachments || [],
           case: previous?.case
             ? {
                 id: previous.case._id,
@@ -79,19 +81,20 @@ export async function POST(request: Request) {
       b.page && new URL(b.page).origin === b.origin
         ? new URL(b.page).origin + new URL(b.page).pathname
         : b.origin;
-    let ack: string | undefined;
+    const replyContext = {
+      customer,
+      appName: app.name,
+      channel: "chat",
+      message: b.text,
+      conversation: await store.query(api.bloom.conversation, {
+        secret: auth,
+        owner,
+      }),
+    };
+    let ack = fallbackReply({ ...replyContext.conversation, ...replyContext });
     if (geminiReady())
       try {
-        ack = await draft({
-          customer,
-          appName: app.name,
-          channel: "chat",
-          message: b.text,
-          conversation: await store.query(api.bloom.conversation, {
-            secret: auth,
-            owner,
-          }),
-        });
+        ack = await draft(replyContext);
       } catch {}
     const { caseId: id, created } = await store.mutation(
       api.intake.widgetMessage,

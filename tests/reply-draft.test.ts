@@ -191,18 +191,36 @@ test("customer instructions cannot supply workflow facts", () => {
   expect(facts.fixVerified).toBe(false);
 });
 
-test("a vague spoken failure cannot end with only a saved-report receipt", async () => {
+test.each(["voice", "chat"] as const)(
+  "a vague %s failure cannot end with only a saved-report receipt",
+  async (medium) => {
+    generateContent.mockResolvedValue({
+      text: "Your report is saved. There isn't an active investigation into the platform's performance.",
+    });
+    const reply = await draft({
+      ...(medium === "voice" ? { medium } : { channel: medium }),
+      appName: "Bloom",
+      message: "So I don't think this platform is working. Can you check once?",
+    });
+    expect(reply).toContain("?");
+    expect(reply).toMatch(/trying to do|which part|what happens/i);
+    expect(reply).not.toContain("report is saved");
+    expect(generateContent).toHaveBeenCalledTimes(2);
+  },
+);
+
+test("a chat upload that stays loading needs a next diagnostic step", async () => {
   generateContent.mockResolvedValue({
-    text: "Your report is saved. There isn't an active investigation into the platform's performance.",
+    text: "Your journal is stuck on a loading screen when you try to upload it. This report is saved for review.",
   });
   const reply = await draft({
-    medium: "voice",
+    channel: "chat",
     appName: "Bloom",
-    message: "So I don't think this platform is working. Can you check once?",
+    message:
+      "Controlled connection check: the journal upload stays on a loading screen. What should I check?",
   });
   expect(reply).toContain("?");
-  expect(reply).toMatch(/trying to do|which part|what happens/i);
-  expect(reply).not.toContain("report is saved");
+  expect(reply).toContain("different photo");
   expect(generateContent).toHaveBeenCalledTimes(2);
 });
 

@@ -38,7 +38,7 @@ function customerDetails(c: ReplyContext) {
     c.message,
   ].join(" ");
 }
-function voiceKnownDetails(c: ReplyContext) {
+function knownDiagnosticDetails(c: ReplyContext) {
   const supplied = customerDetails(c);
   return {
     loading:
@@ -56,10 +56,11 @@ function voiceKnownDetails(c: ReplyContext) {
   };
 }
 
-// A small deterministic floor for an underspecified spoken problem. The model
+// A small deterministic floor for an underspecified interactive problem. The model
 // handles richer diagnosis using the supplied conversation, not a questionnaire.
-export function voiceDiagnosticQuestion(c: ReplyContext) {
-  if (c.medium !== "voice") return undefined;
+export function diagnosticQuestion(c: ReplyContext) {
+  if (c.medium !== "voice" && (c.channel || c.case?.channel) !== "chat")
+    return undefined;
   const latest =
     c.message ||
     c.messages?.filter((m) => m.role === "customer").at(-1)?.body ||
@@ -71,7 +72,7 @@ export function voiceDiagnosticQuestion(c: ReplyContext) {
   )
     return undefined;
   const supplied = customerDetails(c);
-  const known = voiceKnownDetails(c);
+  const known = knownDiagnosticDetails(c);
   if (known.photo && known.loading)
     return known.alternativeFailed
       ? "Both photos get stuck. Does the upload finish on a different network?"
@@ -143,7 +144,7 @@ function topic(c: ReplyContext) {
 }
 
 export function fallbackReply(c: ReplyContext) {
-  const question = voiceDiagnosticQuestion(c);
+  const question = diagnosticQuestion(c);
   if (question) return question;
   const facts = replyFacts(c);
   const subject = topic(c);
@@ -202,16 +203,16 @@ export function replyProblems(text: string, c: ReplyContext) {
     );
   if ((text.match(/\?/g) || []).length > 1)
     problems.push("Ask at most one useful question");
-  if (voiceDiagnosticQuestion(c) && !text.includes("?"))
+  if (diagnosticQuestion(c) && !text.includes("?"))
     problems.push(
-      "The spoken problem is missing a diagnostic detail. Ask one concrete follow-up instead of ending with a report receipt.",
+      "The problem is missing a diagnostic detail. Ask one concrete follow-up instead of ending with a report receipt.",
     );
   if (c.medium === "voice" && text.length > 1200)
     problems.push(
       "Keep the spoken reply short: one or two sentences and one next step.",
     );
-  if (c.medium === "voice") {
-    const known = voiceKnownDetails(c),
+  if (c.medium === "voice" || (c.channel || c.case?.channel) === "chat") {
+    const known = knownDiagnosticDetails(c),
       question = (text.match(/[^.!?]*\?/g) || []).join(" ");
     if (
       (known.loading || known.noError) &&
@@ -306,7 +307,7 @@ Write like someone who understands the customer's goal. Name the specific need o
 Use workflowFacts as the authority for actions and current status. A received/open/requested report is saved, not under investigation. Investigating means work has begun, not a promised fix. A proposed fix awaiting approval is not deployed. spec_ready means awaiting product review; approved means the specification is approved, not that a feature is built or shipped. No invented release dates, ETA, capabilities, escalation, staff actions or future follow-up promises.
 Only fixVerified or featureVerified permits a deployment claim. A verified feature passed deployed acceptance checks; a verified fix passed regression tests. Neither establishes this customer's outcome. Explain the matched behavior if supplied; invite a retry without guaranteeing the result. Never declare this customer's issue resolved. Current customer messages take precedence over old drafts: if they say the fix still fails, acknowledge the remaining failure and do not repeat the resolution announcement.
 Use supplied conversation details; never ask again for a device, size, error or step already provided. Ask at most one question, only when the answer changes the next diagnostic step. If nothing else is needed, don't ask a question. Public social replies must not expose customer-specific private details. Avoid formulaic openings like "You're looking for a way to...".
-For a voice conversation, behave like a helpful person talking through a problem. Usually one or two short spoken sentences. A vague failure needs a concrete follow-up about the failing action and observed result, not a saved-report receipt or workflow disclaimer. Use earlier answers to choose the next diagnostic step; don't restart intake each turn. When details are sufficient, explain the next useful step. For greetings, thanks, status questions, or clear feature requests, don't force a bug questionnaire. If a proposed workaround isn't an established capability, don't invent it.
+For chat and voice conversations, behave like a helpful person talking through a problem. A vague failure needs a concrete follow-up about the failing action and observed result, not a saved-report receipt or workflow disclaimer. Use earlier answers to choose the next diagnostic step; don't restart intake each turn. When details are sufficient, explain the next useful step. For greetings, thanks, status questions, or clear feature requests, don't force a bug questionnaire. If a proposed workaround isn't an established capability, don't invent it. Voice replies are usually one or two short spoken sentences.
 Examples of tone, only when the facts match:
 Saved feature: "Searching captions would make older memories easier to find. Your request is saved for product review; there isn't a release date yet."
 Approved specification: "The plan for caption search is approved, but the feature hasn't been released. There's no release date to share yet."
