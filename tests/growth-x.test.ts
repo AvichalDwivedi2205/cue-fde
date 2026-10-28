@@ -88,6 +88,53 @@ test("independent publication read rejects wrong author, original thread, text a
   ])
     await expect(verify(changed)).rejects.toThrow("mismatch");
 });
+test("native reply recipient metadata does not change the exact approved body", async () => {
+  const link = "https://cue.test/g/opaque";
+  const text = "Try caption search: " + link;
+  const base = {
+    id: "9",
+    text: "@tester Try caption search: https://t.co/test",
+    author_id: "1",
+    created_at: new Date().toISOString(),
+    referenced_tweets: [{ type: "replied_to", id: "22" }],
+    entities: {
+      mentions: [{ start: 0, end: 7, username: "tester" }],
+      urls: [{ url: "https://t.co/test", expanded_url: link }],
+    },
+  };
+  const verify = (data: unknown, sourceAuthor = "@tester") =>
+    growthX(config, async () => Response.json({ data })).verify(
+      "https://x.com/bloomwithcue/status/9",
+      "22",
+      text,
+      link,
+      sourceAuthor,
+    );
+  expect(await verify(base)).toContain("recipient mention checked separately");
+  await expect(verify(base, "@other")).rejects.toThrow("mismatch");
+  for (const changed of [
+    { ...base, entities: { urls: base.entities.urls } },
+    {
+      ...base,
+      entities: {
+        ...base.entities,
+        mentions: [{ start: 1, end: 7, username: "tester" }],
+      },
+    },
+    {
+      ...base,
+      entities: {
+        ...base.entities,
+        mentions: [{ start: 0, end: 8, username: "tester" }],
+      },
+    },
+    { ...base, text: "@tester @other Try caption search: https://t.co/test" },
+    { ...base, text: "@tester Changed reply: https://t.co/test" },
+    { ...base, author_id: "2" },
+    { ...base, referenced_tweets: [{ type: "replied_to", id: "23" }] },
+  ])
+    await expect(verify(changed)).rejects.toThrow("mismatch");
+});
 test("opaque link and event signing bind full payload, app and five-minute timestamp", () => {
   vi.stubEnv("CUE_DEMO_SECRET", "secret-signing-key");
   const token = issueGrowthToken();

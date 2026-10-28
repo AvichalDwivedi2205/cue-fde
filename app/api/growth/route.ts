@@ -241,6 +241,7 @@ export async function POST(request: Request) {
             opp.sourceKey.replace(/^x:/, ""),
             d.text,
             touch.link,
+            opp.author,
           );
           await db().mutation(api.growthAttribution.verify, {
             secret: secret(),

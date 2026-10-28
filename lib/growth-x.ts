@@ -12,6 +12,16 @@ const post = z.object({
       urls: z
         .array(z.object({ url: z.url(), expanded_url: z.url() }))
         .optional(),
+      mentions: z
+        .array(
+          z.object({
+            start: z.number().int().min(0),
+            end: z.number().int().min(1),
+            username: z.string().regex(/^[A-Za-z0-9_]{1,15}$/),
+          }),
+        )
+        .max(50)
+        .optional(),
     })
     .optional(),
   referenced_tweets: z.array(z.object({ type: z.string(), id })).optional(),
@@ -142,7 +152,13 @@ export function growthX(config: XConfig, request: typeof fetch = fetch) {
           }),
       };
     },
-    async verify(url: string, sourceId: string, text: string, link: string) {
+    async verify(
+      url: string,
+      sourceId: string,
+      text: string,
+      link: string,
+      sourceAuthor?: string,
+    ) {
       const m = url.match(
         /^https:\/\/(?:x|twitter)\.com\/([A-Za-z0-9_]+)\/status\/(\d+)$/,
       );
@@ -163,18 +179,34 @@ export function growthX(config: XConfig, request: typeof fetch = fetch) {
         (s, u) => s.split(u.url).join(u.expanded_url),
         p.text,
       );
+      // Native X replies add the recipient to API text but hide it in the
+      // displayed body. Remove only the provider-described leading mention of
+      // this saved source author; every character of the reviewed body remains
+      // subject to the existing exact comparison.
+      const recipient = p.entities?.mentions?.find((m) => m.start === 0);
+      const prefix = recipient && "@" + recipient.username;
+      const replyBody =
+        expandedText.trim() !== text.trim() &&
+        prefix &&
+        sourceAuthor?.toLowerCase() === prefix.toLowerCase() &&
+        recipient?.end === prefix.length &&
+        expandedText.slice(0, prefix.length).toLowerCase() ===
+          prefix.toLowerCase() &&
+        /\s/.test(expandedText[prefix.length] || "")
+          ? expandedText.slice(prefix.length).trim()
+          : expandedText.trim();
       if (
         p.author_id !== config.userId ||
         !p.referenced_tweets?.some(
           (r) => r.type === "replied_to" && r.id === sourceId,
         ) ||
-        expandedText.trim() !== text.trim() ||
+        replyBody !== text.trim() ||
         !expanded.some((u) => u.expanded_url === link)
       )
         throw new Error(
           "Publication author, thread, exact content or campaign destination mismatch",
         );
-      return "Official X read: brand author, original reply thread, complete approved text and expanded campaign destination matched";
+      return "Official X read: brand author, original reply thread, complete approved body and expanded campaign destination matched; native recipient mention checked separately";
     },
   };
 }
