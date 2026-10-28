@@ -21,6 +21,9 @@ export function growthPolicy(
   } = sourcePolicy(text);
   return {
     ...result,
+    // Unsupported requests must retain the source need, even if the model
+    // copies the supplied capability's need into its answer.
+    need: unsupported ? text.trim().slice(0, 500) : result.need,
     matched: result.matched && match && !unsupported && !promotional,
     eligible:
       result.eligible && explicit && match && !unsupported && !promotional,

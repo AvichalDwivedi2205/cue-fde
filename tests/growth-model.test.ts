@@ -3,10 +3,31 @@ const { generate } = vi.hoisted(() => ({ generate: vi.fn() }));
 vi.mock("../lib/gemini", () => ({
   client: () => ({ models: { generateContent: generate } }),
 }));
-import { draftGrowth } from "../lib/growth-model";
+import { draftGrowth, qualifyGrowth } from "../lib/growth-model";
 const link = "https://cue.test/g/opaque";
 const claims = ["Find saved memories using all words in a caption query"];
 beforeEach(() => generate.mockReset());
+test("unsupported qualification retains the actual request when the model copies a capability need", async () => {
+  const source =
+    "Anyone recommend a photo journal app that exports memories with photos and captions into a PDF?";
+  generate.mockResolvedValue({
+    text: JSON.stringify({
+      need: "Find older memories by caption",
+      matched: true,
+      eligible: true,
+      fit: "High",
+      reasons: ["Caption capability matches"],
+    }),
+  });
+  expect(await qualifyGrowth(source, { claims })).toMatchObject({
+    need: source,
+    matched: false,
+    eligible: false,
+    reasons: [
+      "Unsupported need: no verified export, sync or collaboration capability",
+    ],
+  });
+});
 test.each([
   "Cue finds saved caption words: ",
   "Bloom finds captions using any query word: ",
