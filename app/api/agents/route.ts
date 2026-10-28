@@ -37,22 +37,25 @@ export async function POST(request: Request) {
     const raw = await request.text();
     if (raw.length > 8000) throw new Error("Instruction too long");
     const body = JSON.parse(raw);
-    if (body.action === "cancel") {
+    if (["cancel", "retry"].includes(body.action)) {
       const a = z
         .object({
-          action: z.literal("cancel"),
+          action: z.enum(["cancel", "retry"]),
           appId: z.string(),
           taskId: z.string(),
         })
         .strict()
         .parse(body);
       await workspaceApp(a.appId);
-      await db().mutation(api.workspace.cancel, {
-        secret: secret(),
-        appId: a.appId,
-        taskId: a.taskId as Id<"agentTasks">,
-        actor,
-      });
+      await db().mutation(
+        a.action === "cancel" ? api.workspace.cancel : api.workspace.retry,
+        {
+          secret: secret(),
+          appId: a.appId,
+          taskId: a.taskId as Id<"agentTasks">,
+          actor,
+        },
+      );
       return Response.json({ ok: true });
     }
     return Response.json(

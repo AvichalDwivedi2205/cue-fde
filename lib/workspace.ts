@@ -9,6 +9,7 @@ import {
 import { geminiReady } from "./gemini";
 import type { Role } from "./roles";
 import type { Id } from "../convex/_generated/dataModel";
+import { ConvexError } from "convex/values";
 
 export const workspaceInput = z
   .object({
@@ -24,7 +25,10 @@ export type WorkspaceActor = { id: string; name: string; role: Role };
 export async function workspaceApp(appId?: string) {
   const config = await readIntegrations();
   if (appId === "bloom")
-    return { app: { id: "bloom", name: "Legacy Bloom", origins: [] }, config };
+    return {
+      app: { id: "bloom", name: "Legacy Bloom", origins: [] as string[] },
+      config,
+    };
   const app = appId
     ? config.apps.find((a) => a.id === appId)
     : config.apps.find((a) =>
@@ -53,6 +57,52 @@ export async function postWorkspace(
       ).tasks.find((t) => t._id === input.taskId)
     : null;
   const words = input.text.toLowerCase();
+  let growthCommand:
+    | {
+        growthAction: "discover" | "qualify" | "draft";
+        campaignId: Id<"growthCampaigns">;
+        opportunityId?: Id<"growthOpportunities">;
+        release: string;
+      }
+    | undefined;
+  if (
+    input.agent === "growth" &&
+    /^(?:please\s+)?(?:find|run (?:discovery|search)|qualify|draft)\b/.test(
+      words,
+    )
+  ) {
+    const { observedRelease } = await import("./growth");
+    const { release } = await observedRelease(input.appId);
+    const growth = await db().query(api.growth.snapshot, {
+      secret: secret(),
+      appId: input.appId,
+    });
+    const opportunity = growth.opportunities.find(
+      (o) => o._id === selected?.opportunityId || words.includes(o._id),
+    );
+    const growthAction = /\bqualify\b/.test(words)
+      ? "qualify"
+      : /\bdraft\b/.test(words)
+        ? "draft"
+        : "discover";
+    const campaign = opportunity
+      ? growth.campaigns.find((c) => c._id === opportunity.campaignId)
+      : growth.campaigns[0];
+    if (!campaign)
+      throw new ConvexError(
+        "Growth needs a current verified capability and registered campaign.",
+      );
+    if (growthAction !== "discover" && !opportunity)
+      throw new ConvexError(
+        "Select the Growth task or include its exact opportunity ID.",
+      );
+    growthCommand = {
+      growthAction,
+      campaignId: campaign._id,
+      ...(opportunity ? { opportunityId: opportunity._id } : {}),
+      release,
+    };
+  }
   const action = /^(?:please\s+)?(?:investigate|start investigation)\b/.test(
     words,
   )
@@ -85,8 +135,10 @@ export async function postWorkspace(
     ...(input.taskId ? { taskId: input.taskId as Id<"agentTasks"> } : {}),
     ...(issueId ? { issueId: issueId as Id<"issues"> } : {}),
     ...(action ? { action } : {}),
+    ...growthCommand,
     ...(threadKey ? { threadKey } : {}),
     repository: config.coding?.find((c) => c.appId === input.appId)?.repository,
+    queueAnswer: !action && geminiReady(),
   });
 }
 export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
@@ -150,7 +202,12 @@ export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
       icon: "trend",
       purpose:
         "Matches explicit needs to verified capabilities and tracks reviewed recommendations.",
-      can: ["Inspect verified capability evidence"],
+      can: [
+        "Bounded official discovery",
+        "Qualify explicit needs",
+        "Draft from verified capabilities",
+        "Inspect review and activation evidence",
+      ],
       cannot: [
         "Approve own content",
         "Publish replies",
@@ -215,6 +272,7 @@ export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
         who: e.actor,
         kind: e.kind,
         text: e.text,
+        evidence: e.evidence,
       }));
     if (run)
       events.push(
@@ -230,17 +288,40 @@ export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
                   ? "pending"
                   : "completed",
             text: e.title + " · " + e.detail,
+            evidence: run.prUrl,
           })),
       );
     return {
       id: t._id,
+      issueId: t.issueId,
+      opportunityId: t.opportunityId,
+      parentId: t.parentId,
+      deps: (t.dependencies || []).join(" · "),
+      children: workspace.tasks
+        .filter((child) => child.parentId === t._id)
+        .map((child) => ({
+          l: child.title,
+          h: "#/agents/" + child.agent + "/" + child._id,
+        })),
+      reviewer:
+        t.reviewer ||
+        (run?.status === "awaiting_approval" ? "Engineering" : undefined),
       agent: t.agent,
       app: app.name,
       title: t.title,
       type: t.action,
-      state,
+      state:
+        !run && state === "running" && t.leaseUntil && t.leaseUntil < Date.now()
+          ? "blocked"
+          : state,
       stage: run?.phase || t.stage,
       blocker:
+        (!run &&
+        state === "running" &&
+        t.leaseUntil &&
+        t.leaseUntil < Date.now()
+          ? "Worker lease expired. Await bounded retry or request recovery; saved effects retained."
+          : undefined) ||
         run?.error ||
         t.blocker ||
         (run?.status === "approved"
@@ -249,6 +330,19 @@ export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
       note:
         state === "queued"
           ? "Durable instruction saved; worker has not started."
+          : undefined,
+      review: t.opportunityId
+        ? { l: "Open exact Growth context", h: "#/growth/" + t.opportunityId }
+        : run?.status === "awaiting_approval"
+          ? { l: "Review exact commit", h: "#/issues/" + t.issueId }
+          : undefined,
+      person: !!t.reviewer || run?.status === "awaiting_approval",
+      retry:
+        t.agent === "x" && ["failed", "retrying", "canceled"].includes(state),
+      next: t.opportunityId
+        ? "Continue through Growth controls"
+        : t.agent === "engineering" && ["failed", "canceled"].includes(state)
+          ? "Request a new supported run; existing evidence retained"
           : undefined,
       created: t.createdAt,
       owner: agents.find((a) => a.id === t.agent)!.name,
@@ -278,6 +372,7 @@ export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
     };
   });
   return {
+    operator: { name: actor.name, role: actor.role },
     app: { id: app.id, name: app.name },
     apps: [
       { id: "bloom", name: "Legacy Bloom" },

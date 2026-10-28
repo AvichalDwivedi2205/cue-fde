@@ -17,6 +17,15 @@ export const taskState = v.union(
   v.literal("canceling"),
 );
 export const taskAction = v.union(
+  v.literal("recommendation"),
+  v.literal("discover"),
+  v.literal("qualify"),
+  v.literal("draft"),
+  v.literal("collect"),
+  v.literal("investigate"),
+  v.literal("delegate"),
+);
+export const commandAction = v.union(
   v.literal("collect"),
   v.literal("investigate"),
   v.literal("delegate"),

@@ -11,7 +11,7 @@ import {
 } from "./reply-policy";
 export const geminiReady = () =>
   !!(process.env.GOOGLE_CLOUD_PROJECT || process.env.GEMINI_API_KEY);
-function client() {
+export function client() {
   if (!geminiReady())
     throw new Error("Gemini needs a selected Google Cloud project or API key");
   return process.env.GEMINI_API_KEY

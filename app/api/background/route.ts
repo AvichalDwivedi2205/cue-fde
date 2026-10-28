@@ -5,8 +5,22 @@ import { pollHostedX } from "@/lib/hosted-background";
 import { classifySavedReport } from "@/lib/triage";
 import type { Id } from "@/convex/_generated/dataModel";
 import { randomUUID } from "node:crypto";
+import { processGrowth } from "@/lib/growth";
+import { answerWorkspace } from "@/lib/workspace-answer";
 export const runtime = "nodejs";
 const input = z.discriminatedUnion("action", [
+  z
+    .object({
+      action: z.literal("workspace-answer"),
+      commandId: z.string().min(1).max(100),
+    })
+    .strict(),
+  z
+    .object({
+      action: z.literal("growth"),
+      receiptId: z.string().min(1).max(100),
+    })
+    .strict(),
   z
     .object({
       action: z.literal("workspace"),
@@ -36,7 +50,11 @@ export async function POST(request: Request) {
     const parsed = input.safeParse(JSON.parse(raw));
     if (!parsed.success)
       return Response.json({ error: "Invalid job" }, { status: 400 });
-    if (parsed.data.action === "workspace") {
+    if (parsed.data.action === "workspace-answer")
+      await answerWorkspace(parsed.data.commandId as Id<"agentCommands">);
+    else if (parsed.data.action === "growth")
+      await processGrowth(parsed.data.receiptId as Id<"growthReceipts">);
+    else if (parsed.data.action === "workspace") {
       const taskId = parsed.data.taskId as Id<"agentTasks">,
         token = randomUUID();
       const task = await db().mutation(api.workspace.begin, {

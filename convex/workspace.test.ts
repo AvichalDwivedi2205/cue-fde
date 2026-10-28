@@ -202,3 +202,67 @@ test("leases reject overlap; stale completion cannot overwrite cancellation", as
   expect(snapshot.tasks[0].state).toBe("canceled");
   expect(snapshot.events.some((e) => e.text === "Stale receipt")).toBe(false);
 });
+
+test("contextual answers update the persisted Agent reply, preserve prior turns and reject stale writes", async () => {
+  const t = setup();
+  await t.mutation(api.workspace.post, {
+    ...base,
+    text: "Earlier context about deployment",
+    key: "earlier-question",
+  });
+  await t.mutation(api.workspace.post, {
+    ...base,
+    text: "What does that imply?",
+    key: "context-question",
+    queueAnswer: true,
+  });
+  const command = (
+    await t.run((ctx) => ctx.db.query("agentCommands").take(10))
+  ).find((c) => c.key === "context-question")!;
+  const job = await t.mutation(api.workspaceAnswers.begin, {
+    ...auth,
+    commandId: command._id,
+    token: "answer-lease",
+  });
+  expect(job?.context).toContain("Earlier context about deployment");
+  expect(
+    await t.mutation(api.workspaceAnswers.begin, {
+      ...auth,
+      commandId: command._id,
+      token: "other-lease",
+    }),
+  ).toBeNull();
+  await t.mutation(api.workspaceAnswers.finish, {
+    ...auth,
+    commandId: command._id,
+    token: "stale",
+    answer: "Wrong overwrite",
+  });
+  await t.mutation(api.workspaceAnswers.finish, {
+    ...auth,
+    commandId: command._id,
+    token: "answer-lease",
+    answer: "Deployment evidence still required.",
+  });
+  const snapshot = await t.query(api.workspace.snapshot, {
+    ...auth,
+    appId: base.appId,
+    participant: owner.id,
+  });
+  expect(snapshot.conversations[0].messages.at(-1)?.text).toBe(
+    "Deployment evidence still required.",
+  );
+  expect(snapshot.conversations[0].messages.at(-1)?.answerStatus).toBe(
+    "completed",
+  );
+  expect(
+    (
+      await t.query(api.workspace.snapshot, {
+        ...auth,
+        appId: base.appId,
+        participant: "another-owner",
+      })
+    ).conversations,
+  ).toHaveLength(0);
+  expect(await t.run((ctx) => ctx.db.query("jobs").take(10))).toHaveLength(0);
+});

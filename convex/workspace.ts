@@ -7,7 +7,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { authorize } from "./cue";
 import schema from "./schema";
-import { actor, agentId, taskAction } from "./workspaceValidators";
+import { actor, agentId, commandAction } from "./workspaceValidators";
 import { pool } from "./triageQueue";
 
 const ref = (t: Doc<"agentTasks">) => `#/agents/${t.agent}/${t._id}`;
@@ -86,7 +86,10 @@ async function event(
     ...(evidence ? { evidence } : {}),
   });
 }
-async function taskView(ctx: QueryCtx | MutationCtx, task: Doc<"agentTasks">) {
+export async function taskView(
+  ctx: QueryCtx | MutationCtx,
+  task: Doc<"agentTasks">,
+) {
   if (!task.runId) return task;
   const run = await ctx.db.get("runs", task.runId);
   if (!run)
@@ -143,6 +146,7 @@ export const snapshot = query({
             at: v.number(),
             via: v.string(),
             context: v.optional(v.string()),
+            answerStatus: v.optional(v.string()),
           }),
         ),
       }),
@@ -202,6 +206,9 @@ export const snapshot = query({
             at: m._creationTime,
             via: command?.via || "Q",
             ...(command?.contextTask ? { context: command.contextTask } : {}),
+            ...(command?.replyId === m._id && command.answerStatus
+              ? { answerStatus: command.answerStatus }
+              : {}),
           };
         }),
       });
@@ -231,16 +238,30 @@ export const post = mutation({
     via: v.string(),
     taskId: v.optional(v.id("agentTasks")),
     issueId: v.optional(v.id("issues")),
-    action: v.optional(taskAction),
+    action: v.optional(commandAction),
+    growthAction: v.optional(
+      v.union(v.literal("discover"), v.literal("qualify"), v.literal("draft")),
+    ),
+    campaignId: v.optional(v.id("growthCampaigns")),
+    opportunityId: v.optional(v.id("growthOpportunities")),
+    release: v.optional(v.string()),
     repository: v.optional(v.string()),
     threadKey: v.optional(v.string()),
+    queueAnswer: v.optional(v.boolean()),
   },
   returns: v.object({
     response: v.string(),
     duplicate: v.boolean(),
     taskId: v.union(v.null(), v.id("agentTasks")),
   }),
-  handler: async (ctx, a) => {
+  handler: async (
+    ctx,
+    a,
+  ): Promise<{
+    response: string;
+    duplicate: boolean;
+    taskId: Id<"agentTasks"> | null;
+  }> => {
     authorize(a.secret);
     if (
       !a.text.trim() ||
@@ -253,13 +274,25 @@ export const post = mutation({
       .query("agentCommands")
       .withIndex("by_key", (q) => q.eq("key", a.key))
       .unique();
+    const requestContext = JSON.stringify({
+      taskId: a.taskId || null,
+      issueId: a.issueId || null,
+      action: a.action || null,
+      repository: a.repository || null,
+      growthAction: a.growthAction || null,
+      campaignId: a.campaignId || null,
+      opportunityId: a.opportunityId || null,
+    });
     if (old) {
       const c = await ctx.db.get("agentConversations", old.conversationId);
       if (
         c?.appId !== a.appId ||
         c.agent !== a.agent ||
         c.participant !== a.actor.id ||
-        old.promptText !== a.text
+        old.promptText !== a.text ||
+        (old.requestContext && old.requestContext !== requestContext) ||
+        (!old.requestContext &&
+          (old.contextTask || null) !== (a.taskId || null))
       )
         throw new ConvexError(
           "Command belongs to another context or content version",
@@ -277,7 +310,21 @@ export const post = mutation({
     if (a.issueId && (!issue || (issue.appId || "bloom") !== a.appId))
       throw new ConvexError("Issue belongs to another app");
     let response: string;
-    if (a.action) {
+    if (a.growthAction) {
+      if (a.agent !== "growth" || !a.campaignId || !a.release)
+        throw new ConvexError("Growth action context missing");
+      const id = await ctx.runMutation(api.growth.request, {
+        secret: a.secret,
+        actor: a.actor,
+        appId: a.appId,
+        action: a.growthAction,
+        campaignId: a.campaignId,
+        opportunityId: a.opportunityId,
+        release: a.release,
+      });
+      task = await ctx.db.get("agentTasks", id);
+      response = `Growth work saved: ${id} · ${task!.state}. No public message sent.\n${ref(task!)}`;
+    } else if (a.action) {
       const permitted =
         a.action === "collect"
           ? a.agent === "x" &&
@@ -463,9 +510,10 @@ export const post = mutation({
         { role: "assistant", content: response },
       ],
     });
-    await ctx.db.insert("agentCommands", {
+    const commandId = await ctx.db.insert("agentCommands", {
       key: a.key,
       promptText: a.text,
+      requestContext,
       conversationId: conversation._id,
       actor: a.actor.name,
       via: a.via,
@@ -475,7 +523,20 @@ export const post = mutation({
       replyId: saved.messages[1]._id,
       response,
       createdAt: Date.now(),
+      ...(a.queueAnswer && !a.action && !a.growthAction
+        ? { answerStatus: "queued" as const }
+        : {}),
     });
+    if (a.queueAnswer && !a.action && !a.growthAction)
+      await pool.enqueueAction(
+        ctx,
+        internal.hosted.workspaceAnswer,
+        { commandId },
+        {
+          onComplete: internal.workspaceAnswers.completed,
+          context: { commandId },
+        },
+      );
     if (a.threadKey) {
       const old = await ctx.db
         .query("agentSlackThreads")
@@ -500,7 +561,13 @@ export const begin = mutation({
   handler: async (ctx, a) => {
     authorize(a.secret);
     const t = await ctx.db.get("agentTasks", a.taskId);
-    if (!t || t.cancel || ["completed", "canceled", "failed"].includes(t.state))
+    if (
+      !t ||
+      t.agent !== "x" ||
+      t.action !== "collect" ||
+      t.cancel ||
+      ["completed", "canceled", "failed"].includes(t.state)
+    )
       return null;
     if (t.leaseUntil && t.leaseUntil > Date.now())
       throw new ConvexError("Task already leased");
@@ -602,7 +669,12 @@ export const cancel = mutation({
     if (
       !t ||
       t.appId !== a.appId ||
-      !["owner", "engineering"].includes(a.actor.role)
+      !(
+        a.actor.role === "owner" ||
+        (a.actor.role === "engineering" && t.agent === "engineering") ||
+        (a.actor.role === "product" && t.agent === "growth") ||
+        (a.actor.role === "support" && t.agent === "x")
+      )
     )
       throw new ConvexError("Cancellation not authorized");
     if (["completed", "canceled"].includes(t.state))
@@ -617,12 +689,78 @@ export const cancel = mutation({
       state: t.state === "running" ? "canceling" : "canceled",
       updatedAt: Date.now(),
     });
+    const children = await ctx.db
+      .query("agentTasks")
+      .withIndex("by_appId", (q) => q.eq("appId", a.appId))
+      .order("desc")
+      .take(100);
+    for (const child of children.filter(
+      (c) =>
+        c.parentId === t._id && !["completed", "canceled"].includes(c.state),
+    ))
+      await ctx.db.patch("agentTasks", child._id, {
+        cancel: true,
+        state: child.state === "running" ? "canceling" : "canceled",
+        updatedAt: Date.now(),
+      });
     await event(
       ctx,
       t._id,
       a.actor.name,
       "pending",
       "Cancellation requested. Already completed external effects remain recorded.",
+    );
+    return null;
+  },
+});
+export const retry = mutation({
+  args: {
+    secret: v.string(),
+    actor,
+    appId: v.string(),
+    taskId: v.id("agentTasks"),
+  },
+  returns: v.null(),
+  handler: async (ctx, a) => {
+    authorize(a.secret);
+    const t = await ctx.db.get("agentTasks", a.taskId);
+    if (
+      !t ||
+      t.appId !== a.appId ||
+      t.agent !== "x" ||
+      t.action !== "collect" ||
+      !["owner", "support", "engineering"].includes(a.actor.role)
+    )
+      throw new ConvexError(
+        "Retry this supported task through its original action",
+      );
+    if (
+      !["failed", "canceled", "retrying"].includes(t.state) ||
+      (t.leaseUntil || 0) > Date.now()
+    )
+      throw new ConvexError("Task not eligible for retry");
+    await ctx.db.patch("agentTasks", t._id, {
+      state: "queued",
+      stage: "Explicit retry queued",
+      blocker: undefined,
+      cancel: false,
+      leaseToken: undefined,
+      leaseUntil: undefined,
+      updatedAt: Date.now(),
+    });
+    const workId = await pool.enqueueAction(
+      ctx,
+      internal.hosted.workspace,
+      { taskId: t._id },
+      { onComplete: internal.workspace.completed, context: { taskId: t._id } },
+    );
+    await ctx.db.patch("agentTasks", t._id, { workId });
+    await event(
+      ctx,
+      t._id,
+      a.actor.name,
+      "pending",
+      "Explicit bounded retry queued. Existing collector checkpoint retained.",
     );
     return null;
   },

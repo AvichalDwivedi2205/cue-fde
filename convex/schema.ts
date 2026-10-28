@@ -1,8 +1,10 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { agentId, taskState, taskAction } from "./workspaceValidators";
+import { growthTables } from "./growthSchema";
 
 export default defineSchema({
+  ...growthTables,
   agentConversations: defineTable({
     appId: v.string(),
     agent: agentId,
@@ -25,6 +27,12 @@ export default defineSchema({
     replyId: v.string(),
     response: v.string(),
     promptText: v.string(),
+    requestContext: v.optional(v.string()),
+    answerStatus: v.optional(
+      v.union(v.literal("queued"), v.literal("completed"), v.literal("failed")),
+    ),
+    answerLease: v.optional(v.string()),
+    answerLeaseUntil: v.optional(v.number()),
     createdAt: v.number(),
   })
     .index("by_key", ["key"])
@@ -39,6 +47,10 @@ export default defineSchema({
     stage: v.string(),
     issueId: v.optional(v.id("issues")),
     runId: v.optional(v.id("runs")),
+    opportunityId: v.optional(v.id("growthOpportunities")),
+    parentId: v.optional(v.id("agentTasks")),
+    dependencies: v.optional(v.array(v.string())),
+    reviewer: v.optional(v.string()),
     blocker: v.optional(v.string()),
     workId: v.optional(v.string()),
     leaseToken: v.optional(v.string()),

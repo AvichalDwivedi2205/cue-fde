@@ -5,6 +5,7 @@ import { sendSlackDecision } from "@/lib/delivery";
 import { sendSlackDecisionFeedback } from "@/lib/slack-feedback";
 import { triage } from "@/lib/triage";
 import { recordSlackWebhook } from "@/lib/slack-webhook-health";
+import { decideGrowthSlack } from "@/lib/growth-slack";
 export const runtime = "nodejs";
 export async function POST(request: Request) {
   const raw = await request.text();
@@ -25,6 +26,23 @@ export async function POST(request: Request) {
         ?.includes("application/x-www-form-urlencoded")
     ) {
       const p = JSON.parse(new URLSearchParams(raw).get("payload") || "{}");
+      if (
+        p.actions?.some((a: { action_id: string }) =>
+          a.action_id.startsWith("cue_growth_"),
+        )
+      ) {
+        try {
+          await decideGrowthSlack(p);
+          return Response.json({
+            text: "Exact Growth decision recorded. Publication remains manual.",
+          });
+        } catch (error) {
+          after(async () => {
+            await sendSlackDecisionFeedback(p, config!, error).catch(() => {});
+          });
+          return Response.json({ ok: true });
+        }
+      }
       if (!config) throw new Error("Slack not configured");
       if (
         p.actions?.every((a: { action_id: string }) =>

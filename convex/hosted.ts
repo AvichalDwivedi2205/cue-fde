@@ -53,3 +53,19 @@ export const workspace = internalAction({
     return null;
   },
 });
+export const growth = internalAction({
+  args: { receiptId: v.id("growthReceipts") },
+  returns: v.null(),
+  handler: async (_ctx, a) => {
+    await dispatch({ action: "growth", receiptId: a.receiptId });
+    return null;
+  },
+});
+export const workspaceAnswer = internalAction({
+  args: { commandId: v.id("agentCommands") },
+  returns: v.null(),
+  handler: async (_ctx, a) => {
+    await dispatch({ action: "workspace-answer", commandId: a.commandId });
+    return null;
+  },
+});

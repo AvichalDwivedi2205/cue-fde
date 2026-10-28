@@ -13,6 +13,11 @@ import type * as bloom from "../bloom.js";
 import type * as crons from "../crons.js";
 import type * as cue from "../cue.js";
 import type * as deliveries from "../deliveries.js";
+import type * as growth from "../growth.js";
+import type * as growthAttribution from "../growthAttribution.js";
+import type * as growthExecution from "../growthExecution.js";
+import type * as growthSchema from "../growthSchema.js";
+import type * as growthTasks from "../growthTasks.js";
 import type * as hosted from "../hosted.js";
 import type * as intake from "../intake.js";
 import type * as jobs from "../jobs.js";
@@ -21,6 +26,7 @@ import type * as serverState from "../serverState.js";
 import type * as triageQueue from "../triageQueue.js";
 import type * as voice from "../voice.js";
 import type * as workspace from "../workspace.js";
+import type * as workspaceAnswers from "../workspaceAnswers.js";
 import type * as workspaceValidators from "../workspaceValidators.js";
 
 import type {
@@ -35,6 +41,11 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   cue: typeof cue;
   deliveries: typeof deliveries;
+  growth: typeof growth;
+  growthAttribution: typeof growthAttribution;
+  growthExecution: typeof growthExecution;
+  growthSchema: typeof growthSchema;
+  growthTasks: typeof growthTasks;
   hosted: typeof hosted;
   intake: typeof intake;
   jobs: typeof jobs;
@@ -43,6 +54,7 @@ declare const fullApi: ApiFromModules<{
   triageQueue: typeof triageQueue;
   voice: typeof voice;
   workspace: typeof workspace;
+  workspaceAnswers: typeof workspaceAnswers;
   workspaceValidators: typeof workspaceValidators;
 }>;
 
