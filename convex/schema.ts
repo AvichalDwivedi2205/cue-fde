@@ -48,6 +48,7 @@ export default defineSchema({
     issueId: v.optional(v.id("issues")),
     runId: v.optional(v.id("runs")),
     opportunityId: v.optional(v.id("growthOpportunities")),
+    campaignId: v.optional(v.id("growthCampaigns")),
     parentId: v.optional(v.id("agentTasks")),
     dependencies: v.optional(v.array(v.string())),
     reviewer: v.optional(v.string()),

@@ -60,6 +60,7 @@ export async function postWorkspace(
   let growthCommand:
     | {
         growthAction: "discover" | "qualify" | "draft";
+        growthRevision?: boolean;
         campaignId: Id<"growthCampaigns">;
         opportunityId?: Id<"growthOpportunities">;
         release: string;
@@ -67,7 +68,7 @@ export async function postWorkspace(
     | undefined;
   if (
     input.agent === "growth" &&
-    /^(?:please\s+)?(?:find|run (?:discovery|search)|qualify|draft)\b/.test(
+    /^(?:please\s+)?(?:find|run (?:discovery|search)|qualify|draft|revise|regenerate)\b/.test(
       words,
     )
   ) {
@@ -82,7 +83,7 @@ export async function postWorkspace(
     );
     const growthAction = /\bqualify\b/.test(words)
       ? "qualify"
-      : /\bdraft\b/.test(words)
+      : /\b(?:draft|revise|regenerate)\b/.test(words)
         ? "draft"
         : "discover";
     const campaign = opportunity
@@ -98,6 +99,7 @@ export async function postWorkspace(
       );
     growthCommand = {
       growthAction,
+      growthRevision: /\b(?:revise|regenerate)\b/.test(words),
       campaignId: campaign._id,
       ...(opportunity ? { opportunityId: opportunity._id } : {}),
       release,
@@ -310,6 +312,7 @@ export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
       id: t._id,
       issueId: t.issueId,
       opportunityId: t.opportunityId,
+      campaignId: t.campaignId,
       parentId: t.parentId,
       deps: (t.dependencies || []).join(" · "),
       children: workspace.tasks
@@ -353,7 +356,11 @@ export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
           : undefined,
       person: !!t.reviewer || run?.status === "awaiting_approval",
       retry:
-        t.agent === "x" && ["failed", "retrying", "canceled"].includes(state),
+        ["failed", "retrying", "canceled"].includes(state) &&
+        (t.agent === "x" ||
+          (t.agent === "growth" &&
+            ["discover", "qualify", "draft"].includes(t.action)) ||
+          (t.agent === "engineering" && !!t.issueId)),
       next: t.opportunityId
         ? "Continue through Growth controls"
         : t.agent === "engineering" && ["failed", "canceled"].includes(state)

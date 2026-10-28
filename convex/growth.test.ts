@@ -478,3 +478,46 @@ test("canceled and stale generation cannot overwrite operator edits", async () =
     (await s.t.query(api.growth.snapshot, { ...auth, appId })).drafts[0].text,
   ).toBe(edit);
 });
+
+test("completed qualification and draft commands attach to evidence; an explicit revision creates fresh work", async () => {
+  const s = await setup(),
+    d = await drafted(s);
+  const qualifyArgs = {
+    ...auth,
+    actor,
+    appId,
+    release,
+    campaignId: s.campaignId,
+    opportunityId: s.opportunityId,
+    action: "qualify" as const,
+  };
+  const original = (
+    await s.t.run((ctx) => ctx.db.query("growthReceipts").take(20))
+  ).find((r) => r.action === "qualify")!;
+  expect(await s.t.mutation(api.growth.request, qualifyArgs)).toBe(
+    original.taskId,
+  );
+  const args = { ...qualifyArgs, action: "draft" as const };
+  const taskId = await s.t.mutation(api.growth.request, args);
+  const receipt = (
+    await s.t.run((ctx) => ctx.db.query("growthReceipts").take(20))
+  ).find((r) => r.taskId === taskId)!;
+  await s.t.mutation(api.growthExecution.begin, {
+    ...auth,
+    receiptId: receipt._id,
+    token: "new-draft-lease",
+  });
+  const text = "Find your saved captions in Bloom: " + d.touch.link;
+  await s.t.mutation(api.growthExecution.commitDraft, {
+    ...auth,
+    receiptId: receipt._id,
+    token: "new-draft-lease",
+    release,
+    text,
+    hash: hash(text),
+  });
+  expect(await s.t.mutation(api.growth.request, args)).toBe(taskId);
+  expect(
+    await s.t.mutation(api.growth.request, { ...args, revision: true }),
+  ).not.toBe(taskId);
+});

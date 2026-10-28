@@ -168,5 +168,7 @@ export const growthTables = {
     leaseToken: v.optional(v.string()),
     leaseUntil: v.optional(v.number()),
     baseDraftId: v.optional(v.id("growthDrafts")),
+    resultDraftId: v.optional(v.id("growthDrafts")),
+    capabilityVersion: v.optional(v.number()),
   }).index("by_key", ["key"]),
 };

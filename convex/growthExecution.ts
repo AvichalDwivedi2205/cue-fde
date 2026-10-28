@@ -238,7 +238,7 @@ export const commitDraft = mutation({
       throw new ConvexError(
         "Draft edited during generation; saved edit preserved",
       );
-    await ctx.runMutation(api.growth.saveDraft, {
+    const resultDraftId = await ctx.runMutation(api.growth.saveDraft, {
       secret: a.secret,
       actor: r.actor,
       appId: r.appId,
@@ -249,6 +249,7 @@ export const commitDraft = mutation({
     });
     await ctx.db.patch("growthReceipts", r._id, {
       status: "completed",
+      resultDraftId,
       leaseToken: undefined,
       leaseUntil: undefined,
     });

@@ -308,6 +308,7 @@ export const request = mutation({
     campaignId: v.id("growthCampaigns"),
     opportunityId: v.optional(v.id("growthOpportunities")),
     release: v.string(),
+    revision: v.optional(v.boolean()),
   },
   returns: v.id("agentTasks"),
   handler: async (ctx, a): Promise<Id<"agentTasks">> => {
@@ -316,7 +317,11 @@ export const request = mutation({
     const campaign = await ctx.db.get("growthCampaigns", a.campaignId);
     if (campaign?.appId !== a.appId)
       throw new ConvexError("Campaign belongs to another app");
-    await capability(ctx, campaign.capabilityId, a.release);
+    const currentCapability = await capability(
+      ctx,
+      campaign.capabilityId,
+      a.release,
+    );
     const o = a.opportunityId
       ? await ctx.db.get("growthOpportunities", a.opportunityId)
       : null;
@@ -347,10 +352,26 @@ export const request = mutation({
       .order("desc")
       .first();
     if (old?.status === "queued") return old.taskId;
+    const latestDraft =
+      o &&
+      (await ctx.db
+        .query("growthDrafts")
+        .withIndex("by_opportunityId", (q) => q.eq("opportunityId", o._id))
+        .order("desc")
+        .first());
+    if (
+      !a.revision &&
+      old?.status === "completed" &&
+      old.capabilityVersion === currentCapability.version &&
+      (a.action === "qualify" ||
+        (a.action === "draft" && latestDraft?._id === old.resultDraftId))
+    )
+      return old.taskId;
     const taskId = await ctx.db.insert("agentTasks", {
       appId: a.appId,
       agent: "growth",
       action: a.action,
+      campaignId: campaign._id,
       key,
       title: `${a.action} · ${o?.author || campaign.name}`,
       ...(o
@@ -375,6 +396,7 @@ export const request = mutation({
       campaignId: campaign._id,
       ...(o ? { opportunityId: o._id } : {}),
       key,
+      capabilityVersion: currentCapability.version,
       status: "queued",
       ...(o
         ? {

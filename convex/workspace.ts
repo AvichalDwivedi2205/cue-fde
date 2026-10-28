@@ -3,7 +3,7 @@ import { vOnCompleteArgs } from "@convex-dev/workpool";
 import { v, ConvexError } from "convex/values";
 import { api, components, internal } from "./_generated/api";
 import { mutation, query, internalMutation } from "./_generated/server";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { authorize } from "./cue";
 import schema from "./schema";
@@ -250,6 +250,7 @@ export const post = mutation({
       v.union(v.literal("discover"), v.literal("qualify"), v.literal("draft")),
     ),
     campaignId: v.optional(v.id("growthCampaigns")),
+    growthRevision: v.optional(v.boolean()),
     opportunityId: v.optional(v.id("growthOpportunities")),
     release: v.optional(v.string()),
     repository: v.optional(v.string()),
@@ -287,6 +288,7 @@ export const post = mutation({
       action: a.action || null,
       repository: a.repository || null,
       growthAction: a.growthAction || null,
+      growthRevision: a.growthRevision || false,
       campaignId: a.campaignId || null,
       opportunityId: a.opportunityId || null,
     });
@@ -325,6 +327,7 @@ export const post = mutation({
         actor: a.actor,
         appId: a.appId,
         action: a.growthAction,
+        revision: a.growthRevision,
         campaignId: a.campaignId,
         opportunityId: a.opportunityId,
         release: a.release,
@@ -351,10 +354,18 @@ export const post = mutation({
           .withIndex("by_key", (q) => q.eq("key", key))
           .order("desc")
           .take(20);
-        task =
-          previous.find(
-            (t) => a.action !== "collect" || active.includes(t.state),
-          ) || null;
+        task = null;
+        for (const candidate of previous) {
+          const view = await taskView(ctx, candidate);
+          if (
+            a.action === "collect"
+              ? active.includes(view.state)
+              : !["failed", "canceled"].includes(view.state)
+          ) {
+            task = candidate;
+            break;
+          }
+        }
         if (!task) {
           let runId: Id<"runs"> | undefined;
           let blocker: string | undefined;

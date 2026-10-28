@@ -266,3 +266,55 @@ test("contextual answers update the persisted Agent reply, preserve prior turns 
   ).toHaveLength(0);
   expect(await t.run((ctx) => ctx.db.query("jobs").take(10))).toHaveLength(0);
 });
+
+test("lost leases are visible in question answers, and failed engineering work can request a supported fresh run", async () => {
+  const t = setup();
+  const expired = await t.run((ctx) =>
+    ctx.db.insert("agentTasks", {
+      appId: "bloom",
+      agent: "x",
+      action: "collect",
+      key: "expired-collect",
+      title: "Expired collection",
+      state: "running",
+      stage: "Collecting",
+      attempts: 1,
+      cancel: false,
+      leaseUntil: Date.now() - 10000,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    }),
+  );
+  const answer = await t.mutation(api.workspace.post, {
+    ...base,
+    agent: "x",
+    taskId: expired,
+    key: "expired-question",
+  });
+  expect(answer.response).toContain("blocked");
+  expect(answer.response).toContain("lease expired");
+  await t.mutation(api.cue.seed, auth);
+  const issue = (await t.query(api.cue.snapshot, auth)).issues.find(
+    (i) => i.fingerprint === "bloom:upload:413",
+  )!;
+  const first = await t.mutation(api.workspace.post, {
+    ...base,
+    key: "first-failed-run",
+    issueId: issue._id,
+    action: "investigate",
+  });
+  const task = await t.run((ctx) => ctx.db.get("agentTasks", first.taskId!));
+  await t.run((ctx) =>
+    ctx.db.patch("runs", task!.runId!, {
+      status: "failed",
+      error: "Test worker failed",
+    }),
+  );
+  const retry = await t.mutation(api.workspace.post, {
+    ...base,
+    key: "fresh-retry-run",
+    issueId: issue._id,
+    action: "investigate",
+  });
+  expect(retry.taskId).not.toBe(first.taskId);
+});
