@@ -7,7 +7,7 @@ vi.mock("@google/genai", () => ({
   },
   Type: { OBJECT: "OBJECT", STRING: "STRING", ARRAY: "ARRAY" },
 }));
-import { draft } from "../lib/gemini";
+import { classifyReport, draft } from "../lib/gemini";
 import {
   fallbackReply,
   replyFacts,
@@ -32,6 +32,41 @@ beforeEach(() => {
     text: "Your report is saved for review.",
   });
 });
+
+test.each([undefined, "connected-app"])(
+  "upload evidence guard also protects the app namespace %s",
+  async (appId) => {
+    generateContent.mockResolvedValue({
+      text: JSON.stringify({
+        kind: "bug",
+        priority: "P1",
+        tags: ["upload"],
+        matchedIssueId: "upload-issue",
+        confidence: 1,
+        reason: "Model-selected upload issue",
+      }),
+    });
+    const candidates = [
+      {
+        id: "upload-issue",
+        appId,
+        fingerprint: appId ? `${appId}:bloom:upload:413` : "bloom:upload:413",
+      },
+    ];
+    const unsupported = await classifyReport({
+      report: { body: "My tiny photo keeps loading with no error" },
+      candidates,
+    });
+    expect(unsupported.matchedIssueId).toBeNull();
+    const supported = await classifyReport({
+      report: {
+        body: "My 3 MB photo is rejected as file too large despite the 5 MB limit",
+      },
+      candidates,
+    });
+    expect(supported.matchedIssueId).toBe("upload-issue");
+  },
+);
 
 test("verified resolved bugs cannot produce a stale investigation reply", async () => {
   generateContent.mockResolvedValue({

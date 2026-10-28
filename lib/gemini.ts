@@ -179,13 +179,14 @@ export async function classifyReport(context: unknown) {
   const result = classification.parse(JSON.parse(response.text || "{}"));
   const supplied = context as {
     report?: { title?: string; body?: string };
-    candidates?: Array<{ id: string; fingerprint?: string }>;
+    candidates?: Array<{ id: string; fingerprint?: string; appId?: string }>;
   };
   const match = supplied.candidates?.find(
     (c) => c.id === result.matchedIssueId,
   );
   if (
-    match?.fingerprint === "bloom:upload:413" &&
+    match?.fingerprint ===
+      (match?.appId ? `${match.appId}:bloom:upload:413` : "bloom:upload:413") &&
     !uploadRegressionCandidate(
       `${supplied.report?.title || ""} ${supplied.report?.body || ""}`,
     )

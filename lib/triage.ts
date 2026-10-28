@@ -1,6 +1,11 @@
 import { api, db, secret } from "./server-store";
 import { classifyReport, geminiReady } from "./gemini";
 import type { Id } from "../convex/_generated/dataModel";
+function provisionalIssue(issue: { fingerprint: string; appId?: string }) {
+  return issue.fingerprint.startsWith(
+    issue.appId ? `${issue.appId}:report:` : "report:",
+  );
+}
 export async function triage(caseId: Id<"cases">) {
   const queued = await db().mutation(api.triageQueue.request, {
     secret: secret(),
@@ -43,7 +48,7 @@ export async function classifySavedReport(
       .filter(
         (i) =>
           i.appId === report.appId &&
-          (i._id !== report.issueId || !i.fingerprint.startsWith("report:")),
+          (i._id !== report.issueId || !provisionalIssue(i)),
       )
       .map((i) => ({
         id: i._id,
@@ -51,10 +56,14 @@ export async function classifySavedReport(
         description: i.description,
         kind: i.kind,
         fingerprint: i.fingerprint,
+        appId: i.appId,
       })),
   });
   const match = state.issues.find(
-    (i) => i._id === result.matchedIssueId && i.kind === result.kind,
+    (i) =>
+      i._id === result.matchedIssueId &&
+      i.kind === result.kind &&
+      i.appId === report.appId,
   );
   // Preserve strong symptom matches; model-only merges stay conservative.
   const existing = state.issues.find((i) => i._id === report.issueId);
@@ -63,7 +72,8 @@ export async function classifySavedReport(
     caseId,
     receiptId,
     issueId:
-      existing?.fingerprint.startsWith("report:") &&
+      existing &&
+      provisionalIssue(existing) &&
       match &&
       result.confidence >= 0.95
         ? match._id
