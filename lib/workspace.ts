@@ -143,7 +143,7 @@ export async function postWorkspace(
 }
 export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
   const { app } = await workspaceApp(appId);
-  const [workspace, domain, jobs, x, notifications, companion] =
+  const [workspace, domain, jobs, x, notifications, companion, growth] =
     await Promise.all([
       db().query(api.workspace.snapshot, {
         secret: secret(),
@@ -155,6 +155,7 @@ export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
       xRuntimeStatus(),
       notificationRuntimeStatus(),
       sharedWorkerStatus().catch(() => null),
+      db().query(api.growth.snapshot, { secret: secret(), appId }),
     ]);
   const health = (ok: boolean, label: string, detail: string) => ({
     st: ok ? "ok" : "unknown",
@@ -250,6 +251,18 @@ export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
     },
   ];
   const tasks = workspace.tasks.map((t) => {
+    const opportunity = growth.opportunities.find(
+      (o) => o._id === t.opportunityId,
+    );
+    const capability = growth.capabilities.find(
+      (c) => c._id === opportunity?.capabilityId,
+    );
+    const draft = growth.drafts
+      .filter((d) => d.opportunityId === opportunity?._id)
+      .sort((a, b) => b.version - a.version)[0];
+    const touch = growth.touches
+      .filter((x) => x.opportunityId === opportunity?._id)
+      .sort((a, b) => b.createdAt - a.createdAt)[0];
     const run = t.runId && domain.runs.find((r) => r._id === t.runId);
     const issue = t.issueId && domain.issues.find((i) => i._id === t.issueId);
     const state = run
@@ -273,6 +286,7 @@ export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
         kind: e.kind,
         text: e.text,
         evidence: e.evidence,
+        ref: e.evidence ? { h: e.evidence, l: "Evidence" } : undefined,
       }));
     if (run)
       events.push(
@@ -289,6 +303,7 @@ export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
                   : "completed",
             text: e.title + " · " + e.detail,
             evidence: run.prUrl,
+            ref: run.prUrl ? { h: run.prUrl, l: "PR" } : undefined,
           })),
       );
     return {
@@ -347,10 +362,72 @@ export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
       created: t.createdAt,
       owner: agents.find((a) => a.id === t.agent)!.name,
       events: events.sort((a, b) => a.t - b.t),
-      sources: domain.cases
-        .filter((c) => c.issueId === t.issueId)
-        .map((c) => ({ l: c.title, h: "#/inbox/" + c._id, k: "case" })),
+      sources: opportunity
+        ? [
+            {
+              l: opportunity.author + " · " + opportunity.provenance,
+              h: opportunity.sourceUrl,
+              k: opportunity.channel,
+              ext: true,
+            },
+          ]
+        : domain.cases
+            .filter(
+              (c) =>
+                t.issueId &&
+                c.issueId === t.issueId &&
+                (c.appId || "bloom") === appId,
+            )
+            .map((c) => ({ l: c.title, h: "#/inbox/" + c._id, k: "case" })),
       evidence: [
+        ...(capability
+          ? [
+              {
+                l:
+                  capability.name +
+                  " · " +
+                  capability.release +
+                  " · " +
+                  (capability.valid ? "verified" : "stale"),
+                h: "#/growth/campaigns",
+                k: "capability",
+              },
+            ]
+          : []),
+        ...(draft
+          ? [
+              {
+                l:
+                  "Draft v" +
+                  draft.version +
+                  " · " +
+                  draft.status +
+                  " · " +
+                  draft.hash,
+                h: "#/growth/" + opportunity!._id,
+                k: "exact content",
+              },
+            ]
+          : []),
+        ...(touch?.status === "verified" && touch.publicationUrl
+          ? [
+              {
+                l: "Verified publication",
+                h: touch.publicationUrl,
+                k: "official receipt",
+                ext: true,
+              },
+            ]
+          : []),
+        ...(opportunity
+          ? [
+              {
+                l: "Product outcome milestones",
+                h: "#/growth/results",
+                k: "trusted Bloom events",
+              },
+            ]
+          : []),
         ...(issue?.spec
           ? [
               {

@@ -177,7 +177,7 @@ export const verify = mutation({
   },
 });
 export const lookup = query({
-  args: { secret: v.string(), tokenHash: v.string() },
+  args: { secret: v.string(), tokenHash: v.string(), now: v.number() },
   returns: v.union(v.null(), schema.doc("growthTouches")),
   handler: async (ctx, a) => {
     authorize(a.secret);
@@ -185,7 +185,7 @@ export const lookup = query({
       .query("growthTouches")
       .withIndex("by_tokenHash", (q) => q.eq("tokenHash", a.tokenHash))
       .unique();
-    if (!t || t.status !== "verified" || t.expiresAt < Date.now() || !t.draftId)
+    if (!t || t.status !== "verified" || t.expiresAt < a.now || !t.draftId)
       return null;
     const d = await ctx.db.get("growthDrafts", t.draftId);
     const cap = d && (await ctx.db.get("growthCapabilities", d.capabilityId));

@@ -12,6 +12,7 @@ export async function GET(
     const touch = await db().query(api.growthAttribution.lookup, {
       secret: secret(),
       tokenHash: hash(token),
+      now: Date.now(),
     });
     if (!touch) throw new Error("Link unavailable");
     const { app } = await workspaceApp(touch.appId);

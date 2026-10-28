@@ -1,5 +1,5 @@
 import { v, ConvexError } from "convex/values";
-import { mutation, query, internalMutation, env } from "./_generated/server";
+import { mutation, internalMutation, env } from "./_generated/server";
 import schema from "./schema";
 import { api } from "./_generated/api";
 import { authorize } from "./cue";
@@ -150,19 +150,6 @@ export const pause = mutation({
     if (c?.appId !== a.appId) throw new ConvexError("Campaign app mismatch");
     await ctx.db.patch("growthCampaigns", c._id, { paused: a.paused });
     return null;
-  },
-});
-export const scheduled = query({
-  args: { secret: v.string() },
-  returns: v.array(schema.doc("growthCampaigns")),
-  handler: async (ctx, a) => {
-    authorize(a.secret);
-    return (
-      await ctx.db
-        .query("growthCampaigns")
-        .withIndex("by_paused", (q) => q.eq("paused", false))
-        .take(20)
-    ).filter((c) => !c.lastRunAt || c.lastRunAt < Date.now() - 86400000);
   },
 });
 export const dismiss = mutation({

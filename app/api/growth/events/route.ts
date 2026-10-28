@@ -56,6 +56,7 @@ export async function POST(request: Request) {
       const t = await db().query(api.growthAttribution.lookup, {
         secret: secret(),
         tokenHash: hash(body.token),
+        now: Date.now(),
       });
       if (!t || t.appId !== app.id || !app.origins.includes(t.destination))
         throw new Error("Wrong app or expired touch");

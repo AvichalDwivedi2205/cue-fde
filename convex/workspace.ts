@@ -86,11 +86,18 @@ async function event(
     ...(evidence ? { evidence } : {}),
   });
 }
-export async function taskView(
-  ctx: QueryCtx | MutationCtx,
-  task: Doc<"agentTasks">,
-) {
-  if (!task.runId) return task;
+export async function taskView(ctx: MutationCtx, task: Doc<"agentTasks">) {
+  if (!task.runId)
+    return task.state === "running" &&
+      task.leaseUntil &&
+      task.leaseUntil < Date.now()
+      ? {
+          ...task,
+          state: "blocked" as const,
+          blocker:
+            "Worker lease expired. Await bounded retry or request recovery; saved effects retained.",
+        }
+      : task;
   const run = await ctx.db.get("runs", task.runId);
   if (!run)
     return {

@@ -331,6 +331,7 @@ test("publication requires current reviewed content and Owner; unpublished links
     await s.t.query(api.growthAttribution.lookup, {
       ...auth,
       tokenHash: d.touch.tokenHash,
+      now: Date.now(),
     }),
   ).toBeNull();
   await expect(
