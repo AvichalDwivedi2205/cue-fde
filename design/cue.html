@@ -679,6 +679,285 @@ textarea.inp{height:auto;min-height:84px;padding:8px 10px;resize:vertical;line-h
 .set-row .sr-l span{color:var(--ink-3);font-size:12.5px}
 .set-row .inp{max-width:280px}
 
+/* growth */
+.g-tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:-2px 0 16px;overflow-x:auto}
+.g-tabs a{height:36px;padding:0 10px;display:flex;align-items:center;gap:6px;color:var(--ink-3);font-weight:500;text-decoration:none;white-space:nowrap;box-shadow:inset 0 -2px 0 transparent;transition:color var(--t1),box-shadow var(--t2) var(--ease)}
+.g-tabs a:hover{color:var(--ink)}
+.g-tabs a.on{color:var(--ink);box-shadow:inset 0 -2px 0 var(--ink)}
+.g-tabs .n{font:600 10.5px/16px var(--mono);color:var(--ink-2);background:var(--sunken);border-radius:8px;padding:0 5px}
+.g-tabs a.on .n{background:var(--accent-t);color:var(--accent)}
+.g-layout{display:grid;grid-template-columns:360px minmax(0,1fr);gap:16px;align-items:start}
+.g-col{display:flex;flex-direction:column;gap:10px;min-width:0}
+.g-rows{display:flex;flex-direction:column;gap:8px}
+.g-row{display:block;width:100%;text-align:left;padding:12px 14px;border-radius:12px;background:#fff;border:1px solid var(--line);transition:border-color var(--t1),box-shadow var(--t1),transform var(--t1)}
+.g-row:hover{border-color:var(--line-2);transform:translateY(-1px)}
+.g-row.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-t)}
+.g-row.dim{opacity:.72}
+.g-row-top{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-3);min-width:0}
+.g-row-top b{color:var(--ink);font-weight:600;white-space:nowrap}
+.g-row-top .h{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.g-row-top .t{margin-left:auto;font:500 11px var(--mono);flex:none}
+.g-row-t{margin:6px 0 8px;font-size:13px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.g-row-m{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--ink-2);min-width:0}
+.g-row-m .cap{margin-left:auto;display:inline-flex;gap:4px;align-items:center;color:var(--ink-3);min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.g-row-m .cap span{overflow:hidden;text-overflow:ellipsis}
+.g-detail{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.g-top{padding:16px 22px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#F5F9F6,#fff)}
+.g-who{display:flex;align-items:center;gap:10px;min-width:0}
+.g-who b{font-weight:600}
+.g-who small{display:flex;gap:6px;align-items:center;color:var(--ink-3);font-size:12px}
+.g-who .r{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.g-steps{display:flex;align-items:center;margin-top:14px;overflow-x:auto;padding-bottom:2px}
+.g-step{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-3);white-space:nowrap}
+.g-step i{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--line-2);display:grid;place-items:center;background:#fff;flex:none;transition:background var(--t2),border-color var(--t2)}
+.g-step.done{color:var(--ink-2)}
+.g-step.done i{background:var(--accent);border-color:var(--accent)}
+.g-step.cur{color:var(--ink);font-weight:600}
+.g-step.cur i{border-color:var(--warn);background:var(--warn-t)}
+.g-step.cur.run i{border-color:var(--run);background:var(--run-t)}
+.g-step+.g-step::before{content:'';width:20px;height:1.5px;border-radius:1px;background:var(--line-2);margin:0 8px}
+.g-step.done+.g-step::before{background:var(--accent-l)}
+.g-sec{padding:16px 22px;border-bottom:1px solid var(--line)}
+.g-sec h4{margin:0 0 10px;font:500 10.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);display:flex;align-items:center;gap:8px}
+.g-sec h4 .g-n{width:18px;height:18px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font:600 10px var(--sans);letter-spacing:0}
+.g-sec h4 .r{margin-left:auto;text-transform:none;letter-spacing:0;font:400 11.5px var(--sans);display:flex;gap:6px;align-items:center}
+.g-q{display:block;font-size:14px;line-height:1.55;padding:10px 14px;border-left:2px solid var(--line-2);background:var(--bg);border-radius:0 8px 8px 0;quotes:'“' '”'}
+.g-need{display:grid;grid-template-columns:96px 1fr;gap:8px 12px;margin:12px 0 0;font-size:12.5px}
+.g-need dt{color:var(--ink-3)}
+.g-need dd{margin:0;min-width:0}
+.g-reasons{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px;color:var(--ink-2)}
+.g-reasons li{display:flex;gap:6px;align-items:flex-start}
+.g-reasons li svg{margin-top:3px}
+.g-cap{display:flex;gap:12px;padding:12px 14px;border:1px solid var(--accent-l);border-radius:10px;background:linear-gradient(180deg,var(--accent-t),#fff 75%)}
+.g-cap .ci{width:30px;height:30px;border-radius:8px;background:var(--accent);color:#fff;display:grid;place-items:center;flex:none}
+.g-cap .cb{flex:1;min-width:0}
+.g-cap .ct{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.g-cap b{font-weight:650;font-size:13.5px}
+.g-cap p{margin:2px 0 0;color:var(--ink-2);font-size:12.5px}
+.g-cap .meta{font:500 11px var(--mono);color:var(--ink-3);margin-top:6px}
+.g-cap details{margin-top:6px;font-size:12.5px;color:var(--ink-2)}
+.g-cap summary{cursor:pointer;color:var(--accent);font-weight:500;width:max-content}
+.g-cap details p{margin-top:6px;padding:8px 10px;background:#fff;border:1px solid var(--line);border-radius:7px}
+.g-cap.stale{border-color:#ECD3A6;background:linear-gradient(180deg,var(--warn-t),#fff 75%)}
+.g-cap.stale .ci{background:var(--warn)}
+.g-cap.nf{border:1.5px dashed var(--feature-l);background:#FCFBFE}
+.g-cap.nf .ci{background:var(--feature-t);color:var(--feature)}
+.g-ta{width:100%;min-height:108px;resize:vertical;border:1px solid var(--line-2);border-radius:8px;padding:10px 12px;font-size:13.5px;line-height:1.55;outline:0;background:#fff;display:block;transition:border-color var(--t1),box-shadow var(--t1)}
+.g-ta:focus{border-color:var(--accent-l);box-shadow:0 0 0 3px var(--accent-t)}
+.g-ta[readonly]{background:var(--bg);color:var(--ink-2)}
+.g-dmeta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--ink-3)}
+.g-dmeta .mono{font-size:11.5px}
+.g-dmeta .over{color:var(--fail);font-weight:600}
+.g-link{display:inline-flex;align-items:center;gap:5px;font:500 11.5px var(--mono);color:var(--accent);background:var(--accent-t);border-radius:6px;padding:2px 7px}
+.g-none{padding:14px;border:1px dashed var(--line-2);border-radius:8px;color:var(--ink-3);font-size:12.5px;text-align:center}
+.g-sk{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line);border-radius:8px}
+.g-sk .sk{height:11px}
+.g-sk small{display:flex;gap:8px;align-items:center;color:var(--run);font-size:12px;margin-top:2px}
+.g-banner{display:flex;gap:8px;align-items:center;padding:9px 12px;border-radius:8px;background:var(--note);border:1px solid var(--note-line);font-size:12.5px;margin-bottom:10px;animation:rise .25s var(--ease)}
+.g-rev{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12.5px;color:var(--ink-2)}
+.g-rev.ok{color:var(--accent);font-weight:600}
+.g-pub-a{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.g-url{display:flex;gap:8px}
+.g-url .inp{flex:1;min-width:0;font-family:var(--mono);font-size:12px}
+.g-res{display:flex;gap:10px;padding:10px 12px;border-radius:8px;font-size:12.5px;align-items:flex-start;margin-top:10px;animation:rise .25s var(--ease)}
+.g-res b{display:block;font-weight:600}
+.g-res p{margin:2px 0 0}
+.g-res.ok{background:var(--accent-t);color:var(--accent-d)}
+.g-res.run{background:var(--run-t);color:#1d43a8}
+.g-res.fail{background:var(--fail-t);color:var(--fail)}
+.g-res .mono{font-size:11.5px;word-break:break-all}
+.g-foot{padding:14px 22px;display:flex;align-items:center;gap:10px;background:#FAFBF9;flex-wrap:wrap}
+.g-foot .note{color:var(--ink-3);font-size:12.5px;flex:1;min-width:200px}
+.g-funnel{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));background:#fff;border:1px solid var(--line);border-radius:12px;margin-bottom:10px}
+.g-fc{padding:14px 16px;position:relative;border-right:1px solid var(--sunken);min-width:0}
+.g-fc:last-child{border-right:0}
+.g-fc b{display:block;font:600 24px/1.1 var(--sans);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.g-fc span{display:block;font-size:12px;color:var(--ink-2);margin-top:4px}
+.g-fc small{display:block;font-size:11px;color:var(--ink-3)}
+.g-fc.hl b{color:var(--accent)}
+.g-fc+.g-fc::before{content:'';position:absolute;left:-6px;top:50%;width:10px;height:10px;background:#fff;border-top:1px solid var(--line-2);border-right:1px solid var(--line-2);transform:translateY(-50%) rotate(45deg)}
+.g-excl{display:flex;gap:8px;align-items:center;color:var(--ink-3);font-size:12px;margin:0 2px 16px}
+.g-camp .blk-b{padding:16px}
+.g-camp .kv{grid-template-columns:140px 1fr;gap:12px 14px}
+.g-camp .kv dd{flex-wrap:wrap}
+.g-qc{font:500 11.5px var(--mono);padding:2px 8px;border:1px solid var(--line-2);border-radius:6px;background:var(--bg);color:var(--ink-2)}
+.g-meter{height:6px;border-radius:3px;background:var(--sunken);overflow:hidden;width:140px}
+.g-meter i{display:block;height:100%;background:var(--accent);border-radius:3px;transition:width .5s var(--ease)}
+.g-meter.full i{background:var(--warn)}
+.g-sub{margin:22px 0 10px;font:500 10.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.g-table td{vertical-align:top}
+.g-table tbody tr{cursor:default}
+@media (max-width:960px){
+  .g-layout{grid-template-columns:1fr}
+  .g-funnel{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .g-fc:nth-child(3){border-right:0}
+  .g-fc:nth-child(-n+3){border-bottom:1px solid var(--sunken)}
+  .g-fc:nth-child(4)::before{display:none}
+}
+@media (max-width:720px){
+  .g-layout.has-sel .g-col{display:none}
+  .g-page .page-h{flex-direction:column;align-items:flex-start;gap:10px}
+  .g-page .page-h .r{margin-left:0}
+  .g-who{flex-wrap:wrap}
+  .g-who .r{width:100%;margin-left:0;justify-content:flex-start}
+  .g-top,.g-sec,.g-foot{padding-left:16px;padding-right:16px}
+  .g-need,.g-camp .kv{grid-template-columns:1fr;gap:4px}
+  .g-need dt,.g-camp .kv dt{margin-top:6px}
+  .g-funnel{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .g-fc:nth-child(3){border-right:1px solid var(--sunken)}
+  .g-fc:nth-child(2n){border-right:0}
+  .g-fc:nth-child(-n+4){border-bottom:1px solid var(--sunken)}
+  .g-fc::before{display:none}
+  .g-url{flex-direction:column}
+  .g-table th:nth-child(3),.g-table td:nth-child(3){display:none}
+}
+
+/* agents · home · task activity */
+.ag{display:grid;grid-template-columns:272px minmax(0,1fr) 340px;height:100%}
+.ag-dir{border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
+.ag-dir-h{padding:14px 14px 12px;border-bottom:1px solid var(--line)}
+.ag-dir-h h1{font-size:15px;margin:0;font-weight:650;display:flex;align-items:center;gap:8px}
+.ag-dir-h p{margin:4px 0 0;color:var(--ink-3);font-size:12px}
+.ag-list{flex:1;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:6px}
+.ag-card{display:block;width:100%;text-align:left;padding:11px 12px;border-radius:10px;border:1px solid transparent;transition:background var(--t1),border-color var(--t1)}
+.ag-card:hover{background:var(--hover)}
+.ag-card.on{background:#fff;border-color:var(--accent-l);box-shadow:0 0 0 3px var(--accent-t)}
+.ag-card .ag-t{display:flex;align-items:center;gap:9px}
+.ag-card b{font-weight:650;font-size:13.5px}
+.ag-card p{margin:5px 0 0 37px;color:var(--ink-2);font-size:12px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ag-ic{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;flex:none;background:var(--sunken);color:var(--ink)}
+.ag-ic.x{background:#14181A;color:#fff}.ag-ic.reddit{background:#FFE9E0;color:#C2410C}.ag-ic.growth{background:var(--accent-t);color:var(--accent)}.ag-ic.engineering{background:var(--run-t);color:var(--run)}
+.ag-ic.sm{width:20px;height:20px;border-radius:6px}
+.ag-hl{display:flex;align-items:center;gap:6px;margin:8px 0 0 37px;font-size:11.5px;color:var(--ink-3)}
+.ag-hl .dot{width:6px;height:6px}
+.ag-counts{display:flex;gap:4px;margin:8px 0 0 37px;flex-wrap:wrap}
+.ag-counts span{font:500 10.5px/18px var(--mono);padding:0 6px;border-radius:5px;background:var(--sunken);color:var(--ink-2)}
+.ag-counts span.run{background:var(--run-t);color:var(--run)}.ag-counts span.blk{background:var(--warn-t);color:var(--warn)}.ag-counts span.fail{background:var(--fail-t);color:var(--fail)}
+.ag-idle{font-size:11.5px;color:var(--ink-3)}
+.ag-conv{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--bg)}
+.ag-conv-h{padding:12px 20px;background:var(--panel);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ag-conv-h h2{margin:0;font-size:16px;font-weight:650}
+.ag-conv-h .r{margin-left:auto;display:flex;gap:8px;align-items:center}
+.ag-ctx{display:flex;align-items:center;gap:8px;padding:8px 20px;border-bottom:1px solid var(--line);background:#FBFBF9;font-size:12px;color:var(--ink-2);flex-wrap:wrap}
+.ag-ctx label{color:var(--ink-3);font:500 10.5px var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.ag-ctx select{height:26px;border:1px solid var(--line-2);border-radius:6px;background:#fff;padding:0 6px;font-size:12px;max-width:min(360px,100%)}
+.ag-body{flex:1;overflow:auto}
+.ag .thread{max-width:760px}
+.ag .msg{max-width:86%}
+.ag .bubble p{margin:0}
+.ag .bubble p+p{margin-top:6px}
+.cv-refs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.cv-ref{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;border:1px solid var(--line-2);background:var(--bg);font:500 11.5px var(--mono);color:var(--ink-2);text-decoration:none;transition:border-color var(--t1),color var(--t1)}
+.cv-ref:hover{border-color:var(--accent-l);color:var(--accent)}
+.cv-via{font:500 10.5px var(--mono);color:var(--ink-3);background:var(--sunken);border-radius:5px;padding:0 5px;line-height:16px}
+.cv-act{display:inline-flex;align-items:center;gap:5px;margin-top:8px;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:6px}
+.cv-act.none{background:var(--sunken);color:var(--ink-2)}.cv-act.made{background:var(--run-t);color:var(--run)}.cv-act.attach{background:var(--accent-t);color:var(--accent)}.cv-act.deny{background:var(--fail-t);color:var(--fail)}
+.cv-typing{display:inline-flex;gap:3px;padding:12px 14px}
+.cv-typing i{width:6px;height:6px;border-radius:50%;background:var(--ink-3);animation:cvDot 1s infinite}
+.cv-typing i:nth-child(2){animation-delay:.15s}.cv-typing i:nth-child(3){animation-delay:.3s}
+@keyframes cvDot{0%,60%,100%{opacity:.25}30%{opacity:1}}
+.cv-sugg{display:flex;gap:6px;flex-wrap:wrap;padding:0 10px 8px}
+.cv-sugg button{height:24px;padding:0 9px;border-radius:999px;border:1px solid var(--line-2);font-size:11.5px;color:var(--ink-2);background:#fff;transition:border-color var(--t1),color var(--t1)}
+.cv-sugg button:hover{border-color:var(--accent-l);color:var(--accent)}
+.ag-side{border-left:1px solid var(--line);background:var(--panel);overflow:auto;min-height:0}
+.ag-side .ctx-s{padding:14px 16px}
+.tk-h{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tk-h .mono{font-size:11.5px;color:var(--ink-3)}
+.tk-title{margin:8px 0 4px;font-size:15px;font-weight:650;line-height:1.35}
+.tk-blk{display:flex;gap:8px;padding:9px 11px;border-radius:8px;font-size:12.5px;margin-top:10px;align-items:flex-start}
+.tk-blk svg{margin-top:2px}
+.tk-blk.warn{background:var(--warn-t);color:#8a5a12}.tk-blk.fail{background:var(--fail-t);color:var(--fail)}.tk-blk.run{background:var(--run-t);color:#1d43a8}.tk-blk.ok{background:var(--accent-t);color:var(--accent-d)}.tk-blk.mute{background:var(--sunken);color:var(--ink-2)}
+.tk-kv{display:grid;grid-template-columns:96px 1fr;gap:7px 10px;font-size:12.5px;margin:0}
+.tk-kv dt{color:var(--ink-3)}
+.tk-kv dd{margin:0;min-width:0;overflow-wrap:anywhere;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.tk-ev{display:flex;flex-direction:column;gap:6px}
+.tk-ev a,.tk-ev span.ev{display:flex;gap:8px;align-items:center;font-size:12.5px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;text-decoration:none;color:var(--ink);transition:border-color var(--t1)}
+.tk-ev a:hover{border-color:var(--accent-l)}
+.tk-ev .k{margin-left:auto;font:500 10.5px var(--mono);color:var(--ink-3)}
+.tk-ev .missing{color:var(--ink-3);border-style:dashed}
+.tk-acts{display:flex;gap:6px;flex-wrap:wrap}
+.tk-list{display:flex;flex-direction:column}
+.tk-row{display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--sunken);text-align:left;width:100%;font-size:12.5px}
+.tk-row:first-child{border-top:0}
+.tk-row .tt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tk-row:hover .tt{color:var(--accent)}
+.cap-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px;font-size:12.5px}
+.cap-list li{display:flex;gap:7px;align-items:flex-start}
+.cap-list li svg{margin-top:2px}
+.cap-list li.no{color:var(--ink-3)}
+/* home */
+.home-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+.att{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.att-h{display:flex;align-items:center;gap:8px;padding:11px 16px;border-bottom:1px solid var(--line);font-weight:600}
+.att-h .n{font:600 11px/18px var(--mono);padding:0 6px;border-radius:9px;background:var(--sunken);color:var(--ink-2)}
+.att-h.warn .n{background:var(--warn-t);color:var(--warn)}.att-h.fail .n{background:var(--fail-t);color:var(--fail)}.att-h.run .n{background:var(--run-t);color:var(--run)}
+.att-i{display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid var(--sunken);align-items:flex-start;animation:rise .3s var(--ease) both}
+.att-i:last-child{border-bottom:0}
+.att-i .ai-b{flex:1;min-width:0}
+.att-i .ai-t{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.att-i .ai-t b{font-weight:600}
+.att-i .ai-t .mono{font-size:11px;color:var(--ink-3)}
+.att-i p{margin:3px 0 0;color:var(--ink-2);font-size:12.5px}
+.att-i .ai-a{display:flex;gap:6px;flex:none;align-items:center}
+.att-empty{padding:16px;color:var(--ink-3);font-size:12.5px;display:flex;gap:8px;align-items:center}
+.hl-row{display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--sunken);text-decoration:none;color:inherit;transition:background var(--t1)}
+.hl-row:last-child{border-bottom:0}
+.hl-row:hover{background:var(--hover)}
+.hl-row b{font-weight:600;font-size:13px;display:block}
+.hl-row small{color:var(--ink-3);font-size:11.5px;display:flex;gap:5px;align-items:center}
+.hl-row .r{margin-left:auto;font:500 11px var(--mono);color:var(--ink-3)}
+/* task activity */
+.ta-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.ta-bar .inp{height:30px;width:220px}
+.ta-bar select.inp{width:auto;padding-right:24px}
+.ta{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.ta details{border-bottom:1px solid var(--sunken)}
+.ta details:last-child{border-bottom:0}
+.ta summary{display:grid;grid-template-columns:20px 22px 64px minmax(0,1fr) auto 72px;gap:10px;align-items:center;padding:11px 16px;cursor:pointer;list-style:none;transition:background var(--t1)}
+.ta summary::-webkit-details-marker{display:none}
+.ta summary:hover{background:#FAFAF8}
+.ta summary .chev{color:var(--ink-3);transition:transform var(--t2) var(--ease)}
+.ta details[open] summary .chev{transform:rotate(90deg)}
+.ta summary .id{font:500 11.5px var(--mono);color:var(--ink-3)}
+.ta summary .s{min-width:0}
+.ta summary .s b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ta summary .s small{display:block;color:var(--ink-2);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ta summary .tm{font:500 11px var(--mono);color:var(--ink-3);text-align:right}
+.ta-ev{padding:4px 16px 14px 64px}
+.ta-e{display:grid;grid-template-columns:62px 92px minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 0;font-size:12.5px;border-top:1px dashed var(--sunken)}
+.ta-e:first-child{border-top:0}
+.ta-e .tm{font:500 11px var(--mono);color:var(--ink-3)}
+.ta-e .who{color:var(--ink-2);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ta-e .tx{display:flex;gap:8px;align-items:center;min-width:0}
+.ta-e .tx span{min-width:0}
+.ta-e .ref{font:500 11px var(--mono);color:var(--ink-3);text-decoration:none}
+.ta-e .ref:hover{color:var(--accent)}
+.ta-foot{display:flex;justify-content:flex-end;padding:0 16px 12px}
+@media (max-width:1240px){
+  .ag{grid-template-columns:240px minmax(0,1fr)}
+  .ag-side{display:none}
+  .ag.side-open .ag-side{display:block;position:fixed;right:0;top:52px;bottom:0;width:340px;max-width:100vw;z-index:60;box-shadow:var(--sh-pop);animation:drIn .25s var(--ease)}
+  .home-grid{grid-template-columns:1fr}
+}
+@media (max-width:960px){
+  .ag{grid-template-columns:1fr}
+  .ag.has-sel .ag-dir{display:none}
+  .ag:not(.has-sel) .ag-conv{display:none}
+}
+@media (min-width:961px){.ag .back-btn{display:none}}
+@media (min-width:1241px){.side-btn{display:none}}
+@media (max-width:720px){
+  .ag-conv-h,.ag-ctx{padding-left:14px;padding-right:14px}
+  .att-i{flex-wrap:wrap}.att-i .ai-a{width:100%;padding-left:40px}
+  .ta summary{grid-template-columns:20px 22px minmax(0,1fr) auto}
+  .ta summary .id,.ta summary .tm{display:none}
+  .ta-ev{padding-left:16px}
+  .ta-e{grid-template-columns:52px minmax(0,1fr)}.ta-e .who,.ta-e .tx{display:flex;gap:8px;align-items:center;min-width:0}
+.ta-e .tx span{min-width:0}
+.ta-e .ref{display:none}
+  .ta-bar .inp{width:100%}
+}
+
 .ctx-toggle{display:none}
 .back-btn{display:none}
 
@@ -885,6 +1164,9 @@ const P = {
   target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
   thumbDown: '<path d="M17 14V2M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/>',
   zap: '<path d="M13 2 3 14h9l-1 8 10-12h-9z"/>',
+  trend: '<path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/>',
+  home: '<path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z"/>',
+  reddit: '<circle cx="12" cy="14" r="7"/><path d="M9.5 16.5c1.5 1 3.5 1 5 0"/><circle cx="9.5" cy="13" r=".6" fill="currentColor"/><circle cx="14.5" cy="13" r=".6" fill="currentColor"/><path d="m12 7 1.2-4 3.8 1"/><circle cx="18.3" cy="4.3" r="1.3"/>',
 };
 const ic = (n, s = 16, c) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${c || 'currentColor'}" stroke-width="${n === 'cue' ? 3.2 : 1.8}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n] || ''}</svg>`;
 function hydrateIcons(root = document) { $$('i[data-ic]', root).forEach(el => { el.outerHTML = ic(el.dataset.ic, +el.dataset.s || 16, el.dataset.c); }); }
@@ -964,6 +1246,8 @@ function seed() {
       { t: now - 2 * DAY - 40 * MIN, title: 'Independent tests passed', detail: 'ISS-11 · 12 passed.', kind: 'ok', ref: 'ISS-11' },
     ],
     integrations: { slack: 'off' },
+    growth: growthSeed(now),
+    ag: agentSeed(now),
   };
 }
 
@@ -1005,6 +1289,7 @@ function approvals() {
   const a = [];
   if (S.run.status === 'awaiting') a.push({ kind: 'fix' });
   S.features.filter(f => f.status === 'spec-ready').forEach(f => a.push({ kind: 'spec', f }));
+  (S.growth ? S.growth.opps : []).filter(o => o.status === 'awaiting').forEach(o => a.push({ kind: 'growth', o }));
   return a;
 }
 
@@ -1154,7 +1439,7 @@ function route() {
   const [sec, id] = p;
   const changed = sec !== S.sec || (id || null) !== S.id;
   const secChanged = sec !== S.sec;
-  S.sec = sec; S.id = id || null;
+  S.sec = sec; S.id = id || null; S.sub = p[2] || null;
   stopTicker();
   if (sec === 'inbox') {
     if (id && caseById(id)) { if (S.sel !== id) { S.sel = id; S.tab = S.pendingTab || 'conversation'; S.compose = { mode: 'reply', text: '' }; } const c = curCase(); c.unread = false; }
@@ -1162,6 +1447,7 @@ function route() {
     if (S.firstInbox) { S.firstInbox = false; S.inboxState = 'loading'; setTimeout(() => { if (S.inboxState === 'loading') { S.inboxState = 'populated'; if (S.sec === 'inbox') renderMain(true); renderDemo(); } }, 650); }
   }
   if (sec === 'integrations' && id === 'x') setTimeout(openCapture, 50);
+  if (sec === 'growth') { if (id === 'campaigns' || id === 'results') { S.growth.tab = id; S.id = null; } else S.growth.tab = 'opportunities'; }
   const doIt = () => {
     if ($('#landing').style.display !== 'none') scrollTo(0, 0);
     $('#landing').style.display = 'none';
@@ -1170,7 +1456,7 @@ function route() {
     renderSidebar(); renderTop();
     renderMain(changed && (secChanged || sec !== 'inbox'));
     if (sec === 'inbox') { const c = curCase(); document.title = (c ? c.subject + ' · ' : '') + 'Inbox · Cue'; }
-    else document.title = ({ issues: 'Issues', features: 'Feature requests', agent: 'Agent activity', integrations: 'Integrations', settings: 'Settings' }[sec] || 'Cue') + ' · Cue';
+    else document.title = ({ issues: 'Issues', features: 'Feature requests', growth: 'Growth', home: 'Home', agents: 'Agents', agent: 'Agent activity', integrations: 'Integrations', settings: 'Settings' }[sec] || 'Cue') + ' · Cue';
   };
   withVT(doIt, secChanged);
   renderDemo();
@@ -1181,7 +1467,8 @@ addEventListener('hashchange', route);
 function renderSidebar() {
   const open = S.cases.filter(c => caseStatus(c) !== 'resolved').length;
   const issuesOpen = Object.values(S.issues).filter(i => i.status !== 'resolved').length;
-  const nav = [['inbox', 'Inbox', 'inbox', open], ['issues', 'Issues', 'bug', issuesOpen], ['features', 'Feature requests', 'bulb', S.features.length], ['agent', 'Agent activity', 'activity', ''], ['integrations', 'Integrations', 'plug', ''], ['settings', 'Settings', 'settings', '']];
+  const decide = S.ag ? allTasks().filter(t => { const v = tv(t); return v.state === 'awaiting' || (v.state === 'blocked' && v.person); }).length : 0;
+  const nav = [['home', 'Home', 'home', decide || ''], ['inbox', 'Inbox', 'inbox', open], ['issues', 'Issues', 'bug', issuesOpen], ['features', 'Feature requests', 'bulb', S.features.length], ['growth', 'Growth', 'trend', S.growth ? gTodo().length || '' : ''], ['agents', 'Agents', 'bot', ''], ['agent', 'Agent activity', 'activity', ''], ['integrations', 'Integrations', 'plug', ''], ['settings', 'Settings', 'settings', '']];
   const r = S.run;
   let chip = '';
   if (r.status !== 'idle') {
@@ -1223,6 +1510,9 @@ function renderMain(anim) {
   if (sec === 'inbox') return renderInbox();
   const html = sec === 'issues' ? (S.id ? issueDetail(S.id) : issuesList())
     : sec === 'features' ? featuresPage()
+    : sec === 'growth' ? growthPage()
+    : sec === 'home' ? homePage()
+    : sec === 'agents' ? agentsPage()
     : sec === 'agent' ? agentPage()
     : sec === 'integrations' ? integrationsPage()
     : sec === 'settings' ? settingsPage()
@@ -1715,7 +2005,7 @@ function agentPage() {
   const running = S.run.status === 'running' || S.run.status === 'deploying';
   return `<div class="page enter"><div class="page-h"><div><h1>Agent activity</h1><p>Everything Cue and Codex did, in order. Every entry links back to its issue.</p></div><div class="r"><div class="seg-ctl" style="width:240px">${['all', 'running', 'failed'].map(k => `<button class="${f === k ? 'on' : ''}" data-act="agentFilter" data-v="${k}">${k[0].toUpperCase() + k.slice(1)}</button>`).join('')}</div></div></div>
     ${running ? `<div class="callout" style="margin-bottom:12px"><span class="dot pulse" style="background:var(--run);color:var(--run)"></span>Running now: ${esc(STAGES[S.run.cur].t)} · ISS-14 <button class="btn sm" style="margin-left:auto" data-act="toRun">Open</button></div>` : ''}
-    ${ev.length ? `<div class="feed">${ev.map(e => `<div class="fe"><span class="fe-t">${rel(e.t) === 'now' ? clock(e.t) : rel(e.t) + ' ago'}</span><span class="fe-i ${e.kind}">${ic({ ok: 'check', run: 'zap', fail: 'x', warn: 'hourglass' }[e.kind] || 'sparkle', 11)}</span><div><b>${esc(e.title)}</b><p>${esc(e.detail)}</p></div><a class="fe-r" href="#/issues/${e.ref}">${e.ref}</a></div>`).join('')}</div>`
+    ${ev.length ? `<div class="feed">${ev.map(e => `<div class="fe"><span class="fe-t">${rel(e.t) === 'now' ? clock(e.t) : rel(e.t) + ' ago'}</span><span class="fe-i ${e.kind}">${ic({ ok: 'check', run: 'zap', fail: 'x', warn: 'hourglass' }[e.kind] || 'sparkle', 11)}</span><div><b>${esc(e.title)}</b><p>${esc(e.detail)}</p></div><a class="fe-r" href="${e.href || '#/issues/' + e.ref}">${e.ref}</a></div>`).join('')}</div>`
       : `<div class="feed"><div class="empty" style="height:auto;padding:48px"><div class="e-ic">${ic('activity', 22)}</div><h3>${f === 'failed' ? 'No failures' : f === 'running' ? 'Nothing running' : 'No activity yet'}</h3><p>${f === 'running' ? 'Start an investigation and its live steps appear here.' : f === 'failed' ? 'Failed stages show up here with their error and a retry.' : 'Agent work shows up here as it happens.'}</p></div></div>`}
   </div>`;
 }
@@ -1748,6 +2038,606 @@ function settingsPage() {
     <div class="set-row"><div class="sr-l"><b>Auto-acknowledge new reports</b><span>Cue sends a short, human acknowledgement in the customer’s channel. X replies are always drafts.</span></div><button class="tog on" role="switch" aria-checked="true" data-act="tog" aria-label="Auto-acknowledge"></button></div></div>
     <div class="set-card"><div class="set-row"><div class="sr-l"><b>Demo story</b><span>Reset cases, run and Bloom’s server limit back to 2 MB.</span></div><button class="btn danger" data-act="reset">${ic('refresh', 13)}Reset demo</button></div></div></div>`;
 }
+
+/* ------------------------------------------------------------------ growth */
+const BRAND = '@bloomapp';
+const G_STEPS = ['Discovered', 'Qualified', 'Drafted', 'In review', 'Approved', 'Published'];
+const G_IDX = { discovered: 0, qualified: 1, drafted: 2, awaiting: 3, approved: 4, published: 5 };
+const G_TODO = ['qualified', 'drafted', 'awaiting', 'approved'];
+const G_FILTERS = [['todo', 'To do'], ['needs', 'Unmet'], ['published', 'Published'], ['dismissed', 'Dismissed'], ['all', 'All']];
+function gHash(s) { let h = 2166136261; for (const ch of String(s)) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16).padStart(8, '0').slice(0, 4); }
+function gDraft(text) { return { text, hash: gHash(text) }; }
+const gOpp = id => S.growth.opps.find(o => o.id === id);
+const gCap = id => S.growth.capabilities.find(c => c.id === id);
+const gTodo = () => S.growth.opps.filter(o => !o.controlled && G_TODO.includes(o.status));
+const gLink = o => '/go/' + gHash(o.id + 'link') + gHash(o.id);
+function growthSeed(now) {
+  const reply1 = 'Bloom does exactly this. Every caption is searchable, so a word you wrote years ago brings the memory straight back. Runs in the browser, nothing to install:';
+  return {
+    state: 'populated', tab: 'opportunities', filter: 'todo', busy: null, running: false, touch: null,
+    capabilities: [
+      { id: 'CAP-1', title: 'Find older memories by caption', claim: 'Search returns any saved memory by words in its caption.', release: 'bloom@1.4.2', check: 'Saved a memory captioned “Lisbon tram at dusk”, searched “tram” on the deployed release, and the memory was returned.', verifiedAt: now - 20 * HR, by: 'Ganesh', status: 'valid' },
+      { id: 'CAP-2', title: 'Upload photos up to 5 MB', claim: 'Phone and web photos up to 5 MB upload successfully.', release: 'bloom@1.4.0', check: '3.1 MB upload accepted (201); 6 MB control rejected (413).', verifiedAt: now - 3 * DAY, by: 'Ganesh', status: 'stale', staleWhy: 'bloom@1.4.2 deployed after this check' },
+    ],
+    campaigns: [
+      { id: 'CMP-1', title: 'Find older memories by caption', cap: 'CAP-1', sources: ['X recent search'], queries: ['"journal app" search captions', '"photo diary" find old', 'journaling app "search by"'], goal: 'A new browser saves its first memory, then finds it with caption search.', budget: { used: 7, limit: 20 }, paused: true, lastRun: now - 3 * HR, lastRead: 7 },
+    ],
+    opps: [
+      { id: 'OPP-7', sample: true, ch: 'x', name: 'Rina Okafor', author: '@rinawrites', ini: 'RO', color: '#0F766E', t: now - 38 * MIN, url: 'https://x.com/rinawrites/status/1847120933', text: 'is there a journal app where you can actually search old captions? scrolling back 3 years to find one photo is killing me', need: 'Find an old journal entry by searching its caption', fit: 'High', reasons: ['Explicitly asks for an app recommendation', 'Names the exact need: caption search', 'Posted 38 minutes ago'], cap: 'CAP-1', status: 'drafted', draft: gDraft(reply1) },
+      { id: 'OPP-6', sample: true, ch: 'x', name: 'Marcus Lee', author: '@marcus_builds', ini: 'ML', color: '#3563C9', t: now - 2 * HR, url: 'https://x.com/marcus_builds/status/1847098812', text: 'any photo diary that lets me find things by what I wrote instead of by date? my camera roll search is useless for this', need: 'Find memories by written text, not by date', fit: 'High', reasons: ['Asks for a product recommendation', 'Need matches caption search directly'], cap: 'CAP-1', status: 'awaiting', draft: gDraft('Bloom searches what you wrote, not just dates. Type any word from a caption and the memory comes back. Free to try in the browser:'), review: { requested: now - 40 * MIN, reviewer: 'Holly', via: 'Slack · #bloom-growth' } },
+      { id: 'OPP-5', sample: true, ch: 'x', name: 'Lena Fischer', author: '@lenaprints', ini: 'LF', color: '#9D174D', t: now - 5 * HR, url: 'https://x.com/lenaprints/status/1847011407', text: 'want to turn my photo journal into a printed book for my mum. any app that exports to PDF?', need: 'Export a journal as a PDF for printing', fit: null, reasons: ['Explicit recommendation request', 'PDF export has no verified capability'], cap: null, fr: 'FR-3', status: 'needs-feature' },
+      { id: 'OPP-4', sample: true, ch: 'x', name: 'Tomo Kato', author: '@tk_travels', ini: 'TK', color: '#8A5A2B', t: now - 26 * HR, url: 'https://x.com/tk_travels/status/1846802215', text: 'recommend a travel journal app? main thing: I need to find stuff later, my camera roll is chaos', need: 'Find past travel memories again', fit: 'Medium', reasons: ['Asks for a recommendation', 'Need is retrieval in general, not captions specifically'], cap: 'CAP-1', status: 'published', draft: gDraft('If finding things later is the main thing: Bloom makes every caption searchable, so “Kyoto ramen” finds that night in seconds. Try it in the browser:'), review: { by: 'Holly', at: now - 23 * HR }, pub: { state: 'verified', url: 'https://x.com/bloomapp/status/1846830044', method: 'Official X read · author, thread and text match the approved draft', at: now - 22 * HR }, j: { click: now - 21 * HR, visit: now - 21 * HR + 2 * MIN, saved: now - 21 * HR + 9 * MIN, activated: now - 21 * HR + 11 * MIN, returned: null } },
+      { id: 'OPP-3', sample: true, ch: 'x', name: 'Sam Kerr', author: '@samk', ini: 'SK', color: '#6B7280', t: now - 29 * HR, url: 'https://x.com/samk/status/1846790102', text: 'bloom keeps logging me out on safari 🙃', need: 'Session expires on Safari (support problem)', fit: null, reasons: ['Complaint, not a request for recommendations', 'Support problems go to Inbox, never to outreach'], cap: null, status: 'dismissed', dismissed: 'Support problem, captured in Inbox instead' },
+      { id: 'OPP-2', sample: true, controlled: true, ch: 'x', name: 'Demo participant', author: '@cue_participant', ini: 'DP', color: '#14181A', t: now - 2 * DAY, url: 'https://x.com/cue_participant/status/1846402871', text: 'Looking for a photo journal where I can search my captions. Recommendations?', need: 'Find memories by caption', fit: 'High', reasons: ['Controlled verification post by a consenting participant'], cap: 'CAP-1', status: 'published', draft: gDraft(reply1), review: { by: 'Holly', at: now - 2 * DAY + 20 * MIN }, pub: { state: 'verified', url: 'https://x.com/bloomapp/status/1846410093', method: 'Official X read · author, thread and text match the approved draft', at: now - 2 * DAY + 35 * MIN }, j: { click: now - 2 * DAY + 40 * MIN, visit: now - 2 * DAY + 41 * MIN, saved: now - 2 * DAY + 44 * MIN, activated: now - 2 * DAY + 45 * MIN, returned: null } },
+    ],
+  };
+}
+function gEvent(o, title, detail, kind = 'ok') { S.events.unshift({ t: Date.now(), title, detail: `${o.id} · ${detail}`, kind, ref: o.id, href: '#/growth/' + o.id }); }
+function gStatusChip(o) {
+  if (o.status === 'published') return o.pub && o.pub.state === 'verified' ? '<span class="chip ok">Published · verified</span>' : '<span class="chip warn">Publication unverified</span>';
+  if (o.status === 'approved' && o.pub && o.pub.state === 'checking') return '<span class="chip run">Verifying post</span>';
+  if (o.status === 'approved' && o.pub && o.pub.state === 'failed') return '<span class="chip fail">Verification failed</span>';
+  return { discovered: '<span class="chip outline">Discovered</span>', qualified: '<span class="chip ok">Qualified</span>', drafted: '<span class="chip run">Draft ready</span>', awaiting: '<span class="chip warn">Awaiting review</span>', approved: '<span class="chip ok">Approved · not posted</span>', 'needs-feature': '<span class="chip violet">Needs feature</span>', dismissed: '<span class="chip outline">Dismissed</span>' }[o.status] || '';
+}
+const gFit = o => o.fit ? `<span class="chip outline" title="Ranking label with reasons, not a probability">${o.fit} fit</span>` : '';
+function gFiltered() {
+  const f = S.growth.filter;
+  return S.growth.opps.filter(o => f === 'all' || (f === 'todo' ? G_TODO.includes(o.status) : f === 'needs' ? o.status === 'needs-feature' : o.status === f)).sort((a, b) => b.t - a.t);
+}
+function gRow(o, sel, touch) {
+  const cap = o.cap ? gCap(o.cap) : null;
+  return `<button class="g-row ${sel ? 'on' : ''} ${o.status === 'dismissed' ? 'dim' : ''}" ${touch ? `data-act="gTouchSel" data-id="${o.id}"` : `data-act="goto" data-v="#/growth/${o.id}"`} ${sel ? 'aria-current="true"' : ''}>
+    <div class="g-row-top">${av(o, 'sm')}<b>${esc(o.name)}</b><span class="h">${esc(o.author)}</span>${chIc(o.ch)}<span class="t">${rel(o.t)}</span></div>
+    <p class="g-row-t">${esc(o.text)}</p>
+    <div class="g-row-m">${gStatusChip(o)}${gFit(o)}${o.controlled ? '<span class="chip outline">Controlled</span>' : ''}${cap ? `<span class="cap">${ic('arrowR', 11)}<span>${esc(cap.title)}</span></span>` : o.fr ? `<span class="cap" style="color:var(--feature)">${ic('bulb', 11)}<span>${esc(o.fr)}</span></span>` : ''}</div></button>`;
+}
+function gListHtml(sel) {
+  const rows = gFiltered();
+  const msg = { todo: 'Nothing waiting. Run the campaign to look for new requests.', needs: 'No unmet needs found yet.', published: 'Nothing published yet.', dismissed: 'Nothing dismissed.', all: 'No opportunities yet.' }[S.growth.filter];
+  return rows.length ? `<div class="g-rows stagger">${rows.map(o => gRow(o, sel && o.id === sel.id)).join('')}</div>` : `<div class="empty" style="height:auto;padding:28px;border:1px dashed var(--line-2);border-radius:12px"><p style="margin:0">${msg}</p></div>`;
+}
+function gStepsHtml(o) {
+  if (o.status === 'needs-feature' || o.status === 'dismissed') return '';
+  const pubDone = o.status === 'published';
+  const checking = o.pub && o.pub.state === 'checking';
+  const at = pubDone ? 6 : G_IDX[o.status];
+  return G_STEPS.map((s, i) => {
+    const cls = i < at || (i === 5 && pubDone) ? 'done' : i === at ? 'cur' + ((i === 5 && checking) || i === 2 ? ' run' : '') : '';
+    return `<span class="g-step ${cls}"><i>${cls === 'done' ? ic('check', 9, '#fff') : ''}</i>${s}</span>`;
+  }).join('');
+}
+function gCapHtml(o) {
+  if (!o.cap && !o.fr) return '<div class="g-none">Not a product need. Nothing to match against verified capabilities.</div>';
+  if (!o.cap) return `<div class="g-cap nf"><span class="ci">${ic('bulb', 15)}</span><div class="cb"><div class="ct"><b>No verified capability answers this</b><span class="chip violet">Needs feature</span></div><p>Cue won’t draft a reply that promises something Bloom can’t do yet. The request stays linked to the feature.</p>${o.fr ? `<a class="btn sm" style="margin-top:10px" href="#/features/${o.fr}">${ic('bulb', 12)}Open ${esc(o.fr)}</a>` : ''}</div></div>`;
+  const c = gCap(o.cap); const stale = c.status !== 'valid';
+  return `<div class="g-cap ${stale ? 'stale' : ''}"><span class="ci">${ic(stale ? 'alert' : 'shield', 15)}</span><div class="cb"><div class="ct"><b>${esc(c.title)}</b>${stale ? '<span class="chip warn">Re-verify</span>' : '<span class="chip ok">Verified</span>'}</div><p>${esc(c.claim)}</p>
+    <div class="meta">${esc(c.release)} · acceptance check passed · ${esc(c.by)} · ${rel(c.verifiedAt)} ago${stale ? ' · ' + esc(c.staleWhy) : ''}</div>
+    <details><summary>Evidence</summary><p>${esc(c.check)}</p></details></div></div>`;
+}
+function gBannerHtml(o) {
+  if (o.edited) return `<div class="g-banner">${ic('note', 14)}Edited after approval. The earlier approval no longer applies, so request review again.</div>`;
+  if (o.changes) return `<div class="g-banner">${ic('note', 14)}${esc(o.changes)}</div>`;
+  return '';
+}
+function gRevHtml(o) {
+  if (o.status === 'awaiting') return `<div class="g-rev">${ic('hourglass', 14)}Sent to ${esc(o.review.reviewer)} · ${esc(o.review.via)} · ${rel(o.review.requested)} ago</div>`;
+  if ((o.status === 'approved' || o.status === 'published') && o.review) return `<div class="g-rev ok">${ic('check', 14)}Approved by ${esc(o.review.by)} · ${hm(o.review.at)} · draft #${o.review.hash || o.draft.hash}</div>`;
+  return '';
+}
+function gDraftHtml(o) {
+  if (o.status === 'needs-feature') return '<div class="g-none">No reply drafted. Bloom can’t do this yet.</div>';
+  if (o.status === 'dismissed') return `<div class="g-none">Dismissed: ${esc(o.dismissed || 'by operator')}</div>`;
+  if (S.growth.busy === o.id) return `<div class="g-sk"><div class="sk" style="width:92%"></div><div class="sk" style="width:84%"></div><div class="sk" style="width:58%"></div><small><span class="mini-spin"></span>Drafting from verified capability facts only…</small></div>`;
+  if (!o.draft) return '<div class="g-none">No draft yet. Cue drafts from the verified capability, never from anything else.</div>';
+  const ro = o.status === 'published' || (o.pub && o.pub.state === 'checking');
+  const n = o.draft.text.length + 24;
+  return `<div id="g-banner">${gBannerHtml(o)}</div>
+    <label class="sr" for="g-draft">Reply text</label><textarea class="g-ta" id="g-draft" ${ro ? 'readonly' : ''}>${esc(o.draft.text)}</textarea>
+    <div class="g-dmeta"><span class="g-link">${ic('link', 11)}${gLink(o)}</span><span>campaign link added when copied</span><span style="margin-left:auto" id="g-len" class="${n > 280 ? 'over' : ''}">${n}/280</span><span class="mono" id="g-hash">draft #${o.draft.hash}</span></div>
+    <div id="g-rev">${gRevHtml(o)}</div>`;
+}
+function gPubHtml(o) {
+  if (o.status !== 'approved' && o.status !== 'published') return '';
+  const p = o.pub || {};
+  let res = '';
+  if (p.state === 'checking') res = `<div class="g-res run"><span class="mini-spin" style="margin-top:2px"></span><div><b>Checking the post</b><p>Reading it from X to match author, thread and text…</p></div></div>`;
+  if (p.state === 'failed') res = `<div class="g-res fail">${ic('x', 15)}<div><b>Not verified</b><p>${esc(p.error)}</p></div></div>`;
+  if (p.state === 'verified') res = `<div class="g-res ok">${ic('shield', 15)}<div><b>Publication verified · ${hm(p.at)}</b><p>${esc(p.method)}</p><p class="mono"><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.url)}</a></p></div></div>`;
+  const form = o.status === 'approved' && p.state !== 'checking' ? `<div class="g-pub-a"><button class="btn" data-act="gCopy">${ic('copy', 13)}Copy reply + link</button><a class="btn" href="${esc(o.url)}" target="_blank" rel="noopener">${ic('xlogo', 12)}Open thread ↗</a></div>
+    <div class="field" style="margin:0"><label for="g-url">Reply URL <span>posted from ${BRAND}</span></label><div class="g-url"><input class="inp ${p.err ? 'bad' : ''}" id="g-url" placeholder="https://x.com/${BRAND.slice(1)}/status/…" value="${esc(p.draftUrl || '')}" inputmode="url"><button class="btn primary" data-act="gRecord">${ic('check', 13)}Record</button></div>${p.err ? `<span class="f-err">${esc(p.err)}</span>` : '<span class="f-help">Cue reads the post back and checks author, thread and text before marking it published.</span>'}</div>` : '';
+  return `<div class="g-sec"><h4>${ic('send', 12)}Publish<span class="r">${o.status === 'published' ? '' : 'Manual · nothing is posted by Cue'}</span></h4>${form}${res}</div>`;
+}
+function gFootHtml(o) {
+  const busy = S.growth.busy === o.id;
+  const note = t => `<span class="note">${t}</span>`;
+  switch (o.status) {
+    case 'qualified': return note('Drafts use only verified capability facts.') + `<button class="btn" data-act="gDismiss">Dismiss</button><button class="btn primary" data-act="gDraft" ${busy ? 'disabled' : ''}>${busy ? '<span class="spin"></span>Drafting…' : ic('sparkle', 13) + 'Draft reply'}</button>`;
+    case 'drafted': return note('Approval covers this exact text. Any edit needs a new review.') + `<button class="btn" data-act="gDismiss">Dismiss</button><button class="btn primary" data-act="gRequest">${ic('slack', 13)}Request review</button>`;
+    case 'awaiting': return note(`Waiting on ${esc(o.review.reviewer)}. Nothing is posted automatically.`) + `<button class="btn" data-act="gChanges">Request changes</button><button class="btn primary" data-act="gApprove" title="Reviewer action">${ic('check', 13)}Approve exact draft</button>`;
+    case 'approved': return note(o.pub && o.pub.state === 'checking' ? 'Verifying the recorded post…' : `Approved. Post it yourself from ${BRAND}, then record the link above.`);
+    case 'published': return note('Results track the visit and activation from this reply’s link.') + `<a class="btn" href="#/growth/results" data-act="gTouch" data-id="${o.id}">${ic('activity', 13)}View journey</a>`;
+    case 'needs-feature': return note('Bloom won’t be recommended for this until the feature ships and is verified.') + `<button class="btn" data-act="gDismiss">Dismiss</button>${o.fr ? `<a class="btn violet" href="#/features/${o.fr}">${ic('bulb', 13)}Open ${esc(o.fr)}</a>` : ''}`;
+    case 'dismissed': return note(esc(o.dismissed || 'Dismissed')) + (o.cap || o.fr ? `<button class="btn" data-act="gRestore">${ic('refresh', 13)}Restore</button>` : '');
+  }
+  return '';
+}
+function gDetail(o) {
+  return `<div class="g-detail enter">
+    <div class="g-top"><div class="g-who"><button class="btn ghost icon sm back-btn" data-act="goto" data-v="#/growth" aria-label="Back to opportunities">${ic('chevL', 16)}</button>${av(o)}<div style="min-width:0"><b>${esc(o.name)}</b><small>${esc(o.author)} · ${chIc(o.ch)} ${rel(o.t)} ago · ${o.controlled ? 'controlled verification' : 'X recent search'}</small></div>
+      <div class="r">${o.sample ? '<span class="chip sample">Sample</span>' : ''}${gStatusChip(o)}<a class="btn sm" href="${esc(o.url)}" target="_blank" rel="noopener">Open source ${ic('ext', 12)}</a></div></div>
+      <div class="g-steps" id="g-steps">${gStepsHtml(o)}</div></div>
+    <div class="g-sec"><h4><span class="g-n">1</span>Source need<span class="r">${gFit(o)}</span></h4><q class="g-q">${esc(o.text)}</q>
+      <dl class="g-need"><dt>Stated need</dt><dd>${esc(o.need)}</dd><dt>Why</dt><dd><ul class="g-reasons">${o.reasons.map(r => `<li>${ic('check', 12, 'var(--ink-3)')}${esc(r)}</li>`).join('')}</ul></dd></dl></div>
+    <div class="g-sec"><h4><span class="g-n">2</span>Verified capability</h4>${gCapHtml(o)}</div>
+    <div class="g-sec"><h4><span class="g-n">3</span>Proposed reply</h4><div id="g-draft-wrap">${gDraftHtml(o)}</div></div>
+    <div id="g-pub">${gPubHtml(o)}</div>
+    <div class="g-foot" id="g-foot">${gFootHtml(o)}</div>
+  </div>`;
+}
+function gOpportunities() {
+  const list = gFiltered();
+  const sel = (S.id && gOpp(S.id)) || list[0] || null;
+  return `<div class="g-layout ${S.id && sel ? 'has-sel' : ''}"><div class="g-col"><div class="seg-ctl" role="tablist" aria-label="Filter opportunities">${G_FILTERS.map(([k, l]) => `<button class="${S.growth.filter === k ? 'on' : ''}" data-act="gFilter" data-v="${k}" role="tab" aria-selected="${S.growth.filter === k}">${l}</button>`).join('')}</div><div id="g-list">${gListHtml(sel)}</div></div>
+    ${sel ? gDetail(sel) : `<div class="g-detail"><div class="empty" style="height:auto;padding:56px 24px"><div class="e-ic">${ic('target', 22)}</div><h3>Select an opportunity</h3><p>Each one shows the source need, the verified capability and the proposed reply.</p></div></div>`}</div>`;
+}
+function gCampaigns() {
+  const g = S.growth;
+  return `<div class="stack stagger">${g.campaigns.map(c => { const cap = gCap(c.cap); const full = c.budget.used >= c.budget.limit; return `<div class="blk g-camp"><div class="blk-h">${ic('target', 15, 'var(--accent)')}${esc(c.title)}<span class="r">${c.paused ? '<span class="chip outline">Schedule paused</span>' : '<span class="chip ok">Daily schedule on</span>'}<button class="btn primary sm" data-act="gRun" data-id="${c.id}" ${g.running || full ? 'disabled' : ''}>${g.running ? '<span class="spin"></span>Searching…' : ic('play', 12) + 'Run now'}</button></span></div>
+      <div class="blk-b"><dl class="kv">
+        <dt>Capability</dt><dd>${ic('shield', 13, 'var(--accent)')}${esc(cap.title)}<span class="mono" style="color:var(--ink-3);font-size:11.5px">${esc(cap.release)}</span></dd>
+        <dt>Sources</dt><dd>${c.sources.map(s => `<span class="chip outline">${ic('xlogo', 9)}${esc(s)}</span>`).join('')}<span style="color:var(--ink-3);font-size:12px">Last 7 days · read-only</span></dd>
+        <dt>Queries</dt><dd>${c.queries.map(q => `<span class="g-qc">${esc(q)}</span>`).join('')}</dd>
+        <dt>Activation goal</dt><dd>${esc(c.goal)}</dd>
+        <dt>Budget today</dt><dd><span class="g-meter ${full ? 'full' : ''}"><i style="width:${Math.min(100, c.budget.used / c.budget.limit * 100)}%"></i></span><span class="mono" style="font-size:12px">${c.budget.used}/${c.budget.limit} posts</span><span style="color:var(--ink-3);font-size:12px">≈ $${(c.budget.used * 0.005).toFixed(3)} in post reads${full ? ' · paused until tomorrow' : ''}</span></dd>
+        <dt>Last successful run</dt><dd>${rel(c.lastRun)} ago · ${c.lastRead} posts read</dd>
+        <dt>Daily schedule</dt><dd><button class="tog ${c.paused ? '' : 'on'}" role="switch" aria-checked="${!c.paused}" data-act="gPause" data-id="${c.id}" aria-label="Daily schedule"></button><span style="color:var(--ink-3);font-size:12px">${c.paused ? 'Off. Run now does one bounded search.' : 'One bounded search per day, within budget.'}</span></dd>
+      </dl></div></div>`; }).join('')}
+    <div><div class="g-sub">Verified capabilities</div>
+    <table class="table g-table"><thead><tr><th>Capability</th><th>Release</th><th>Evidence</th><th>Status</th></tr></thead><tbody>${g.capabilities.map(c => `<tr><td style="font-weight:600">${esc(c.title)}<div style="font-weight:400;color:var(--ink-3);font-size:12px">${esc(c.claim)}</div></td><td class="mono" style="font-size:12px">${esc(c.release)}</td><td style="color:var(--ink-2);font-size:12.5px">${esc(c.check)}<div style="color:var(--ink-3);font-size:11.5px">${esc(c.by)} · ${rel(c.verifiedAt)} ago</div></td><td>${c.status === 'valid' ? '<span class="chip ok">Valid</span>' : `<span class="chip warn" title="${esc(c.staleWhy)}">Re-verify</span>`}</td></tr>`).join('')}</tbody></table>
+    <div class="callout" style="margin-top:10px">${ic('shield', 14)}Only a capability with a passing check on the deployed release can be recommended. A new release needs a new check.</div></div></div>`;
+}
+function gJourney(o) {
+  const j = o.j || {};
+  const rows = [
+    ['Source found', `${o.author} on X · ${o.controlled ? 'controlled post' : 'recent search'}`, o.t],
+    ['Reply approved', `${o.review ? esc(o.review.by) : ''} · draft #${o.draft.hash}`, o.review && o.review.at],
+    ['Publication verified', o.pub && o.pub.method, o.pub && o.pub.state === 'verified' && o.pub.at],
+    ['Link opened', 'Redirect only. Link previews can trigger this, so it isn’t a visit.', j.click],
+    ['Confirmed Bloom visit', 'Signed guest session started in Bloom', j.visit],
+    ['First memory saved', 'Server event from Bloom, no journal content shared', j.saved],
+    ['Found it with caption search', 'Search returned that memory · activated', j.activated],
+    ['Returned within 7 days', j.returned ? 'Observed' : 'Pending until actually observed', j.returned],
+  ];
+  let first = true;
+  return `<div class="blk"><div class="blk-h">${av(o, 'sm')}${esc(o.author)}<span class="r">${o.controlled ? '<span class="chip outline">Controlled · excluded</span>' : ''}${o.sample ? '<span class="chip sample">Sample</span>' : ''}</span></div><div class="blk-b"><div class="stepper">${rows.map(([t, d, at]) => { const done = !!at; const cls = done ? 'done' : first ? (first = false, 'wait') : 'todo'; return `<div class="st ${cls}"><span class="sn">${done ? ic('check', 10, '#fff') : ''}</span><div class="stl">${t}${done ? ` <span class="mono" style="color:var(--ink-3);font-size:11px">${hm(at)}</span>` : ''}<small>${esc(d || '')}</small></div></div>`; }).join('')}</div>
+    <p style="color:var(--ink-3);font-size:12px;margin-top:6px">Attribution counts browsers, not people. Sharing a link or switching devices limits what this proves.</p></div></div>`;
+}
+function gResults() {
+  const g = S.growth;
+  const org = g.opps.filter(o => !o.controlled);
+  const ctl = g.opps.filter(o => o.controlled);
+  const n = f => org.filter(f).length;
+  const cells = [
+    ['Discovered', n(() => true), 'explicit requests'],
+    ['Qualified', n(o => o.cap && o.status !== 'dismissed'), 'match a verified capability'],
+    ['Approved', n(o => ['approved', 'published'].includes(o.status)), 'exact draft reviewed'],
+    ['Published', n(o => o.pub && o.pub.state === 'verified'), 'verified on X'],
+    ['Visits', n(o => o.j && o.j.visit), 'confirmed Bloom sessions'],
+    ['Activated', n(o => o.j && o.j.activated), 'saved, then found by caption', 1],
+  ];
+  const touches = g.opps.filter(o => o.status === 'published').sort((a, b) => b.t - a.t);
+  const sel = gOpp(g.touch) && gOpp(g.touch).status === 'published' ? gOpp(g.touch) : touches[0];
+  return `<div class="g-funnel">${cells.map(([l, v, s, hl]) => `<div class="g-fc ${hl ? 'hl' : ''}"><b>${v}</b><span>${l}</span><small>${s}</small></div>`).join('')}</div>
+    <div class="g-excl">${ic('flask', 13)}${ctl.length ? `${ctl.length} controlled verification ${ctl.length === 1 ? 'journey is' : 'journeys are'} shown below but excluded from these totals.` : 'Controlled and internal traffic is excluded from these totals.'}</div>
+    ${touches.length ? `<div class="g-layout"><div class="g-col"><div class="g-sub" style="margin-top:0">Published replies</div><div class="g-rows">${touches.map(o => gRow(o, sel && o.id === sel.id, true)).join('')}</div></div>${sel ? gJourney(sel) : ''}</div>`
+    : `<div class="feed"><div class="empty" style="height:auto;padding:48px"><div class="e-ic">${ic('activity', 22)}</div><h3>No published replies yet</h3><p>Journeys appear here after a reviewed reply is posted and verified.</p></div></div>`}`;
+}
+function growthPage() {
+  const g = S.growth;
+  const head = `<div class="page-h"><div><h1 style="display:flex;gap:8px;align-items:center"><span style="color:var(--accent)">${ic('trend', 20)}</span>Growth</h1><p>Explicit requests your verified features answer. Every reply is reviewed and posted by a person.</p></div>${g.campaigns[0] ? `<div class="r"><span class="chip outline">${ic('target', 11)}${esc(g.campaigns[0].title)}</span></div>` : ''}</div>`;
+  const tabs = [['opportunities', 'Opportunities', gTodo().length, '#/growth'], ['campaigns', 'Campaigns', g.campaigns.length, '#/growth/campaigns'], ['results', 'Results', '', '#/growth/results']];
+  const tabBar = `<nav class="g-tabs" aria-label="Growth">${tabs.map(([k, l, c, h]) => `<a href="${h}" class="${g.tab === k ? 'on' : ''}" ${g.tab === k ? 'aria-current="page"' : ''}>${l}${c !== '' && c ? `<span class="n">${c}</span>` : ''}</a>`).join('')}</nav>`;
+  let body;
+  if (g.state === 'loading') body = `<div class="g-layout"><div class="g-col">${[0, 1, 2].map(() => '<div class="g-row"><div class="sk" style="height:12px;width:50%"></div><div class="sk" style="height:11px;width:92%;margin-top:10px"></div><div class="sk" style="height:11px;width:70%;margin-top:6px"></div></div>').join('')}</div><div class="g-detail" style="padding:22px"><div class="sk" style="height:16px;width:40%"></div><div class="sk" style="height:60px;margin-top:16px"></div><div class="sk" style="height:60px;margin-top:12px"></div><div class="sk" style="height:100px;margin-top:12px"></div></div></div>`;
+  else if (g.state === 'error') body = `<div class="feed"><div class="empty" style="height:auto;padding:56px 24px"><div class="e-ic" style="background:var(--fail-t);color:var(--fail)">${ic('alert', 22)}</div><h3>Couldn’t load growth data</h3><p>The request to the workspace failed. Nothing was changed.</p><button class="btn" data-act="gRetry">${ic('refresh', 13)}Try again</button></div></div>`;
+  else if (g.state === 'empty' || (!g.opps.length && !g.campaigns.length)) body = `<div class="feed"><div class="empty" style="height:auto;padding:56px 24px"><div class="e-ic">${ic('trend', 22)}</div><h3>No growth opportunities yet</h3><p>Growth starts when a feature has a passing check on the deployed release and a discovery source is connected. Nothing is posted automatically.</p><a class="btn" href="#/features">${ic('bulb', 13)}View feature requests</a></div></div>`;
+  else body = g.tab === 'campaigns' ? gCampaigns() : g.tab === 'results' ? gResults() : gOpportunities();
+  return `<div class="page g-page enter" style="max-width:1240px">${head}${tabBar}${body}</div>`;
+}
+function gPartial(o) {
+  const set = (sel, html) => { const el = $(sel); if (el) el.innerHTML = html; };
+  set('#g-steps', gStepsHtml(o)); set('#g-foot', gFootHtml(o)); set('#g-pub', gPubHtml(o)); set('#g-banner', gBannerHtml(o)); set('#g-rev', gRevHtml(o));
+  set('#g-list', gListHtml(o));
+  const chip = $('.g-who .r'); if (chip) chip.innerHTML = `${o.sample ? '<span class="chip sample">Sample</span>' : ''}${gStatusChip(o)}<a class="btn sm" href="${esc(o.url)}" target="_blank" rel="noopener">Open source ${ic('ext', 12)}</a>`;
+  renderSidebar(); renderTop();
+}
+function gRerender() { renderSidebar(); renderTop(); if (S.sec === 'growth') keepScroll('.view', () => renderMain(false)); }
+function gEdit(v) {
+  const o = gOpp(S.id) || gFiltered()[0]; if (!o || !o.draft) return;
+  o.draft = gDraft(v);
+  const n = v.length + 24, len = $('#g-len');
+  if (len) { len.textContent = n + '/280'; len.classList.toggle('over', n > 280); }
+  const h = $('#g-hash'); if (h) h.textContent = 'draft #' + o.draft.hash;
+  if (o.status === 'awaiting' || o.status === 'approved') { o.status = 'drafted'; o.edited = true; o.review = null; o.pub = null; gPartial(o); }
+}
+function gCur() { return gOpp(S.id) || gFiltered()[0]; }
+const GA = {
+  gFilter: el => { S.growth.filter = el.dataset.v; const first = gFiltered()[0]; if (S.id && !gFiltered().some(o => o.id === S.id)) go(first ? '#/growth/' + first.id : '#/growth'); else renderMain(false); },
+  gDraft: () => {
+    const o = gCur(); S.growth.busy = o.id; gRerender(o);
+    setTimeout(() => {
+      S.growth.busy = null;
+      const cap = gCap(o.cap);
+      o.draft = gDraft(`Bloom can help with this. ${cap.claim} Free to try in the browser:`);
+      o.status = 'drafted';
+      gEvent(o, 'Growth reply drafted', `${o.author} · from ${cap.id} facts only`, 'run');
+      toast('Draft ready · review the exact text', 'ok'); gRerender(o);
+    }, 1100 / S.speed);
+  },
+  gRequest: () => { const o = gCur(); o.status = 'awaiting'; o.edited = false; o.changes = null; o.review = { requested: Date.now(), reviewer: 'Holly', via: 'Slack · #bloom-growth' }; gEvent(o, 'Growth review requested', `draft #${o.draft.hash} sent to Holly in Slack`, 'warn'); toast('Sent to Holly for review · Slack', 'ok'); gRerender(o); },
+  gApprove: () => { const o = gCur(); o.status = 'approved'; o.review = { by: 'Holly', at: Date.now(), hash: o.draft.hash }; o.pub = null; gEvent(o, 'Growth reply approved', `draft #${o.draft.hash} approved by Holly`); toast('Approved · ready to post from ' + BRAND, 'ok'); gRerender(o); },
+  gChanges: () => { const o = gCur(); o.status = 'drafted'; o.changes = 'Holly asked for changes. Edit the draft, then request review again.'; o.review = null; gEvent(o, 'Growth changes requested', 'by Holly', 'warn'); gRerender(o); },
+  gDismiss: () => { const o = gCur(); o.prev = o.status; o.status = 'dismissed'; o.dismissed = 'Dismissed by ' + OP.short; gEvent(o, 'Opportunity dismissed', o.author, 'warn'); toast(`${o.id} dismissed`, 'info', { label: 'Undo', fn: () => GA.gRestore() }); gRerender(o); },
+  gRestore: () => { const o = gCur(); o.status = o.prev && o.prev !== 'dismissed' ? o.prev : o.cap ? (o.draft ? 'drafted' : 'qualified') : 'needs-feature'; o.dismissed = null; gRerender(o); },
+  gCopy: () => { const o = gCur(); const origin = /^https?:/.test(location.origin) ? location.origin : ''; try { navigator.clipboard.writeText(o.draft.text + ' ' + origin + gLink(o)); } catch (e) {} toast('Reply copied with its campaign link', 'ok'); },
+  gRecord: () => {
+    const o = gCur(); const inp = $('#g-url'); const url = inp ? inp.value.trim() : '';
+    o.pub = { draftUrl: url };
+    const m = url.match(/^https:\/\/(?:x|twitter)\.com\/([A-Za-z0-9_]+)\/status\/(\d+)/);
+    if (!m) { o.pub.err = 'Paste the link to the posted reply, like https://x.com/handle/status/123.'; return gPartial(o); }
+    o.pub.state = 'checking'; gPartial(o);
+    setTimeout(() => {
+      if ('@' + m[1].toLowerCase() !== BRAND.toLowerCase()) { o.pub = { draftUrl: url, state: 'failed', error: `Posted by @${m[1]}. The reply must come from ${BRAND}, in reply to ${o.author}.` }; gEvent(o, 'Publication check failed', 'wrong author', 'fail'); }
+      else { o.pub = { state: 'verified', url, at: Date.now(), method: 'Official X read · author, thread and text match the approved draft' }; o.status = 'published'; o.j = { click: null, visit: null, saved: null, activated: null, returned: null }; gEvent(o, 'Publication verified', `${BRAND} reply to ${o.author}`); toast('Publication verified', 'ok'); }
+      gRerender(o);
+    }, 1500 / S.speed);
+  },
+  gRun: el => {
+    const c = S.growth.campaigns.find(x => x.id === el.dataset.id); S.growth.running = true; renderMain(false);
+    setTimeout(() => {
+      S.growth.running = false; c.budget.used = Math.min(c.budget.limit, c.budget.used + 3); c.lastRun = Date.now(); c.lastRead = 3;
+      if (!gOpp('OPP-8')) {
+        const o = { id: 'OPP-8', sample: true, ch: 'x', name: 'Juniper Hale', author: '@juniper.notes', ini: 'JH', color: '#B7791F', t: Date.now() - 12 * MIN, url: 'https://x.com/junipernotes/status/1847151190', text: 'anyone know a journaling app with decent search? I wrote about a café in Porto once and now I can’t find it anywhere', need: 'Find a memory again by what was written about it', fit: 'High', reasons: ['Asks for an app recommendation', 'Describes searching written text', 'Posted 12 minutes ago'], cap: c.cap, status: 'qualified' };
+        S.growth.opps.unshift(o); gEvent(o, 'Opportunity qualified', `${o.author} · matches ${c.cap}`);
+        toast('3 posts read · 1 new opportunity', 'run', { label: 'Open', fn: () => { S.growth.filter = 'todo'; go('#/growth/OPP-8'); } });
+      } else toast('3 posts read · no new matching requests', 'info');
+      gRerender();
+    }, 1600 / S.speed);
+  },
+  gPause: el => { const c = S.growth.campaigns.find(x => x.id === el.dataset.id); c.paused = !c.paused; toast(c.paused ? 'Daily schedule paused' : 'Daily schedule on · within budget', 'info'); renderMain(false); },
+  gTouch: el => { S.growth.touch = el.dataset.id; go('#/growth/results'); },
+  gTouchSel: el => { S.growth.touch = el.dataset.id; keepScroll('.view', () => renderMain(false)); },
+  gRetry: () => { S.growth.state = 'loading'; renderMain(false); setTimeout(() => { S.growth.state = 'populated'; if (S.sec === 'growth') renderMain(true); renderDemo(); }, 900); },
+  demoGrowth: el => { S.growth.state = el.dataset.v; renderDemo(); if (S.sec !== 'growth') go('#/growth'); else renderMain(true); },
+};
+
+/* ------------------------------------------------------------------ agents */
+const TS = { queued: ['outline', 'Queued'], running: ['run', 'Running'], awaiting: ['warn', 'Awaiting approval'], blocked: ['warn', 'Blocked'], retrying: ['run', 'Retrying'], completed: ['ok', 'Completed'], failed: ['fail', 'Failed'], canceling: ['outline', 'Cancel requested'], canceled: ['outline', 'Canceled'] };
+const EK = { completed: ['ok', 'Completed', 'check'], started: ['run', 'Started', 'zap'], failed: ['fail', 'Failed', 'x'], pending: ['warn', 'Pending', 'hourglass'], unknown: ['outline', 'Unknown', 'alert'] };
+const tsChip = s => `<span class="chip ${TS[s][0]}">${TS[s][1]}</span>`;
+const ekChip = k => `<span class="chip ${EK[k][0]}">${EK[k][1]}</span>`;
+const agIc = (a, sm) => `<span class="ag-ic ${a.id} ${sm ? 'sm' : ''}" aria-hidden="true">${ic(a.icon, sm ? 11 : 14)}</span>`;
+function agentSeed(now) {
+  return {
+    live: false, draft: '', af: { agent: 'all', state: 'all', q: '' }, open: {}, fr3Queued: false, t30: now - 25 * MIN,
+    agents: [
+      { id: 'x', name: 'X', icon: 'xlogo', purpose: 'Collects @bloomapp mentions and inquiries from X, keeps their source and routes them to Inbox or Growth.', can: ['Read mentions through the official API', 'Run bounded recent search within budget', 'Route reports to Inbox, inquiries to Growth'], cannot: ['Post or reply publicly'], limits: 'Checkpointed collection · 20 reads a day', health: { st: 'ok', label: 'Connected · official read', detail: 'Checkpoint saved 4m ago · 7 of 20 reads used today' }, sugg: ['Why is T-29 retrying?', 'Run collection now'] },
+      { id: 'reddit', name: 'Reddit', icon: 'reddit', purpose: 'Takes Reddit notifications from the brand inbox and captures posts an operator supplies.', can: ['Read u/bloomapp notification emails', 'Capture a supplied post or comment link'], cannot: ['General Reddit search (API access not approved)', 'Post or reply'], limits: 'Assisted capture only', health: { st: 'ok', label: 'Notification inbox connected', detail: 'Last notification 1h ago · assisted capture mode' }, sugg: ['Explain the source failure for T-28', 'Retry T-28'] },
+      { id: 'growth', name: 'Growth', icon: 'trend', purpose: 'Matches explicit requests to verified capabilities, drafts replies for review and tracks outcomes.', can: ['Qualify opportunities with Gemini', 'Match only verified capabilities', 'Draft replies and request review'], cannot: ['Approve its own drafts', 'Publish replies', 'Claim unverified features'], limits: 'Shares 2 reasoning jobs with other agents', health: { st: 'ok', label: 'Gemini and X search (read) available', detail: 'Daily schedule paused · runs on request' }, sugg: ['What is blocking the Marcus reply?', 'Find caption-search opportunities'] },
+      { id: 'engineering', name: 'Engineering', icon: 'bot', purpose: 'Investigates scoped issues, delegates approved work to the Codex companion and tracks tests, PRs and release checks.', can: ['Investigate issues in bloom/bloom-app', 'Delegate approved specs to the Codex companion', 'Run independent tests'], cannot: ['Deploy without approval', 'Mark resolved before deployed verification'], limits: '1 coding run at a time', health: { st: 'ok', label: 'Codex companion online', detail: '' }, sugg: ['Investigate ISS-14', 'Delegate FR-3', 'Status of ISS-14'] },
+    ],
+    tasks: [
+      { id: 'T-29', agent: 'x', title: 'Collect @bloomapp mentions', type: 'Collection', state: 'retrying', stage: 'Collection', blocker: 'X API returned 503 Service Unavailable. Nothing was collected. Attempt 2 of 5 is scheduled.', next: 'Retries automatically; Retry now runs it immediately', retryOk: true, created: now - 9 * MIN,
+        sources: [{ l: 'X mentions endpoint', k: 'official API' }], evidence: [{ l: 'Checkpoint · cursor 1847120…', k: 'saved' }, { l: 'Provider error · 503', k: 'receipt' }],
+        events: [{ t: now - 9 * MIN, who: 'Scheduler', kind: 'started', text: 'Collection started from saved checkpoint' }, { t: now - 8 * MIN, who: 'X', kind: 'failed', text: 'Provider returned 503 · nothing collected' }, { t: now - 8 * MIN, who: 'Coordinator', kind: 'pending', text: 'Retry 2 of 5 scheduled' }] },
+      { id: 'T-28', agent: 'reddit', title: 'Capture comment from r/photojournal', type: 'Assisted capture', state: 'failed', stage: 'Source fetch', blocker: 'The comment returns 404 (removed or deleted). Notification intake is healthy; only this source failed.', next: 'Retry later, or capture it from a screenshot', retryOk: false, created: now - 70 * MIN,
+        sources: [{ l: 'Notification email · u/bloomapp', k: 'email' }], evidence: [{ l: 'Fetch receipt · 404', k: 'receipt' }],
+        events: [{ t: now - 70 * MIN, who: 'Reddit', kind: 'completed', text: 'Notification received for a comment reply' }, { t: now - 69 * MIN, who: 'Reddit', kind: 'started', text: 'Fetching the comment for capture' }, { t: now - 69 * MIN, who: 'Reddit', kind: 'failed', text: 'Comment unavailable · 404' }] },
+      { id: 'T-26', agent: 'x', title: 'Route Maya Chen report to ISS-14', type: 'Routing', state: 'completed', stage: 'Routing', note: 'Report linked to ISS-14. The customer issue stays open until a fix is verified.', created: now - 9 * MIN,
+        sources: [{ l: 'Maya Chen · X post', h: '#/inbox/c1', k: 'case' }], evidence: [{ l: 'ISS-14', h: '#/issues/ISS-14', k: 'issue' }],
+        events: [{ t: now - 9 * MIN, who: 'X', kind: 'completed', text: 'Post captured with source link' }, { t: now - 9 * MIN + 20e3, who: 'Coordinator', kind: 'completed', text: 'Classified as bug · joined ISS-14 (3 reports)' }] },
+      { id: 'T-30', agent: 'engineering', run: true, title: 'Investigate ISS-14 · photos above 2 MB fail', type: 'Investigation' },
+      { id: 'T-25', agent: 'engineering', feature: 'FR-3', title: 'Implement FR-3 · Export journals as PDF', type: 'Implementation' },
+    ],
+    convos: {
+      growth: [
+        { who: 'op', t: now - 50 * MIN, via: 'Q', text: 'Why hasn’t the reply to @marcus_builds gone out?', ctx: 'T-46' },
+        { who: 'agent', t: now - 50 * MIN + 4e3, text: ['The exact draft is waiting for Holly’s review. I sent it to her in Slack #bloom-growth 40 minutes ago.', 'Nothing has been posted. After Holly approves, Avichal posts it from @bloomapp and records the link.'], refs: [{ l: 'T-46', h: '#/agents/growth/T-46' }, { l: 'OPP-6', h: '#/growth/OPP-6' }], act: { k: 'none', l: 'Question · no task created' } },
+      ],
+      engineering: [
+        { who: 'op', t: now - 20 * MIN, via: 'Slack · #bloom-eng', text: '@Cue engineering status ISS-14' },
+        { who: 'agent', t: now - 20 * MIN + 5e3, via: 'Slack · #bloom-eng', text: ['ISS-14 has one saved investigation (T-30) that hasn’t started. Reports from X, chat and email are linked to it.', 'No commit, tests or PR exist yet. Ask me to investigate ISS-14 to queue it.'], refs: [{ l: 'T-30', h: '#/agents/engineering/T-30' }, { l: 'ISS-14', h: '#/issues/ISS-14' }], act: { k: 'none', l: 'Question · no task created' } },
+      ],
+      reddit: [
+        { who: 'op', t: now - 60 * MIN, via: 'Q', text: 'Why did the r/photojournal capture fail?' },
+        { who: 'agent', t: now - 60 * MIN + 3e3, text: ['The comment returns 404, so it was removed or deleted. Nothing was captured.', 'The notification inbox itself is healthy; the last email arrived 1 hour ago.'], refs: [{ l: 'T-28', h: '#/agents/reddit/T-28' }], act: { k: 'none', l: 'Question · no task created' } },
+      ],
+      x: [],
+    },
+  };
+}
+const agentById = id => S.ag.agents.find(a => a.id === id);
+function oppTask(o) { return { id: 'T-4' + o.id.split('-')[1], agent: 'growth', opp: o.id, title: `Reply to ${o.author}`, type: 'Growth reply' }; }
+function allTasks() { return [...S.ag.tasks, ...(S.growth ? S.growth.opps.filter(o => !o.controlled).map(oppTask) : [])]; }
+const taskById = id => allTasks().find(t => t.id === id);
+const tLink = t => ({ l: t.id, h: `#/agents/${t.agent}/${t.id}` });
+function tv(t) {
+  if (t.run) return runView(t);
+  if (t.feature) return featureView(t);
+  if (t.opp) return oppView(gOpp(t.opp));
+  return { state: t.state, stage: t.stage, blocker: ['completed', 'canceled'].includes(t.state) ? null : t.blocker, note: t.note, next: ['completed', 'canceled', 'canceling'].includes(t.state) ? null : t.next, events: t.events, evidence: t.evidence, sources: t.sources, owner: agentById(t.agent).name, created: t.created };
+}
+function runView() {
+  const r = S.run, st = r.status;
+  const ev = [{ t: S.ag.t30, who: 'Engineering', kind: 'completed', text: 'Investigation saved for ISS-14' }, ...S.events.filter(e => e.ref === 'ISS-14').slice().reverse().map(e => ({ t: e.t, who: /approved/i.test(e.title) ? OP.short : /Codex/i.test(e.title + e.detail) ? 'Codex' : 'Engineering', kind: { ok: 'completed', run: 'started', fail: 'failed', warn: 'pending' }[e.kind] || 'unknown', text: `${e.title} · ${e.detail.replace(/^ISS-14 · /, '')}` }))];
+  const has = k => ({ commit: ['awaiting', 'deploying', 'done'], tests: ['awaiting', 'deploying', 'done'], pr: ['awaiting', 'deploying', 'done'], ver: ['done'] }[k].includes(st));
+  const miss = l => ({ l, missing: true });
+  const v = { owner: 'Engineering', reviewer: 'Ganesh (Engineering)', created: S.ag.t30, events: ev, deps: 'Coding slot (1 of 1)',
+    sources: [{ l: 'Maya Chen · X', h: '#/inbox/c1', k: 'case' }, { l: 'Oliver Park · chat', h: '#/inbox/c2', k: 'case' }, { l: 'Aisha Patel · email', h: '#/inbox/c3', k: 'case' }],
+    evidence: [{ l: 'bloom/bloom-app', k: 'repository' }, st === 'idle' ? miss('Isolated run') : { l: 'Codex sandbox · run #1', k: 'isolated run' }, has('commit') ? { l: 'Commit ' + commit(), act: 'openChanges', k: 'exact commit' } : miss('Exact commit'), has('tests') ? { l: '4 independent tests passed', act: 'openChanges', k: 'tests' } : miss('Independent tests'), has('pr') ? { l: 'Pull request', act: 'openChanges', k: 'PR' } : miss('Pull request'), has('ver') ? { l: 'Deployed scenario verified', act: 'openChanges', k: 'release check' } : miss('Deployed verification')],
+    links: [{ l: 'ISS-14', h: '#/issues/ISS-14' }] };
+  if (st === 'idle') return { ...v, state: 'queued', stage: 'Not started', note: 'Saved instruction. No worker has started it.', next: 'Start the investigation', start: true };
+  if (st === 'running' || st === 'deploying') return { ...v, state: 'running', stage: STAGES[r.cur] ? STAGES[r.cur].t : 'Running', note: STAGES[r.cur] ? STAGES[r.cur].run : '', next: 'Execution events appear as they happen' };
+  if (st === 'failed') return { ...v, state: 'failed', stage: STAGES[r.cur].t, blocker: STAGES[r.cur].err || 'Stage failed', next: 'Retry the failed stage', retry: true };
+  if (st === 'awaiting') return { ...v, state: 'awaiting', stage: 'Engineering review', blocker: `Commit ${commit()} passed independent tests and needs review. Approval is not deployment.`, next: 'Approve or reject the exact commit', person: true, review: { l: 'Review commit', act: 'apprFix' } };
+  if (st === 'rejected') return { ...v, state: 'blocked', stage: 'Change rejected', blocker: 'The commit was rejected. A new run needs the reviewer’s feedback.', next: 'Re-run with feedback', person: true, review: { l: 'Open change', act: 'openChanges' } };
+  return { ...v, state: 'completed', stage: 'Deployed verification passed', note: 'The deployed scenario passed and customers were updated.' };
+}
+function featureView(t) {
+  const f = S.features.find(x => x.id === t.feature);
+  if (!f) return { state: 'canceled', stage: 'Feature removed', events: [], evidence: [], sources: [], owner: 'Engineering' };
+  const ev = [{ t: f.created, who: 'Product', kind: 'completed', text: `Specification drafted from ${f.requesters.length} requests` }];
+  if (f.approvedAt) ev.push({ t: f.approvedAt, who: f.approvedBy || 'Holly', kind: 'completed', text: 'Specification approved' });
+  if (S.ag.fr3Queued) ev.push({ t: S.ag.fr3Queued, who: 'Engineering', kind: 'pending', text: 'Delegation queued · waiting for the coding slot' });
+  const v = { owner: 'Engineering', reviewer: 'Holly (Product)', created: f.created, events: ev, deps: 'Approved specification · coding slot', sources: f.requesters.filter(q => q.case).map(q => ({ l: `${q.name} · request`, h: '#/inbox/' + q.case, k: 'case' })), evidence: [{ l: `${f.id} specification`, h: '#/features/' + f.id, k: 'spec' }, { l: 'Exact commit', missing: true }, { l: 'Independent tests', missing: true }, { l: 'Pull request', missing: true }], links: [{ l: f.id, h: '#/features/' + f.id }] };
+  if (f.status !== 'approved') return { ...v, state: 'blocked', stage: 'Specification review', blocker: `The ${f.id} specification isn’t approved yet. Holly (Product) reviews it.`, next: 'Approve the specification in Feature requests', person: true, review: { l: 'Review spec', h: '#/features/' + f.id } };
+  if (!S.ag.fr3Queued) return { ...v, state: 'blocked', stage: 'Delegation', blocker: 'Specification approved. Nobody has delegated it to Engineering yet.', next: 'Ask Engineering to delegate FR-3' };
+  return { ...v, state: 'queued', stage: 'Waiting for the coding slot', note: S.run.status === 'running' || S.run.status === 'deploying' ? 'The one coding slot is busy with ISS-14.' : 'Waiting for the companion to pick it up.', next: 'Starts when the coding slot frees up' };
+}
+function oppView(o) {
+  const cap = o.cap ? gCap(o.cap) : null, h = '#/growth/' + o.id, hash = o.draft ? o.draft.hash : '';
+  const ev = [{ t: o.t, who: 'X', kind: 'completed', text: 'Source collected · X recent search' }, { t: o.t + 6e4, who: 'Growth', kind: 'completed', text: cap ? `Qualified · ${o.fit || ''} fit · matches ${cap.id}` : 'No verified capability matches · unmet need recorded' }];
+  if (o.draft) ev.push({ t: o.t + 12e4, who: 'Growth', kind: 'completed', text: `Draft #${hash} created from ${o.cap} facts` });
+  if (o.review && o.review.requested) ev.push({ t: o.review.requested, who: 'Growth', kind: 'pending', text: `Review requested from ${o.review.reviewer} · Slack` });
+  if (o.review && o.review.at) ev.push({ t: o.review.at, who: o.review.by, kind: 'completed', text: `Approved draft #${o.review.hash || hash}` });
+  if (o.pub && o.pub.state === 'failed') ev.push({ t: Date.now(), who: 'X', kind: 'failed', text: 'Publication check failed · ' + o.pub.error });
+  if (o.pub && o.pub.state === 'verified') ev.push({ t: o.pub.at, who: 'X', kind: 'completed', text: 'Publication verified · official read' });
+  if (o.j && o.j.visit) ev.push({ t: o.j.visit, who: 'Bloom', kind: 'completed', text: 'Confirmed visit from campaign link' });
+  if (o.j && o.j.activated) ev.push({ t: o.j.activated, who: 'Bloom', kind: 'completed', text: 'Activated · saved a memory, found it by caption' });
+  if (o.status === 'dismissed') ev.push({ t: o.t + 18e4, who: OP.short, kind: 'completed', text: 'Dismissed · ' + (o.dismissed || '') });
+  ev.sort((a, b) => a.t - b.t);
+  const v = { owner: 'Growth', reviewer: 'Holly (Product)', created: o.t, events: ev, deps: cap ? `${cap.id} verified · ${cap.release}` : 'None', links: [{ l: o.id, h }],
+    sources: [{ l: `${o.author} · X post`, h: o.url, k: 'source', ext: true }],
+    evidence: [cap ? { l: `${cap.id} · ${cap.release}`, h: '#/growth/campaigns', k: 'capability' } : { l: 'Verified capability', missing: true }, o.draft ? { l: `Draft #${hash}`, h, k: 'exact text' } : { l: 'Exact draft', missing: true }, o.pub && o.pub.state === 'verified' ? { l: 'Published reply', h: o.pub.url, k: 'verified', ext: true } : { l: 'Publication evidence', missing: true }, o.j && o.j.activated ? { l: 'Activation events', h: '#/growth/results', k: 'Bloom' } : { l: 'Product outcome', missing: true }] };
+  switch (o.status) {
+    case 'qualified': return { ...v, state: 'queued', stage: 'Drafting', note: 'Qualified. No draft yet.', next: 'Draft a reply in Growth', review: { l: 'Open in Growth', h } };
+    case 'drafted': return { ...v, state: 'blocked', stage: 'Draft ready', blocker: o.edited ? 'Draft edited after approval. The old approval no longer applies.' : 'Draft ready, but no review has been requested.', next: 'Request review from Holly (Product)', person: true, review: { l: 'Request review', h } };
+    case 'awaiting': return { ...v, state: 'awaiting', stage: 'Product review', blocker: `Draft #${hash} is waiting for ${o.review.reviewer} (Product). Nothing has been posted.`, next: 'Holly approves or requests changes', person: true, review: { l: 'Review draft', h } };
+    case 'approved': return { ...v, state: 'blocked', stage: 'Publication', blocker: `${o.review.by} approved draft #${hash}. Waiting for Avichal to post from ${BRAND}. No public reply has been sent.`, next: 'Post, then record the reply URL', person: true, review: { l: 'Publish', h } };
+    case 'published': return { ...v, state: 'completed', stage: 'Outcome tracking', note: o.j && o.j.activated ? 'Published and verified. One attributed browser activated.' : 'Published and verified. No confirmed visit yet.', next: 'Results update from Bloom events' };
+    case 'needs-feature': return { ...v, state: 'completed', stage: 'Unmet need recorded', note: `No verified capability answers this. Linked to ${o.fr}; nothing was promised.`, links: [{ l: o.fr, h: '#/features/' + o.fr }] };
+    default: return { ...v, state: 'canceled', stage: 'Dismissed', note: o.dismissed || 'Dismissed' };
+  }
+}
+const lastT = t => { const e = tv(t).events; return e.length ? e[e.length - 1].t : 0; };
+function agCounts(a) {
+  const vs = allTasks().filter(t => t.agent === a.id).map(tv);
+  return { run: vs.filter(v => v.state === 'running').length, retry: vs.filter(v => v.state === 'retrying').length, q: vs.filter(v => v.state === 'queued').length, blk: vs.filter(v => ['blocked', 'awaiting'].includes(v.state)).length, fail: vs.filter(v => v.state === 'failed').length };
+}
+function agHealth(a) {
+  const h = { ...a.health };
+  if (a.id === 'engineering' && h.st === 'ok') { const busy = ['running', 'deploying'].includes(S.run.status) ? 1 : 0; h.detail = `${busy} of 1 coding slot in use`; }
+  return h;
+}
+const hDot = st => `<span class="dot ${st === 'ok' ? 'resolved' : st === 'warn' ? 'waiting' : st === 'fail' ? 'open' : ''}"></span>`;
+function countsHtml(a) {
+  const c = agCounts(a); const p = [];
+  if (c.run) p.push(`<span class="run">${c.run} running</span>`);
+  if (c.retry) p.push(`<span class="run">${c.retry} retrying</span>`);
+  if (c.q) p.push(`<span>${c.q} queued</span>`);
+  if (c.blk) p.push(`<span class="blk">${c.blk} waiting</span>`);
+  if (c.fail) p.push(`<span class="fail">${c.fail} failed</span>`);
+  return p.length ? p.join('') : '<span class="ag-idle">Idle · no open tasks</span>';
+}
+function refBtn(r) { return r.act ? `<button class="cv-ref" data-act="${r.act}">${esc(r.l)}</button>` : `<a class="cv-ref" href="${esc(r.h)}" ${r.ext ? 'target="_blank" rel="noopener"' : ''}>${esc(r.l)}${r.ext ? ' ↗' : ''}</a>`; }
+function msgHtml(a, m) {
+  if (m.who === 'sys') return `<div class="sys">${ic(m.icon || 'zap', 12)}${esc(m.text)}</div>`;
+  const via = m.via && m.via !== 'Q' ? `<span class="cv-via">${esc(m.via)}</span>` : '';
+  if (m.who === 'op') return `<div class="msg out"><span class="av sm" style="background:${OP.color}" aria-hidden="true">${OP.ini}</span><div><div class="m-meta"><b>${esc(OP.short)}</b>${via}<span>${hm(m.t)}</span></div><div class="bubble">${esc(m.text)}</div></div></div>`;
+  const paras = (Array.isArray(m.text) ? m.text : [m.text]).map(p => `<p>${esc(p)}</p>`).join('');
+  return `<div class="msg">${agIc(a, true)}<div><div class="m-meta"><b>${esc(a.name)}</b>${via}<span>${hm(m.t)}</span></div><div class="bubble">${paras}${m.refs && m.refs.length ? `<div class="cv-refs">${m.refs.map(refBtn).join('')}</div>` : ''}${m.act ? `<span class="cv-act ${m.act.k}">${ic({ none: 'eye', made: 'plus', attach: 'link', deny: 'lock' }[m.act.k], 11)}${esc(m.act.l)}</span>` : ''}</div></div></div>`;
+}
+function threadHtml(a) {
+  const msgs = S.ag.convos[a.id] || [];
+  const body = msgs.length ? msgs.map(m => msgHtml(a, m)).join('') : `<div class="empty" style="height:auto;padding:48px 16px"><div class="e-ic">${agIc(a)}</div><h3>No conversation with ${esc(a.name)} yet</h3><p>Ask about its work or give it an instruction. Questions never start jobs.</p></div>`;
+  return `<div class="thread">${body}${S.ag.typing === a.id ? `<div class="msg">${agIc(a, true)}<div class="bubble cv-typing"><i></i><i></i><i></i></div></div>` : ''}</div>`;
+}
+function taskPanel(t) {
+  const v = tv(t), a = agentById(t.agent);
+  const blk = v.blocker ? `<div class="tk-blk ${v.state === 'failed' ? 'fail' : v.state === 'retrying' || v.state === 'running' ? 'run' : 'warn'}">${ic(v.state === 'failed' ? 'x' : 'alert', 14)}<span>${esc(v.blocker)}</span></div>` : v.note ? `<div class="tk-blk ${v.state === 'completed' ? 'ok' : v.state === 'running' ? 'run' : 'mute'}">${ic(v.state === 'completed' ? 'check' : 'sparkle', 14)}<span>${esc(v.note)}</span></div>` : '';
+  const item = r => r.missing ? `<span class="ev missing">${ic('hourglass', 13)}${esc(r.l)}<span class="k">not yet</span></span>` : r.act ? `<a href="#" data-act="${r.act}">${ic('file', 13)}${esc(r.l)}<span class="k">${esc(r.k || '')}</span></a>` : r.h ? `<a href="${esc(r.h)}" ${r.ext ? 'target="_blank" rel="noopener"' : ''}>${ic(r.ext ? 'ext' : 'link', 13)}${esc(r.l)}<span class="k">${esc(r.k || '')}</span></a>` : `<span class="ev">${ic('file', 13)}${esc(r.l)}<span class="k">${esc(r.k || '')}</span></span>`;
+  const acts = [];
+  if (v.review) acts.push(v.review.h ? `<a class="btn primary sm" href="${v.review.h}">${esc(v.review.l)}</a>` : `<button class="btn primary sm" data-act="${v.review.act}">${esc(v.review.l)}</button>`);
+  if (v.start) acts.push(`<button class="btn primary sm" data-act="start">${ic('play', 12)}Start investigation</button>`);
+  if (v.retry) acts.push(`<button class="btn sm" data-act="retry">${ic('refresh', 12)}Retry stage</button>`);
+  if (!t.run && !t.feature && !t.opp && ['failed', 'retrying'].includes(t.state)) acts.push(`<button class="btn sm" data-act="tkRetry" data-id="${t.id}">${ic('refresh', 12)}Retry now</button>`);
+  if (!t.run && !t.feature && !t.opp && ['queued', 'running', 'retrying', 'blocked', 'failed'].includes(t.state)) acts.push(`<button class="btn sm danger" data-act="tkCancel" data-id="${t.id}">Cancel</button>`);
+  acts.push(`<button class="btn sm ghost" data-act="actOpen" data-id="${t.id}">${ic('activity', 12)}Full history</button>`);
+  const ev = v.events.slice(-4).reverse();
+  return `<div class="ctx-s"><div class="tk-h">${tsChip(v.state)}<span class="mono">${t.id} · ${esc(t.type)}</span><button class="btn ghost icon sm side-btn" style="margin-left:auto" data-act="agSide" aria-label="Close task panel">${ic('x', 14)}</button></div><div class="tk-title">${esc(t.title)}</div>${blk}${v.next ? `<div style="font-size:12.5px;color:var(--ink-2);margin-top:8px"><b style="font-weight:600;color:var(--ink)">Next:</b> ${esc(v.next)}</div>` : ''}</div>
+    <div class="ctx-s"><dl class="tk-kv"><dt>App</dt><dd>${ic('leaf', 12, 'var(--accent)')} Bloom</dd><dt>Owner</dt><dd>${agIc(a, true)} ${esc(v.owner)}</dd><dt>Stage</dt><dd>${esc(v.stage || '—')}</dd>${v.reviewer ? `<dt>Reviewer</dt><dd>${esc(v.reviewer)}</dd>` : ''}${v.deps ? `<dt>Depends on</dt><dd>${esc(v.deps)}</dd>` : ''}<dt>Created</dt><dd>${v.created ? rel(v.created) + ' ago' : '—'}</dd>${v.links ? `<dt>Linked</dt><dd>${v.links.map(refBtn).join(' ')}</dd>` : ''}</dl></div>
+    ${v.sources && v.sources.length ? `<div class="ctx-s"><h6>Original sources</h6><div class="tk-ev">${v.sources.map(item).join('')}</div></div>` : ''}
+    <div class="ctx-s"><h6>Evidence</h6><div class="tk-ev">${(v.evidence || []).map(item).join('') || '<span class="ev missing">No evidence recorded</span>'}</div></div>
+    <div class="ctx-s"><h6>Recent events</h6>${ev.length ? ev.map(e => `<div class="tk-row" style="cursor:default">${ekChip(e.kind)}<span class="tt" title="${esc(e.text)}">${esc(e.text)}</span><span class="mono" style="font-size:11px;color:var(--ink-3)">${hm(e.t)}</span></div>`).join('') : '<div style="color:var(--ink-3);font-size:12.5px">No events yet.</div>'}</div>
+    <div class="ctx-s" style="border-bottom:0"><div class="tk-acts">${acts.join('')}</div></div>`;
+}
+function agentPanel(a) {
+  const h = agHealth(a);
+  const ts = allTasks().filter(t => t.agent === a.id).sort((x, y) => lastT(y) - lastT(x));
+  return `<div class="ctx-s"><div class="tk-h">${agIc(a)}<b style="font-size:15px">${esc(a.name)}</b><button class="btn ghost icon sm side-btn" style="margin-left:auto" data-act="agSide" aria-label="Close panel">${ic('x', 14)}</button></div><p style="margin:8px 0 0;color:var(--ink-2);font-size:12.5px">${esc(a.purpose)}</p></div>
+    <div class="ctx-s"><h6>Service health</h6><div style="display:flex;gap:7px;align-items:center;font-weight:500">${hDot(h.st)}${esc(h.label)}</div><div style="color:var(--ink-3);font-size:12px;margin-top:3px">${esc(h.detail)}</div><div style="color:var(--ink-3);font-size:11.5px;margin-top:8px">Health is the connection. Task state is shown separately below.</div></div>
+    <div class="ctx-s"><h6>Can</h6><ul class="cap-list">${a.can.map(c => `<li>${ic('check', 12, 'var(--accent)')}${esc(c)}</li>`).join('')}${a.cannot.map(c => `<li class="no">${ic('lock', 12)}${esc(c)}</li>`).join('')}</ul><div style="color:var(--ink-3);font-size:11.5px;margin-top:8px">${esc(a.limits)}</div></div>
+    <div class="ctx-s" style="border-bottom:0"><h6>Tasks · ${ts.length}</h6>${ts.length ? `<div class="tk-list">${ts.map(t => `<a class="tk-row" href="#/agents/${a.id}/${t.id}" style="text-decoration:none;color:inherit">${tsChip(tv(t).state)}<span class="tt">${esc(t.title)}</span><span class="mono" style="font-size:11px;color:var(--ink-3)">${t.id}</span></a>`).join('')}</div>` : '<div style="color:var(--ink-3);font-size:12.5px">No tasks yet.</div>'}</div>`;
+}
+function agentsPage() {
+  const ag = S.ag, a = agentById(S.id) || ag.agents[0];
+  const ts = allTasks().filter(t => t.agent === a.id);
+  const ctx = S.sub && ts.find(t => t.id === S.sub);
+  const live = ag.live;
+  return `<div class="ag ${S.id ? 'has-sel' : ''}" id="ag">
+    <aside class="ag-dir" aria-label="Agents"><div class="ag-dir-h"><h1>${ic('bot', 16)}Agents</h1><p>Named roles. Your own permissions decide what they can do for you.</p></div>
+      <div class="ag-list stagger">${ag.agents.map(x => { const h = agHealth(x); return `<a class="ag-card ${x.id === a.id ? 'on' : ''}" href="#/agents/${x.id}" style="text-decoration:none;color:inherit" ${x.id === a.id ? 'aria-current="page"' : ''}><div class="ag-t">${agIc(x)}<b>${esc(x.name)}</b></div><p>${esc(x.purpose)}</p><div class="ag-hl">${hDot(h.st)}${esc(h.label)}</div><div class="ag-counts">${countsHtml(x)}</div></a>`; }).join('')}</div></aside>
+    <section class="ag-conv" aria-label="Conversation with ${esc(a.name)}">
+      <div class="ag-conv-h"><button class="btn ghost icon sm back-btn" data-act="goto" data-v="#/agents" aria-label="All agents">${ic('chevL', 16)}</button>${agIc(a)}<div><h2>${esc(a.name)}</h2></div><div class="r">${live ? '' : '<span class="chip sample">Sample responder</span>'}<button class="btn sm side-btn" data-act="agSide">${ic('panel', 13)}${ctx ? 'Task' : 'Details'}</button></div></div>
+      <div class="ag-ctx"><label>App</label><span class="chip outline">${ic('leaf', 10, 'var(--accent)')}Bloom</span><label for="ag-ctx" style="margin-left:8px">Context</label><select id="ag-ctx"><option value="">Agent-level</option>${ts.map(t => `<option value="${t.id}" ${ctx && ctx.id === t.id ? 'selected' : ''}>${t.id} · ${esc(t.title)}</option>`).join('')}</select>${ctx ? tsChip(tv(ctx).state) : ''}</div>
+      <div class="ag-body" id="ag-body">${threadHtml(a)}</div>
+      <div class="composer"><div class="comp">${live ? '' : `<div class="cv-sugg">${a.sugg.map(s => `<button data-act="agSugg" data-v="${esc(s)}">${esc(s)}</button>`).join('')}</div>`}
+        <label class="sr" for="ag-ta">Message ${esc(a.name)}</label><textarea id="ag-ta" placeholder="${live ? 'Agent conversations aren’t connected in this workspace yet' : `Ask ${esc(a.name)} or give an instruction…`}" ${live ? 'disabled' : ''}>${esc(ag.draft)}</textarea>
+        <div class="comp-f"><span class="hint">${ctx ? `Context: ${ctx.id}` : 'Agent-level context'} · questions don’t start work · approvals use review controls</span><button class="btn primary sm" style="margin-left:auto" data-act="agSend" id="ag-send" ${live || !ag.draft.trim() ? 'disabled' : ''}>${ic('send', 13)}Send</button></div></div></div>
+    </section>
+    <aside class="ag-side" id="ag-side" aria-label="${ctx ? 'Task details' : 'Agent details'}">${ctx ? taskPanel(ctx) : agentPanel(a)}</aside>
+  </div>`;
+}
+/* sample responder: answers from recorded state, never invents receipts */
+function agentReply(a, text, ctx) {
+  const q = text.toLowerCase().trim(), v = ctx && tv(ctx);
+  const none = { k: 'none', l: 'Question · no task created' };
+  if (/\b(approve|approved|looks good|lgtm|ship it|publish it|go ahead)\b/.test(q)) {
+    const pend = ctx && v.review ? ctx : allTasks().find(t => t.agent === a.id && tv(t).person && tv(t).review);
+    return { text: ['I can’t approve or publish from a conversation. Decisions use the version-checked review controls, so “looks good” never counts as approval.', pend ? `The decision for ${pend.id} is here.` : `Nothing owned by ${a.name} is waiting for a decision.`], refs: pend ? [tLink(pend), ...(tv(pend).review.h ? [{ l: tv(pend).review.l, h: tv(pend).review.h }] : [])] : [], act: { k: 'deny', l: 'No action taken' } };
+  }
+  if (/^(please\s+)?(investigate|run|start|find|collect|retry|capture|delegate|search|look for)\b/.test(q)) return agentInstruct(a, q, ctx);
+  if (ctx) return { text: [`${ctx.id} is ${TS[v.state][1].toLowerCase()}${v.stage ? ' · ' + v.stage : ''}.`, v.blocker || v.note || '', v.next ? 'Next: ' + v.next + '.' : ''].filter(Boolean), refs: [tLink(ctx), ...(v.links || [])], act: none };
+  const order = ['failed', 'awaiting', 'blocked', 'retrying', 'running', 'queued'];
+  const act = allTasks().filter(t => t.agent === a.id).map(t => [t, tv(t)]).filter(([, x]) => order.includes(x.state)).sort((x, y) => order.indexOf(x[1].state) - order.indexOf(y[1].state));
+  if (!act.length) return { text: [`Nothing open right now. Service health: ${agHealth(a).label}.`], refs: [], act: none };
+  const [t, x] = act[0];
+  return { text: [`${act.length} open ${act.length === 1 ? 'task' : 'tasks'}. Most urgent: ${t.id} (${TS[x.state][1].toLowerCase()}).`, x.blocker || x.note || x.stage, x.next ? 'Next: ' + x.next + '.' : ''].filter(Boolean), refs: act.slice(0, 3).map(([y]) => tLink(y)), act: none };
+}
+function agentInstruct(a, q, ctx) {
+  const t30 = taskById('T-30');
+  if (a.id === 'engineering' && /fr-3|pdf|export|delegate/.test(q)) {
+    const f = S.features.find(x => x.id === 'FR-3');
+    if (!f || f.status !== 'approved') return { text: ['I can’t delegate FR-3: its specification isn’t approved. Holly (Product) reviews it in Feature requests.', 'Nothing was queued.'], refs: [{ l: 'FR-3', h: '#/features/FR-3' }, tLink(taskById('T-25'))], act: { k: 'deny', l: 'Blocked by required approval' } };
+    if (S.ag.fr3Queued) return { text: ['FR-3 is already queued (T-25). I attached this conversation to it; no second implementation was created.'], refs: [tLink(taskById('T-25'))], act: { k: 'attach', l: 'Attached to T-25' } };
+    S.ag.fr3Queued = Date.now();
+    return { text: ['Checked: the FR-3 specification is approved and bloom/bloom-app is supported. T-25 is queued.', 'No worker has started it. Only one coding run happens at a time.'], refs: [tLink(taskById('T-25'))], act: { k: 'made', l: 'Queued T-25' } };
+  }
+  if (a.id === 'engineering' && (/iss-14|investigat|upload/.test(q) || (ctx && ctx.run))) {
+    if (S.run.status !== 'idle') { const v = tv(t30); return { text: [`ISS-14 already has run #1 (${TS[v.state][1].toLowerCase()} · ${v.stage}). I attached this conversation to it.`, 'No second run was started.'], refs: [tLink(t30), { l: 'ISS-14', h: '#/issues/ISS-14' }], act: { k: 'attach', l: 'Attached to T-30' } }; }
+    setTimeout(() => { if (S.run.status !== 'idle') return; startRun(); agSys('engineering', 'T-30 started · Running · Report received', 'zap'); }, 1400 / S.speed);
+    return { text: ['Checked: you can start investigations, bloom/bloom-app is a supported repository and ISS-14 has no run. T-30 is queued.', 'No worker has started yet. Execution events will appear here as they happen.'], refs: [tLink(t30), { l: 'ISS-14', h: '#/issues/ISS-14' }], act: { k: 'made', l: 'Queued T-30' } };
+  }
+  if (a.id === 'growth' && /find|search|look for|run/.test(q)) {
+    if (S.growth.running) return { text: ['A bounded search for CMP-1 is already running. I attached this request to it; no second search started.'], refs: [{ l: 'CMP-1', h: '#/growth/campaigns' }], act: { k: 'attach', l: 'Attached to running search' } };
+    const c = S.growth.campaigns[0];
+    if (!c || c.budget.used >= c.budget.limit) return { text: ['Today’s read budget is used up, so no search was queued. It resets tomorrow.'], refs: [{ l: 'CMP-1', h: '#/growth/campaigns' }], act: { k: 'deny', l: 'Blocked by budget' } };
+    GA.gRun({ dataset: { id: c.id } });
+    return { text: [`Queued one bounded search for ${c.id}: up to 3 posts, inside today’s budget (${c.budget.used} of ${c.budget.limit} used).`, 'Only requests that match a verified capability become opportunities. They’ll appear in Growth.'], refs: [{ l: 'Growth', h: '#/growth' }, { l: c.id, h: '#/growth/campaigns' }], act: { k: 'made', l: `Queued search · ${c.id}` } };
+  }
+  if (a.id === 'x' && /collect|run/.test(q)) {
+    const t = taskById('T-29');
+    if (['retrying', 'running', 'queued'].includes(t.state)) return { text: [`Collection T-29 is already ${TS[t.state][1].toLowerCase()}. I attached this request to it; no duplicate collection started.`, 'Use Retry now on the task if you want the next attempt immediately.'], refs: [tLink(t)], act: { k: 'attach', l: 'Attached to T-29' } };
+    tkRun(t, true);
+    return { text: ['Started one collection from the saved checkpoint (T-29).'], refs: [tLink(t)], act: { k: 'made', l: 'Started T-29' } };
+  }
+  if (a.id === 'reddit' && /retry|capture/.test(q)) {
+    const t = taskById('T-28');
+    if (['running', 'queued'].includes(t.state)) return { text: ['T-28 is already retrying. No duplicate capture started.'], refs: [tLink(t)], act: { k: 'attach', l: 'Attached to T-28' } };
+    tkRun(t, t.retryOk);
+    return { text: ['Retrying the capture for T-28 once. If the comment is still gone, the task stays failed with the receipt.'], refs: [tLink(t)], act: { k: 'made', l: 'Retry queued · T-28' } };
+  }
+  return { text: [`That isn’t an action ${a.name} can take. It can:`, a.can.join(' · ') + '.'], refs: [], act: { k: 'deny', l: 'No action taken' } };
+}
+function agSys(agentId, text, icon) { (S.ag.convos[agentId] = S.ag.convos[agentId] || []).push({ who: 'sys', t: Date.now(), text, icon }); agRefresh(); }
+function tkRun(t, ok) {
+  t.state = 'running'; t.events.push({ t: Date.now(), who: OP.short, kind: 'started', text: 'Attempt started by ' + OP.short });
+  agRefresh();
+  setTimeout(() => {
+    if (t.state !== 'running') return;
+    if (ok) { t.state = 'completed'; t.note = t.agent === 'x' ? '3 mentions read · 1 new report routed to Inbox. Checkpoint advanced.' : 'Captured.'; t.events.push({ t: Date.now(), who: agentById(t.agent).name, kind: 'completed', text: t.note }); toast(`${t.id} completed`, 'ok'); }
+    else { t.state = 'failed'; t.events.push({ t: Date.now(), who: agentById(t.agent).name, kind: 'failed', text: 'Still unavailable · 404' }); toast(`${t.id} failed again · receipt saved`, 'err'); }
+    agRefresh();
+  }, 1500 / S.speed);
+}
+function agRefresh() { renderSidebar(); renderTop(); if (['agents', 'home', 'agent'].includes(S.sec)) keepScroll('.view', () => renderMain(false)); }
+function agSend(text) {
+  const a = agentById(S.id) || S.ag.agents[0];
+  text = String(text || '').trim(); if (!text || S.ag.live) return;
+  const ctx = S.sub ? taskById(S.sub) : null;
+  const list = (S.ag.convos[a.id] = S.ag.convos[a.id] || []);
+  list.push({ who: 'op', t: Date.now(), via: 'Q', text, ctx: ctx && ctx.id });
+  S.ag.draft = ''; S.ag.typing = a.id; agRefresh();
+  setTimeout(() => { S.ag.typing = null; const r = agentReply(a, text, ctx); list.push({ who: 'agent', t: Date.now(), ...r }); agRefresh(); }, 700 / S.speed);
+}
+/* ------------------------------------------------------------------ home */
+function attItem(t) {
+  const v = tv(t), a = agentById(t.agent);
+  const main = v.review ? (v.review.h ? `<a class="btn primary sm" href="${v.review.h}">${esc(v.review.l)}</a>` : `<button class="btn primary sm" data-act="${v.review.act}">${esc(v.review.l)}</button>`) : v.start ? `<button class="btn primary sm" data-act="start">Start</button>` : '';
+  return `<div class="att-i">${agIc(a)}<div class="ai-b"><div class="ai-t"><b>${esc(t.title)}</b><span class="mono">${t.id}</span>${tsChip(v.state)}</div><p>${esc(v.blocker || v.note || v.stage || '')}</p><p style="color:var(--ink-3);font-size:12px">${esc(a.name)} · ${esc(v.stage || '')}${v.next ? ' · Next: ' + esc(v.next) : ''}</p></div><div class="ai-a">${main}<a class="btn sm" href="#/agents/${a.id}/${t.id}">Open task</a></div></div>`;
+}
+function attSec(title, cls, icon, items, empty) {
+  return `<div class="att"><div class="att-h ${cls}">${ic(icon, 15)}${title}<span class="n">${items.length}</span></div>${items.length ? items.map(attItem).join('') : `<div class="att-empty">${ic('check', 14, 'var(--accent)')}${empty}</div>`}</div>`;
+}
+function homePage() {
+  const ts = allTasks().map(t => [t, tv(t)]).sort((x, y) => lastT(y[0]) - lastT(x[0]));
+  const pick = f => ts.filter(([t, v]) => f(v)).map(([t]) => t);
+  const decide = pick(v => v.state === 'awaiting' || (v.state === 'blocked' && v.person));
+  const stuck = pick(v => ['failed', 'retrying'].includes(v.state) || (v.state === 'blocked' && !v.person));
+  const going = pick(v => ['running', 'queued', 'canceling'].includes(v.state));
+  const done = pick(v => v.state === 'completed').slice(0, 3);
+  return `<div class="page enter" style="max-width:1240px"><div class="page-h"><div><h1>Home</h1><p>What needs a decision, what’s stuck and what’s running, across every agent.</p></div></div>
+    <div class="home-grid"><div>
+      ${attSec('Waiting on a person', 'warn', 'hourglass', decide, 'No decisions waiting.')}
+      ${attSec('Blocked or failing', 'fail', 'alert', stuck, 'Nothing blocked or failing.')}
+      ${attSec('Running and queued', 'run', 'zap', going, 'Nothing running. Idle agents stay idle.')}
+      ${attSec('Recently completed', '', 'check', done, 'Nothing completed yet.')}
+    </div><div class="stack">
+      <div class="att" style="margin:0"><div class="att-h">${ic('bot', 15)}Agents<a href="#/agents" style="margin-left:auto;font-weight:500;font-size:12px;color:var(--ink-2)">Open →</a></div>${S.ag.agents.map(a => { const h = agHealth(a); const c = agCounts(a); const open = c.run + c.retry + c.q + c.blk + c.fail; return `<a class="hl-row" href="#/agents/${a.id}">${agIc(a)}<div style="min-width:0"><b>${esc(a.name)}</b><small>${hDot(h.st)}${esc(h.label)}</small></div><span class="r">${open ? open + ' open' : 'idle'}</span></a>`; }).join('')}</div>
+      <div class="callout" style="background:var(--sunken);color:var(--ink-2)">${ic('shield', 14)}Approval isn’t publication, and a PR isn’t a deployment. Each shows as its own step.</div>
+    </div></div></div>`;
+}
+/* ------------------------------------------------------------------ task activity */
+function taRows() {
+  const f = S.ag.af, q = f.q.trim().toLowerCase();
+  const ts = allTasks().map(t => [t, tv(t)]).filter(([t, v]) => (f.agent === 'all' || t.agent === f.agent) && (f.state === 'all' || v.state === f.state) && (!q || (t.id + ' ' + t.title + ' ' + (t.opp || '') + ' ' + (t.feature || '') + (t.run ? ' ISS-14' : '')).toLowerCase().includes(q))).sort((x, y) => lastT(y[0]) - lastT(x[0]));
+  if (!ts.length) return `<div class="empty" style="height:auto;padding:40px"><div class="e-ic">${ic('activity', 22)}</div><h3>No matching tasks</h3><p>${allTasks().length ? 'Try another agent, state or ID.' : 'Agent tasks appear here once agents start recording work.'}</p></div>`;
+  return ts.map(([t, v]) => {
+    const a = agentById(t.agent), last = v.events[v.events.length - 1];
+    return `<details data-id="${t.id}" ${S.ag.open[t.id] ? 'open' : ''}><summary><span class="chev">${ic('chevR', 14)}</span>${agIc(a, true)}<span class="id">${t.id}</span><span class="s"><b>${esc(t.title)}</b><small>${last ? esc(last.text) : 'No events'}</small></span>${tsChip(v.state)}<span class="tm">${last ? rel(last.t) : ''}</span></summary>
+      <div class="ta-ev">${v.events.map(e => `<div class="ta-e"><span class="tm">${hm(e.t)}</span><span class="who">${esc(e.who)}</span><span class="tx">${ekChip(e.kind)}<span>${esc(e.text)}</span></span>${e.ref ? `<a class="ref" href="${esc(e.ref.h)}">${esc(e.ref.l)}</a>` : '<span></span>'}</div>`).join('')}</div>
+      <div class="ta-foot"><a class="btn sm" href="#/agents/${a.id}/${t.id}">Open task with ${esc(a.name)} →</a></div></details>`;
+  }).join('');
+}
+const agentEventsPage = agentPage;
+agentPage = function () {
+  if (!S.actView) S.actView = allTasks().length ? 'tasks' : 'events';
+  const toggle = `<div class="seg-ctl" style="width:200px">${[['tasks', 'By task'], ['events', 'All events']].map(([k, l]) => `<button class="${S.actView === k ? 'on' : ''}" data-act="actView" data-v="${k}">${l}</button>`).join('')}</div>`;
+  if (S.actView === 'events') return agentEventsPage().replace('<div class="r">', '<div class="r">' + toggle);
+  const f = S.ag.af;
+  return `<div class="page enter"><div class="page-h"><div><h1>Agent activity</h1><p>Every task with its latest fact and its full ordered history.</p></div><div class="r">${toggle}</div></div>
+    <div class="ta-bar"><div class="seg-ctl" style="width:min(420px,100%)">${[['all', 'All'], ...S.ag.agents.map(a => [a.id, a.name])].map(([k, l]) => `<button class="${f.agent === k ? 'on' : ''}" data-act="actAgent" data-v="${k}">${l}</button>`).join('')}</div>
+      <select class="inp" id="ta-state" aria-label="Task state"><option value="all">Any state</option>${Object.keys(TS).map(k => `<option value="${k}" ${f.state === k ? 'selected' : ''}>${TS[k][1]}</option>`).join('')}</select>
+      <input class="inp" id="ta-q" placeholder="Find T-30, ISS-14, OPP-6…" value="${esc(f.q)}" aria-label="Find task, case, issue or opportunity"></div>
+    <div class="ta" id="ta-list">${taRows()}</div></div>`;
+};
+const _agRenderMain = renderMain;
+renderMain = anim => {
+  const focus = document.activeElement && document.activeElement.id;
+  _agRenderMain(anim);
+  if (S.sec === 'agents') { const b = $('#ag-body'); if (b) b.scrollTop = b.scrollHeight; if (focus === 'ag-ta') { const t = $('#ag-ta'); t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }
+  if (S.sec === 'agent' && focus === 'ta-q') { const t = $('#ta-q'); t.focus(); t.setSelectionRange(t.value.length, t.value.length); }
+};
+const AGA = {
+  agSend: () => agSend(S.ag.draft),
+  agSugg: el => agSend(el.dataset.v),
+  agSide: () => { const g = $('#ag'); g && g.classList.toggle('side-open'); },
+  tkRetry: el => { const t = taskById(el.dataset.id); tkRun(t, t.retryOk); },
+  tkCancel: el => { const t = taskById(el.dataset.id); t.state = 'canceling'; t.events.push({ t: Date.now(), who: OP.short, kind: 'pending', text: 'Cancellation requested by ' + OP.short }); agRefresh(); setTimeout(() => { t.state = 'canceled'; t.events.push({ t: Date.now(), who: 'Coordinator', kind: 'completed', text: 'Canceled · no external effects were in progress' }); toast(`${t.id} canceled`, 'info'); agRefresh(); }, 900 / S.speed); },
+  actOpen: el => { S.actView = 'tasks'; S.ag.af = { agent: 'all', state: 'all', q: el.dataset.id }; S.ag.open[el.dataset.id] = true; go('#/agent'); },
+  actView: el => { S.actView = el.dataset.v; renderMain(false); },
+  actAgent: el => { S.ag.af.agent = el.dataset.v; renderMain(false); },
+};
 
 /* ------------------------------------------------------------------ overlays */
 let lastFocus = null;
@@ -1854,9 +2744,11 @@ function palItems(q) {
     ...S.cases.map(c => ({ g: 'Cases', l: c.subject, s: c.customer, i: CH[c.channel].icon, go: '#/inbox/' + c.id })),
     ...Object.values(S.issues).map(i => ({ g: 'Issues', l: i.title, s: i.id, i: 'bug', go: '#/issues/' + i.id })),
     ...S.features.map(f => ({ g: 'Feature requests', l: f.title, s: f.id, i: 'bulb', go: '#/features/' + f.id })),
+    ...(S.growth ? S.growth.opps : []).map(o => ({ g: 'Growth', l: o.text, s: o.author, i: 'trend', go: '#/growth/' + o.id })),
+    ...(S.ag ? allTasks() : []).map(t => ({ g: 'Agent tasks', l: t.title, s: t.id, i: 'bot', go: `#/agents/${t.agent}/${t.id}` })),
     { g: 'Actions', l: 'Start investigation', s: 'ISS-14', i: 'play', fn: () => { go('#/inbox/c1'); startRun(); } },
     { g: 'Actions', l: 'Capture X post', s: 'Integrations', i: 'xlogo', fn: openCapture },
-    ...[['Inbox', 'inbox'], ['Issues', 'bug'], ['Feature requests', 'bulb'], ['Agent activity', 'activity'], ['Integrations', 'plug'], ['Settings', 'settings']].map(([l, i]) => ({ g: 'Go to', l, s: '', i, go: '#/' + { Inbox: 'inbox', Issues: 'issues', 'Feature requests': 'features', 'Agent activity': 'agent', Integrations: 'integrations', Settings: 'settings' }[l] })),
+    ...[['Home', 'home'], ['Inbox', 'inbox'], ['Issues', 'bug'], ['Feature requests', 'bulb'], ['Growth', 'trend'], ['Agents', 'bot'], ['Agent activity', 'activity'], ['Integrations', 'plug'], ['Settings', 'settings']].map(([l, i]) => ({ g: 'Go to', l, s: '', i, go: '#/' + { Inbox: 'inbox', Issues: 'issues', 'Feature requests': 'features', Growth: 'growth', Home: 'home', Agents: 'agents', 'Agent activity': 'agent', Integrations: 'integrations', Settings: 'settings' }[l] })),
   ];
   return q ? items.filter(x => (x.l + ' ' + x.s + ' ' + x.g).toLowerCase().includes(q)) : items;
 }
@@ -1885,7 +2777,7 @@ function openApprovals(btn) {
   const r = btn.getBoundingClientRect(); const a = approvals();
   lastFocus = btn;
   $('#overlay').innerHTML = `<div class="scrim" data-act="close" style="background:transparent;opacity:1"></div><div class="pop" role="dialog" aria-label="Pending approvals" style="top:${r.bottom + 6}px;right:${innerWidth - r.right}px"><div class="pop-h">Pending approvals<span class="chip outline">${a.length}</span></div>
-    ${a.length ? a.map(x => x.kind === 'fix' ? `<button class="pop-item" data-act="apprFix"><span class="fe-i warn" style="width:24px;height:24px;border-radius:7px;display:grid;place-items:center;background:var(--warn-t);color:var(--warn)">${ic('rocket', 13)}</span><div><b>Review proposed fix</b><div style="color:var(--ink-2);font-size:12px">ISS-14 · ${commit()} · tests passed</div></div></button>`
+    ${a.length ? a.map(x => x.kind === 'growth' ? `<button class="pop-item" data-act="goto" data-v="#/growth/${x.o.id}"><span style="width:24px;height:24px;border-radius:7px;display:grid;place-items:center;background:var(--accent-t);color:var(--accent)">${ic('trend', 13)}</span><div><b>Review growth reply</b><div style="color:var(--ink-2);font-size:12px">${x.o.id} · ${esc(x.o.author)} · draft #${x.o.draft.hash}</div></div></button>` : x.kind === 'fix' ? `<button class="pop-item" data-act="apprFix"><span class="fe-i warn" style="width:24px;height:24px;border-radius:7px;display:grid;place-items:center;background:var(--warn-t);color:var(--warn)">${ic('rocket', 13)}</span><div><b>Review proposed fix</b><div style="color:var(--ink-2);font-size:12px">ISS-14 · ${commit()} · tests passed</div></div></button>`
       : `<button class="pop-item" data-act="goto" data-v="#/features/${x.f.id}"><span style="width:24px;height:24px;border-radius:7px;display:grid;place-items:center;background:var(--feature-t);color:var(--feature)">${ic('bulb', 13)}</span><div><b>Approve specification</b><div style="color:var(--ink-2);font-size:12px">${x.f.id} · ${esc(x.f.title)}</div></div></button>`).join('')
       : `<div class="pop-empty">${ic('check', 18)}<div style="margin-top:6px">Nothing waiting on you.</div></div>`}</div>`;
   const first = $('.pop .pop-item'); first && first.focus();
@@ -1898,6 +2790,7 @@ function renderDemo() {
   if (!S.sec) { el.innerHTML = ''; return; }
   el.innerHTML = `${demoOpen ? `<div class="demo-panel" role="dialog" aria-label="Demo controls"><h5>Demo controls <a href="bloom.html" target="_blank" rel="noopener" style="font-weight:500;color:var(--accent);text-decoration:none">Open Bloom ↗</a></h5>
     <div class="demo-row"><label>Inbox state</label><div class="seg-ctl">${['populated', 'loading', 'empty', 'error'].map(k => `<button class="${S.inboxState === k ? 'on' : ''}" data-act="demoInbox" data-v="${k}">${k}</button>`).join('')}</div></div>
+    <div class="demo-row"><label>Growth state</label><div class="seg-ctl">${['populated', 'loading', 'empty', 'error'].map(k => `<button class="${S.growth.state === k ? 'on' : ''}" data-act="demoGrowth" data-v="${k}">${k}</button>`).join('')}</div></div>
     <div class="demo-row"><label>Run speed</label><div class="seg-ctl">${[1, 3].map(k => `<button class="${S.speed === k ? 'on' : ''}" data-act="speed" data-v="${k}">${k}×</button>`).join('')}</div></div>
     <div class="demo-row"><div class="switch">Make stage 7 fail once<button class="tog ${S.failArmed ? 'on' : ''}" role="switch" aria-checked="${S.failArmed}" data-act="failToggle" aria-label="Make stage 7 fail once"></button></div></div>
     <button class="btn sm danger" style="width:100%;justify-content:center" data-act="reset">${ic('refresh', 13)}Reset story</button></div>` : ''}
@@ -1957,6 +2850,7 @@ const A = {
   failToggle: () => { S.failArmed = !S.failArmed; renderDemo(); toast(S.failArmed ? 'Stage 7 will fail once on the next run' : 'Failure injection off', 'info'); },
   pal: el => runPal(+el.dataset.i),
 };
+Object.assign(A, GA, AGA);
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]'); if (!el) return;
   const fn = A[el.dataset.act]; if (!fn) return;
@@ -1967,9 +2861,15 @@ document.addEventListener('input', e => {
   const t = e.target;
   if (t.id === 'comp-ta') { S.compose.text = t.value; const b = $('#send-btn'); if (b) b.disabled = !t.value.trim(); }
   if (t.dataset && t.dataset.xc) { XC[t.dataset.xc] = t.value; if (XC.errs[t.dataset.xc]) { delete XC.errs[t.dataset.xc]; t.classList.remove('bad'); const n = t.nextElementSibling; if (n && n.classList.contains('f-err')) n.remove(); } const lab = t.id === 'xc-text' && $('label[for="xc-text"] span'); if (lab) lab.textContent = t.value.length + '/280'; $('#xc-prev').innerHTML = capturePreview(); }
+  if (t.id === 'g-draft') gEdit(t.value);
+  if (t.id === 'ag-ta') { S.ag.draft = t.value; const b = $('#ag-send'); if (b) b.disabled = !t.value.trim(); }
+  if (t.id === 'ta-q') { S.ag.af.q = t.value; const l = $('#ta-list'); if (l) l.innerHTML = taRows(); }
   if (t.id === 'rej') { t.classList.remove('bad'); $('#rej-err').innerHTML = ''; }
 });
 document.addEventListener('change', e => {
+  if (e.target.id === 'ta-state') { S.ag.af.state = e.target.value; renderMain(false); }
+  if (e.target.id === 'ag-ctx') { const a = agentById(S.id) || S.ag.agents[0]; const t = taskById(e.target.value); (S.ag.convos[a.id] = S.ag.convos[a.id] || []).push({ who: 'sys', t: Date.now(), icon: 'link', text: t ? `Context changed to ${t.id} · ${t.title}` : 'Context changed to agent-level' }); go(`#/agents/${a.id}` + (t ? '/' + t.id : '')); }
+  if (e.target.id === 'g-url' && S.growth) { const o = gCur(); if (o && o.pub) o.pub.draftUrl = e.target.value; }
   if (e.target.id === 'xc-shot' && e.target.files[0]) { const fr = new FileReader(); fr.onload = () => { XC.shot = fr.result; $('.dr-b').innerHTML = captureBody(); }; fr.readAsDataURL(e.target.files[0]); }
 });
 document.addEventListener('keydown', e => {
@@ -1977,6 +2877,7 @@ document.addEventListener('keydown', e => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); if (S.sec) openPalette(); return; }
   if (e.key === 'Escape') { if ($('#overlay').innerHTML) { closeOverlays(); return; } if (demoOpen) { demoOpen = false; renderDemo(); } return; }
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && document.activeElement.id === 'comp-ta') { e.preventDefault(); send(); return; }
+  if (e.key === 'Enter' && !e.shiftKey && document.activeElement.id === 'ag-ta') { e.preventDefault(); agSend(S.ag.draft); return; }
   if (typing || !S.sec || $('#overlay').innerHTML) return;
   if (e.key === '/') { e.preventDefault(); openPalette(); return; }
   if (e.key === 'Enter' && document.activeElement.matches('[role="button"][data-act], tr[data-act]')) { document.activeElement.click(); return; }
@@ -1988,6 +2889,7 @@ document.addEventListener('keydown', e => {
   if (S.sec === 'inbox' && ['1', '2', '3'].includes(e.key)) setTab(['conversation', 'investigation', 'changes'][+e.key - 1]);
 });
 addEventListener('resize', () => placeUL(true));
+document.addEventListener('toggle', e => { const d = e.target; if (d.tagName === 'DETAILS' && d.dataset.id && S.ag) S.ag.open[d.dataset.id] = d.open; }, true);
 
 /* ------------------------------------------------------------------ boot */
 hydrateIcons();
