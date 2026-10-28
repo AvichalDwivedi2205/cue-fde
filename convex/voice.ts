@@ -1,6 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { authorize } from "./cue";
 import schema from "./schema";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -197,6 +197,7 @@ export const finish = mutation({
         body: "Customer opted into a voice session. Spoken turns are transcribed in this conversation; raw audio is not stored.",
         createdAt: Date.now(),
       });
+    await ctx.runMutation(internal.triageQueue.enqueue, { caseId: id });
     return id;
   },
 });

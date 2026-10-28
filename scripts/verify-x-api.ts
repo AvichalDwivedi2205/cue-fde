@@ -8,6 +8,7 @@ nextEnv.loadEnvConfig(process.cwd());
 const { api, db, secret } = await import("../lib/server-store");
 const { readIntegrations } = await import("../lib/integration-config");
 const { xRuntimeStatus } = await import("../lib/integration-checks");
+const { readHostedBackground } = await import("../lib/hosted-background");
 const [url, marker, kind, ...tags] = process.argv.slice(2);
 assert(
   url &&
@@ -100,12 +101,24 @@ pass(
   "Customer message, Gemini classification and expected tags persist without duplication",
 );
 
-const checkpoint = JSON.parse(await fs.readFile(".cue/x-poll.json", "utf8"));
+const hosted = (await readHostedBackground()).value.enabled;
+const cursor = hosted
+  ? (
+      await db().query(api.serverState.read, {
+        secret: secret(),
+        key: "x-checkpoint",
+      })
+    )?.value
+  : await fs.readFile(".cue/x-poll.json", "utf8");
+assert(cursor, "Collection checkpoint must exist");
+const checkpoint = JSON.parse(cursor);
 assert(checkpoint.sinceId && BigInt(checkpoint.sinceId) >= BigInt(postId));
 assert((await xRuntimeStatus()).connected);
-pass("Persistent worker completed the native cursor and remains connected");
+pass(
+  `${hosted ? "Hosted collection" : "Persistent local worker"} completed the native cursor and remains connected`,
+);
 await fs.writeFile(
-  ".cue/x-api-verification.json",
+  hosted ? ".cue/x-hosted-verification.json" : ".cue/x-api-verification.json",
   JSON.stringify(
     {
       checkedAt: new Date().toISOString(),
@@ -114,9 +127,12 @@ await fs.writeFile(
       sourceUrl: c.sourceUrl,
       receipt: c.externalId,
       tags: c.tags,
+      hosting: hosted ? "cloud" : "local",
       limits: [
         "Public reply delivery requires a separate native browser check",
-        "Free credits and a connected local worker remain prerequisites",
+        hosted
+          ? "Free credits and the hosted Convex scheduler remain prerequisites"
+          : "Free credits and a connected local worker remain prerequisites",
       ],
     },
     null,

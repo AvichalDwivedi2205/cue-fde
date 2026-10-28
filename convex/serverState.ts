@@ -3,7 +3,12 @@ import { query, mutation } from "./_generated/server";
 import { authorize } from "./cue";
 import schema from "./schema";
 
-const key = v.union(v.literal("integrations"), v.literal("worker"));
+const key = v.union(
+  v.literal("integrations"),
+  v.literal("worker"),
+  v.literal("background"),
+  v.literal("x-checkpoint"),
+);
 export const read = query({
   args: { secret: v.string(), key },
   returns: v.union(v.null(), schema.doc("serverState")),

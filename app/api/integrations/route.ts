@@ -113,7 +113,7 @@ export async function POST(request: Request) {
       return Response.json({
         ok: true,
         message: config.enabled
-          ? "X credentials verified. Collection starts with new mentions when the connected worker polls. Public replies remain drafts."
+          ? "X credentials verified. Cue’s connected collector imports new mentions. Public replies remain drafts."
           : "X API credentials saved; collection paused.",
       });
     }

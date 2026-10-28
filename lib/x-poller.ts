@@ -12,6 +12,7 @@ const checkpointSchema = z.object({
   nextToken: z.string().max(1000).optional(),
   imported: z.number().int().nonnegative(),
 });
+export type XCheckpoint = z.infer<typeof checkpointSchema>;
 export type XStatus = {
   connected: boolean;
   detail: string;
@@ -24,7 +25,11 @@ export function createXPoller(deps: {
   config(): Promise<XConfig | undefined>;
   provider?: typeof createXApi;
   receive(report: XReport): Promise<{ duplicate: boolean }>;
-  checkpointFile: string;
+  checkpointFile?: string;
+  checkpointStorage?: {
+    load(): Promise<unknown | null>;
+    save(value: XCheckpoint): Promise<void>;
+  };
 }) {
   let running: Promise<void> | undefined;
   let state: XStatus = {
@@ -81,6 +86,10 @@ export function createXPoller(deps: {
       imported: 0,
     };
     async function save() {
+      if (deps.checkpointStorage)
+        return deps.checkpointStorage.save(checkpoint);
+      if (!deps.checkpointFile)
+        throw new Error("Checkpoint storage unavailable");
       await fs.mkdir(path.dirname(deps.checkpointFile), { recursive: true });
       const temp = deps.checkpointFile + "." + randomUUID();
       await fs.writeFile(temp, JSON.stringify(checkpoint), { mode: 0o600 });
@@ -88,10 +97,13 @@ export function createXPoller(deps: {
     }
     try {
       try {
-        const saved = checkpointSchema.parse(
-          JSON.parse(await fs.readFile(deps.checkpointFile, "utf8")),
-        );
-        if (saved.fingerprint === fingerprint) checkpoint = saved;
+        const value = deps.checkpointStorage
+          ? await deps.checkpointStorage.load()
+          : JSON.parse(await fs.readFile(deps.checkpointFile!, "utf8"));
+        if (value !== null) {
+          const saved = checkpointSchema.parse(value);
+          if (saved.fingerprint === fingerprint) checkpoint = saved;
+        }
       } catch (e) {
         if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
       }
@@ -119,7 +131,8 @@ export function createXPoller(deps: {
       const next = page.meta?.next_token;
       if (next && next === checkpoint.nextToken)
         throw new XApiError("provider");
-      checkpoint.nextToken = next;
+      if (next) checkpoint.nextToken = next;
+      else delete checkpoint.nextToken;
       if (!next && checkpoint.candidateId) {
         checkpoint.sinceId = checkpoint.candidateId;
         delete checkpoint.candidateId;

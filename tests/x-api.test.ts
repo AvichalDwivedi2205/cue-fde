@@ -239,6 +239,53 @@ test("rate limits back off and prevent overlapping polls", async () => {
   expect(s.credits).toHaveBeenCalledTimes(1);
   expect(s.poller.status().retryAt).toBeGreaterThan(Date.now() + 14 * 60000);
 });
+test("a shared checkpoint resumes pagination across stateless server instances", async () => {
+  const s = setup();
+  let checkpoint: unknown = null;
+  const deps = {
+    ...s,
+    checkpointFile: undefined,
+    checkpointStorage: {
+      load: async () => checkpoint,
+      save: async (value: unknown) => {
+        checkpoint = structuredClone(value);
+      },
+    },
+  };
+  s.mentions.mockResolvedValueOnce({
+    ...page,
+    meta: { next_token: "next-page" },
+  });
+  await createXPoller(deps).poll();
+  expect(checkpoint).toMatchObject({
+    candidateId: post.id,
+    nextToken: "next-page",
+    imported: 1,
+  });
+  s.mentions.mockResolvedValueOnce({ meta: { result_count: 0 } });
+  await createXPoller(deps).poll();
+  expect(s.mentions.mock.calls[1][0]).toMatchObject({ nextToken: "next-page" });
+  expect(checkpoint).toMatchObject({ sinceId: post.id, imported: 1 });
+  expect(checkpoint).not.toHaveProperty("nextToken");
+  expect(s.receive).toHaveBeenCalledTimes(1);
+});
+test("shared storage conflict cannot advance the cursor or claim healthy collection", async () => {
+  const s = setup();
+  const poller = createXPoller({
+    ...s,
+    checkpointFile: undefined,
+    checkpointStorage: {
+      load: async () => null,
+      save: async () => {
+        throw new Error("Conflicting storage write");
+      },
+    },
+  });
+  await poller.poll();
+  expect(poller.status().connected).toBe(false);
+  expect(poller.status().detail).toContain("checkpoint");
+  expect(s.receive).toHaveBeenCalledTimes(1);
+});
 test("failed report commit keeps cursor and retries idempotently after restart", async () => {
   const s = setup();
   s.receive.mockRejectedValueOnce(new Error("DB unavailable"));

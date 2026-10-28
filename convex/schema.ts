@@ -8,6 +8,23 @@ export default defineSchema({
     version: v.number(),
     updatedAt: v.number(),
   }).index("by_key", ["key"]),
+  triageReceipts: defineTable({
+    caseId: v.id("cases"),
+    messageId: v.id("messages"),
+    status: v.union(
+      v.literal("queued"),
+      v.literal("completed"),
+      v.literal("superseded"),
+      v.literal("failed"),
+    ),
+    workId: v.optional(v.string()),
+    updatedAt: v.number(),
+  }).index("by_messageId", ["messageId"]),
+  backgroundLeases: defineTable({
+    name: v.literal("x"),
+    token: v.string(),
+    until: v.number(),
+  }).index("by_name", ["name"]),
   cases: defineTable({
     title: v.string(),
     customer: v.string(),
@@ -51,7 +68,9 @@ export default defineSchema({
     role: v.string(),
     body: v.string(),
     createdAt: v.number(),
-  }).index("by_caseId_and_createdAt", ["caseId", "createdAt"]),
+  })
+    .index("by_caseId_and_createdAt", ["caseId", "createdAt"])
+    .index("by_caseId_and_role_and_createdAt", ["caseId", "role", "createdAt"]),
   runs: defineTable({
     issueId: v.id("issues"),
     status: v.string(),

@@ -1,5 +1,5 @@
 import { mutation } from "./_generated/server";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { v, ConvexError } from "convex/values";
 import { authorize } from "./cue";
 import type { Id } from "./_generated/dataModel";
@@ -44,6 +44,9 @@ export const widgetMessage = mutation({
         createdAt: Date.now(),
       });
       await ctx.db.patch("cases", existing._id, { updatedAt: Date.now() });
+      await ctx.runMutation(internal.triageQueue.enqueue, {
+        caseId: existing._id,
+      });
       return { caseId: existing._id, created: false };
     }
     const caseId: Id<"cases"> = await ctx.runMutation(api.cue.createCase, {
@@ -164,6 +167,7 @@ export const receive = mutation({
         updatedAt: Date.now(),
         externalId: a.externalId,
       });
+      await ctx.runMutation(internal.triageQueue.enqueue, { caseId });
     } else {
       caseId = await ctx.runMutation(api.cue.createCase, {
         secret: a.secret,

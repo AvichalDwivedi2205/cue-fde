@@ -8,13 +8,17 @@
  * @module
  */
 
+import type * as background from "../background.js";
 import type * as bloom from "../bloom.js";
+import type * as crons from "../crons.js";
 import type * as cue from "../cue.js";
 import type * as deliveries from "../deliveries.js";
+import type * as hosted from "../hosted.js";
 import type * as intake from "../intake.js";
 import type * as jobs from "../jobs.js";
 import type * as releases from "../releases.js";
 import type * as serverState from "../serverState.js";
+import type * as triageQueue from "../triageQueue.js";
 import type * as voice from "../voice.js";
 
 import type {
@@ -24,13 +28,17 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  background: typeof background;
   bloom: typeof bloom;
+  crons: typeof crons;
   cue: typeof cue;
   deliveries: typeof deliveries;
+  hosted: typeof hosted;
   intake: typeof intake;
   jobs: typeof jobs;
   releases: typeof releases;
   serverState: typeof serverState;
+  triageQueue: typeof triageQueue;
   voice: typeof voice;
 }>;
 
@@ -60,4 +68,6 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  triagePool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"triagePool">;
+};

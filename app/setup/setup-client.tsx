@@ -284,9 +284,9 @@ export function SetupClient({ origin }: { origin: string }) {
           Your developer account must already have free credits. Availability
           varies; adding a payment method does not guarantee eligibility. Cue
           never buys credits or configures auto-recharge. Keep auto-recharge
-          disabled in X. A connected worker is required. Only mentions after
-          activation are imported. Email notifications remain available as a
-          best-effort fallback.
+          disabled in X. Cue’s collector must be online; hosted installations
+          use a server schedule. Only mentions after activation are imported.
+          Email notifications remain available as a best-effort fallback.
         </p>
       </section>
       <section id="slack">

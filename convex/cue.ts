@@ -3,6 +3,7 @@ import { mutation, query, env } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { uploadRegressionCandidate } from "../lib/symptoms";
 import { fallbackReply } from "../lib/reply-policy";
+import { internal } from "./_generated/api";
 
 export function authorize(secret: string) {
   if (!env.CUE_DEMO_SECRET || secret !== env.CUE_DEMO_SECRET)
@@ -385,6 +386,7 @@ export const createCase = mutation({
       kind: "intake",
       createdAt: stamp(),
     });
+    await ctx.runMutation(internal.triageQueue.enqueue, { caseId: id });
     return id;
   },
 });
@@ -416,6 +418,10 @@ export const message = mutation({
       createdAt: stamp(),
     });
     await ctx.db.patch("cases", args.caseId, { updatedAt: stamp() });
+    if (args.role === "customer")
+      await ctx.runMutation(internal.triageQueue.enqueue, {
+        caseId: args.caseId,
+      });
     return null;
   },
 });
@@ -769,6 +775,7 @@ export const triage = mutation({
   args: {
     secret: v.string(),
     caseId: v.id("cases"),
+    receiptId: v.optional(v.id("triageReceipts")),
     issueId: v.optional(v.id("issues")),
     priority: v.union(v.literal("P1"), v.literal("P2"), v.literal("P3")),
     tags: v.array(v.string()),
@@ -780,6 +787,30 @@ export const triage = mutation({
     authorize(a.secret);
     const report = await ctx.db.get("cases", a.caseId);
     if (!report) throw new ConvexError("Case not found");
+    if (a.receiptId) {
+      const receipt = await ctx.db.get("triageReceipts", a.receiptId);
+      if (!receipt || receipt.caseId !== report._id)
+        throw new ConvexError("Wrong triage receipt");
+      if (receipt.status !== "queued") return null;
+      const latest = await ctx.db
+        .query("messages")
+        .withIndex("by_caseId_and_role_and_createdAt", (q) =>
+          q.eq("caseId", report._id).eq("role", "customer"),
+        )
+        .order("desc")
+        .first();
+      if (latest?._id !== receipt.messageId) {
+        await ctx.db.patch("triageReceipts", receipt._id, {
+          status: "superseded",
+          updatedAt: stamp(),
+        });
+        return null;
+      }
+      await ctx.db.patch("triageReceipts", receipt._id, {
+        status: "completed",
+        updatedAt: stamp(),
+      });
+    }
     const current = report.issueId
       ? await ctx.db.get("issues", report.issueId)
       : null;

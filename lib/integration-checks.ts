@@ -6,6 +6,7 @@ import type { EmailConfig, SlackConfig } from "./integration-config";
 import { slackConfig } from "./integration-config";
 import { slackWebhookStatus } from "./slack-webhook-health";
 import type { XStatus } from "./x-poller";
+import { readHostedBackground } from "./hosted-background";
 const exec = promisify(execFile);
 export async function sharedWorkerStatus() {
   const row = await db().query(api.serverState.read, {
@@ -32,9 +33,12 @@ export async function sharedWorkerStatus() {
 export async function xRuntimeStatus(): Promise<XStatus> {
   try {
     let value: XStatus | undefined;
-    if (process.env.CUE_SHARED_CONFIG === "true")
-      value = (await sharedWorkerStatus()).x;
-    else {
+    if (process.env.CUE_SHARED_CONFIG === "true") {
+      const hosted = await readHostedBackground();
+      value = hosted.value.enabled
+        ? hosted.value.x
+        : (await sharedWorkerStatus()).x;
+    } else {
       const response = await fetch("http://127.0.0.1:4319/status", {
         headers: { authorization: "Bearer " + secret() },
         signal: AbortSignal.timeout(1500),
