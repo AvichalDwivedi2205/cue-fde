@@ -16,6 +16,7 @@ import type * as deliveries from "../deliveries.js";
 import type * as growth from "../growth.js";
 import type * as growthAttribution from "../growthAttribution.js";
 import type * as growthExecution from "../growthExecution.js";
+import type * as growthPolicy from "../growthPolicy.js";
 import type * as growthSchema from "../growthSchema.js";
 import type * as growthTasks from "../growthTasks.js";
 import type * as hosted from "../hosted.js";
@@ -44,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   growth: typeof growth;
   growthAttribution: typeof growthAttribution;
   growthExecution: typeof growthExecution;
+  growthPolicy: typeof growthPolicy;
   growthSchema: typeof growthSchema;
   growthTasks: typeof growthTasks;
   hosted: typeof hosted;
