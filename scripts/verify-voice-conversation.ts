@@ -188,9 +188,10 @@ const result = {
     "Fixed synthetic sentences exercise real services; naturalness and novel diagnostic quality still require human review. This is turn-based voice.",
 };
 await fs.writeFile(
-  base.startsWith("https:")
-    ? ".cue/hosted-voice-conversation.json"
-    : ".cue/voice-conversation.json",
+  process.env.CUE_VERIFY_OUTPUT ||
+    (base.startsWith("https:")
+      ? ".cue/hosted-voice-conversation.json"
+      : ".cue/voice-conversation.json"),
   JSON.stringify(result, null, 2),
   { mode: 0o600 },
 );
