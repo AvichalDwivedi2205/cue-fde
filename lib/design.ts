@@ -5,10 +5,17 @@ export async function design(name: "bloom" | "cue") {
     path.join(process.cwd(), "design", name + ".html"),
     "utf8",
   );
-  const bridge = await fs.readFile(
+  let bridge = await fs.readFile(
     path.join(process.cwd(), "lib/browser", name + ".js"),
     "utf8",
   );
+  if (name === "cue")
+    bridge +=
+      "\n" +
+      (await fs.readFile(
+        path.join(process.cwd(), "lib/browser/workspace.js"),
+        "utf8",
+      ));
   html = html.replace(
     name === "cue"
       ? "/* ------------------------------------------------------------------ boot */"
@@ -42,7 +49,7 @@ export async function design(name: "bloom" | "cue") {
       .replaceAll("bloom/bloom-app#128", "Example pull request");
   if (name === "cue" && process.env.CUE_BLOOM_PUBLIC_URL) {
     const bloomOrigin = new URL(process.env.CUE_BLOOM_PUBLIC_URL).origin;
-    html = html.replaceAll('href="/bloom', 'href="' + bloomOrigin + '/');
+    html = html.replaceAll('href="/bloom', 'href="' + bloomOrigin + "/");
   }
   html = html
     .replace(

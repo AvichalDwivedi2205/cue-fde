@@ -4,8 +4,15 @@ import { api, db, secret } from "@/lib/server-store";
 import { pollHostedX } from "@/lib/hosted-background";
 import { classifySavedReport } from "@/lib/triage";
 import type { Id } from "@/convex/_generated/dataModel";
+import { randomUUID } from "node:crypto";
 export const runtime = "nodejs";
 const input = z.discriminatedUnion("action", [
+  z
+    .object({
+      action: z.literal("workspace"),
+      taskId: z.string().min(1).max(100),
+    })
+    .strict(),
   z.object({ action: z.literal("poll-x") }).strict(),
   z
     .object({
@@ -29,7 +36,39 @@ export async function POST(request: Request) {
     const parsed = input.safeParse(JSON.parse(raw));
     if (!parsed.success)
       return Response.json({ error: "Invalid job" }, { status: 400 });
-    if (parsed.data.action === "poll-x") await pollHostedX();
+    if (parsed.data.action === "workspace") {
+      const taskId = parsed.data.taskId as Id<"agentTasks">,
+        token = randomUUID();
+      const task = await db().mutation(api.workspace.begin, {
+        secret: secret(),
+        taskId,
+        token,
+      });
+      if (task) {
+        try {
+          const status = await pollHostedX();
+          if (!status?.connected)
+            throw new Error("Collection skipped or unavailable");
+          await db().mutation(api.workspace.finish, {
+            secret: secret(),
+            taskId,
+            token,
+            ok: true,
+            detail: status.detail,
+          });
+        } catch {
+          await db().mutation(api.workspace.finish, {
+            secret: secret(),
+            taskId,
+            token,
+            ok: false,
+            detail:
+              "Official collection unavailable. Shared checkpoint preserved; bounded retry pending.",
+          });
+          throw new Error("Collection unavailable");
+        }
+      }
+    } else if (parsed.data.action === "poll-x") await pollHostedX();
     else {
       const receiptId = parsed.data.receiptId as Id<"triageReceipts">;
       const receipt = await db().query(api.triageQueue.receipt, {

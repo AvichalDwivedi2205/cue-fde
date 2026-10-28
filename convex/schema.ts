@@ -1,7 +1,70 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { agentId, taskState, taskAction } from "./workspaceValidators";
 
 export default defineSchema({
+  agentConversations: defineTable({
+    appId: v.string(),
+    agent: agentId,
+    participant: v.string(),
+    threadId: v.string(),
+    createdAt: v.number(),
+  }).index("by_appId_and_agent_and_participant", [
+    "appId",
+    "agent",
+    "participant",
+  ]),
+  agentCommands: defineTable({
+    key: v.string(),
+    conversationId: v.id("agentConversations"),
+    actor: v.string(),
+    via: v.string(),
+    taskId: v.optional(v.id("agentTasks")),
+    contextTask: v.optional(v.string()),
+    promptId: v.string(),
+    replyId: v.string(),
+    response: v.string(),
+    promptText: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_key", ["key"])
+    .index("by_conversationId", ["conversationId"]),
+  agentTasks: defineTable({
+    appId: v.string(),
+    agent: agentId,
+    action: taskAction,
+    key: v.string(),
+    title: v.string(),
+    state: taskState,
+    stage: v.string(),
+    issueId: v.optional(v.id("issues")),
+    runId: v.optional(v.id("runs")),
+    blocker: v.optional(v.string()),
+    workId: v.optional(v.string()),
+    leaseToken: v.optional(v.string()),
+    leaseUntil: v.optional(v.number()),
+    attempts: v.number(),
+    cancel: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_key", ["key"])
+    .index("by_appId", ["appId"]),
+  agentTaskEvents: defineTable({
+    taskId: v.id("agentTasks"),
+    actor: v.string(),
+    kind: v.string(),
+    text: v.string(),
+    createdAt: v.number(),
+    evidence: v.optional(v.string()),
+  }).index("by_taskId", ["taskId"]),
+  agentSlackThreads: defineTable({
+    key: v.string(),
+    appId: v.string(),
+    agent: agentId,
+    taskId: v.optional(v.id("agentTasks")),
+    participant: v.string(),
+  }).index("by_key", ["key"]),
   serverState: defineTable({
     key: v.string(),
     value: v.string(),

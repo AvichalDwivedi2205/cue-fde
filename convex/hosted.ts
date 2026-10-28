@@ -45,3 +45,11 @@ export const pollX = internalAction({
     return null;
   },
 });
+export const workspace = internalAction({
+  args: { taskId: v.id("agentTasks") },
+  returns: v.null(),
+  handler: async (_ctx, a) => {
+    await dispatch({ action: "workspace", taskId: a.taskId });
+    return null;
+  },
+});

@@ -28,14 +28,14 @@ export async function readHostedBackground() {
 
 export async function pollHostedX() {
   const background = await readHostedBackground();
-  if (!background.value.enabled) return;
+  if (!background.value.enabled) return null;
   if (background.value.x?.retryAt && background.value.x.retryAt > Date.now())
-    return;
+    return null;
   const store = db(),
     auth = secret(),
     token = randomUUID();
   if (!(await store.mutation(api.background.acquire, { secret: auth, token })))
-    return;
+    return null;
   try {
     let checkpointVersion = 0;
     const poller = createXPoller({
@@ -86,6 +86,7 @@ export async function pollHostedX() {
       }))
     )
       throw new Error("Background configuration changed during collection");
+    return status;
   } finally {
     await store.mutation(api.background.release, { secret: auth, token });
   }

@@ -29,6 +29,12 @@ export const claim = mutation({
         }
       }
     }
+    // All companions share one coding slot, including concurrent claim calls.
+    const running = await ctx.db
+      .query("jobs")
+      .withIndex("by_status", (q) => q.eq("status", "running"))
+      .first();
+    if (running) return null;
     const job = await ctx.db
       .query("jobs")
       .withIndex("by_status", (q) => q.eq("status", "queued"))

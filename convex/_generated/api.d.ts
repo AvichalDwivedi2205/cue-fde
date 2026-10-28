@@ -20,6 +20,8 @@ import type * as releases from "../releases.js";
 import type * as serverState from "../serverState.js";
 import type * as triageQueue from "../triageQueue.js";
 import type * as voice from "../voice.js";
+import type * as workspace from "../workspace.js";
+import type * as workspaceValidators from "../workspaceValidators.js";
 
 import type {
   ApiFromModules,
@@ -40,6 +42,8 @@ declare const fullApi: ApiFromModules<{
   serverState: typeof serverState;
   triageQueue: typeof triageQueue;
   voice: typeof voice;
+  workspace: typeof workspace;
+  workspaceValidators: typeof workspaceValidators;
 }>;
 
 /**
@@ -70,4 +74,5 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   triagePool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"triagePool">;
+  agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
 };

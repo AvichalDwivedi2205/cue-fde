@@ -7,7 +7,7 @@ import type { Id } from "./_generated/dataModel";
 import { authorize } from "./cue";
 import schema from "./schema";
 
-const pool = new Workpool(components.triagePool, {
+export const pool = new Workpool(components.triagePool, {
   maxParallelism: 2,
   retryActionsByDefault: true,
   defaultRetryBehavior: { maxAttempts: 5, initialBackoffMs: 2000, base: 2 },
