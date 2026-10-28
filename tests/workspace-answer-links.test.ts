@@ -1,5 +1,8 @@
 import { expect, test } from "vitest";
-import { supportedAnswerLinks } from "../lib/workspace-answer";
+import {
+  contextualAnswer,
+  supportedAnswerLinks,
+} from "../lib/workspace-answer";
 const pr = "https://github.com/owner/repo/pull/12";
 const local = "http://127.0.0.1:3000/bloom#/journal";
 const context = JSON.stringify({
@@ -17,6 +20,16 @@ const context = JSON.stringify({
     },
   ],
   recordedAnswer: "Saved facts",
+});
+test("copied historical footer cannot replace or duplicate current saved facts", () => {
+  const answer = contextualAnswer(
+    "One controlled browser activated.\n\nRecorded state:\nOld pending review.\nRepeated old footer.",
+    "Publication verified; organic activation zero.",
+  );
+  expect(answer).toBe(
+    "One controlled browser activated.\n\nRecorded state:\nPublication verified; organic activation zero.",
+  );
+  expect(answer).not.toContain("Old pending");
 });
 test.each([
   `PR: \`${pr}\`.`,
