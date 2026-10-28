@@ -5,6 +5,6 @@ import nextTypescript from "eslint-config-next/typescript";
 export default defineConfig([
   ...nextCoreWebVitals,
   ...nextTypescript,
-  globalIgnores(["convex/_generated", ".cue/**"]),
+  globalIgnores(["convex/_generated", ".cue/**", "apps/**"]),
   {files:["lib/browser/*.js"],rules:{"@next/next/no-location-assign-relative-destination":"off"}},
 ]);
