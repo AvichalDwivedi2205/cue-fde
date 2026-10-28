@@ -109,7 +109,8 @@ export async function processGrowth(receiptId: Id<"growthReceipts">) {
             sourceAt: p.sourceAt,
             sourceUrl: p.sourceUrl,
             provenance:
-              "Official X recent search; distinct campaign checkpoint",
+              "Agent discovery · Official X recent search; query: " +
+              campaign.query,
             controlled: p.author.toLowerCase() === "confusedaf2205",
           });
         await db().mutation(api.growthExecution.page, {

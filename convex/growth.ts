@@ -252,6 +252,53 @@ export const createCampaign = mutation({
     });
   },
 });
+export const updateQuery = mutation({
+  args: {
+    secret: v.string(),
+    actor,
+    appId: v.string(),
+    campaignId: v.id("growthCampaigns"),
+    release: v.string(),
+    query: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, a) => {
+    authorize(a.secret);
+    permit(a.actor.role, ["owner", "product"]);
+    const c = await ctx.db.get("growthCampaigns", a.campaignId);
+    const query = a.query.trim();
+    if (c?.appId !== a.appId)
+      throw new ConvexError("Campaign belongs to another app");
+    await capability(ctx, c.capabilityId, a.release);
+    if (
+      !query ||
+      query.length > 500 ||
+      [...query].some((c) => c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127)
+    )
+      throw new ConvexError("Use a single discovery query of 1–500 characters");
+    if (query === c.query) return null;
+    const pending = await ctx.db
+      .query("growthReceipts")
+      .withIndex("by_key", (q) => q.eq("key", `${a.appId}:discover:${c._id}`))
+      .order("desc")
+      .first();
+    if ((c.leaseUntil || 0) > Date.now() || pending?.status === "queued")
+      throw new ConvexError(
+        "Wait for current discovery work before changing its query",
+      );
+    // A provider cursor belongs to one query. Keep spend, cooldown and all
+    // previously captured evidence; pause scheduling until explicitly enabled.
+    await ctx.db.patch("growthCampaigns", c._id, {
+      query,
+      paused: true,
+      sinceId: undefined,
+      nextToken: undefined,
+      pendingSinceId: undefined,
+      lastRunAt: undefined,
+    });
+    return null;
+  },
+});
 export const capture = mutation({
   args: {
     secret: v.string(),

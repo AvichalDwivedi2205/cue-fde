@@ -26,6 +26,7 @@ const input = z
       "pause",
       "feature",
       "capture",
+      "query",
     ]),
     campaignId: z.string().max(100).optional(),
     opportunityId: z.string().max(100).optional(),
@@ -34,6 +35,7 @@ const input = z
     text: z.string().max(280).optional(),
     url: z.string().max(500).optional(),
     paused: z.boolean().optional(),
+    query: z.string().min(1).max(500).optional(),
     source: z
       .object({
         url: z.url().max(500),
@@ -107,6 +109,18 @@ export async function POST(request: Request) {
         ? saved.campaigns.find((c) => c._id === o.campaignId)
         : saved.campaigns[0];
     switch (a.action) {
+      case "query":
+        if (!c || !a.query)
+          throw new ConvexError("Campaign and query required");
+        await db().mutation(api.growth.updateQuery, {
+          secret: secret(),
+          actor,
+          appId: a.appId,
+          campaignId: c._id,
+          release,
+          query: a.query,
+        });
+        break;
       case "capture": {
         if (!["owner", "product"].includes(actor.role) || !c || !a.source)
           throw new ConvexError("Product source capture required");

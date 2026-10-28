@@ -15,6 +15,113 @@ const auth = { secret: "growth-test-secret" },
 const hash = (s: string) => createHash("sha256").update(s).digest("hex");
 beforeEach(() => vi.stubEnv("CUE_DEMO_SECRET", auth.secret));
 afterEach(() => vi.unstubAllEnvs());
+
+test("editing discovery queries resets only query cursors and preserves spend, cooldown and published evidence", async () => {
+  const s = await setup();
+  const d = await published(s);
+  const before = await s.t.query(api.growth.snapshot, { ...auth, appId });
+  const retryAt = Date.now() + 300000;
+  await s.t.run((ctx) =>
+    ctx.db.patch("growthCampaigns", s.campaignId, {
+      used: 10,
+      paused: false,
+      sinceId: "123",
+      nextToken: "old-query-page",
+      pendingSinceId: "456",
+      retryAt,
+      lastRunAt: Date.now(),
+    }),
+  );
+  await s.t.mutation(api.growth.updateQuery, {
+    ...auth,
+    actor,
+    appId,
+    campaignId: s.campaignId,
+    release,
+    query: '  "photo journal" -is:retweet  ',
+  });
+  const after = await s.t.query(api.growth.snapshot, { ...auth, appId });
+  expect(after.campaigns[0]).toMatchObject({
+    query: '"photo journal" -is:retweet',
+    used: 10,
+    paused: true,
+    retryAt,
+  });
+  for (const key of ["sinceId", "nextToken", "pendingSinceId", "lastRunAt"])
+    expect(after.campaigns[0]).not.toHaveProperty(key);
+  expect(after.opportunities).toEqual(before.opportunities);
+  expect(after.drafts).toEqual(before.drafts);
+  expect(after.touches).toEqual(before.touches);
+  expect(after.touches[0].draftId).toBe(d.draftId);
+});
+
+test("query editing requires saved role, matching app, current capability and bounded valid text", async () => {
+  const s = await setup();
+  const args = {
+    ...auth,
+    actor,
+    appId,
+    campaignId: s.campaignId,
+    release,
+    query: "new query",
+  };
+  await expect(
+    s.t.mutation(api.growth.updateQuery, {
+      ...args,
+      actor: { ...actor, role: "support" },
+    }),
+  ).rejects.toThrow("Saved role");
+  await expect(
+    s.t.mutation(api.growth.updateQuery, { ...args, appId: "another-app" }),
+  ).rejects.toThrow("another app");
+  await expect(
+    s.t.mutation(api.growth.updateQuery, { ...args, release: "b".repeat(40) }),
+  ).rejects.toThrow("current deployed");
+  for (const query of [" ", "x".repeat(501), "photo\njournal"])
+    await expect(
+      s.t.mutation(api.growth.updateQuery, { ...args, query }),
+    ).rejects.toThrow("1–500");
+  expect(
+    (await s.t.query(api.growth.snapshot, { ...auth, appId })).campaigns[0]
+      .query,
+  ).toBe("caption journal -is:retweet");
+});
+
+test("query editing cannot race a reserved page or queued discovery receipt", async () => {
+  const s = await setup();
+  const args = {
+    ...auth,
+    actor,
+    appId,
+    campaignId: s.campaignId,
+    release,
+    query: "new query",
+  };
+  await s.t.mutation(api.growthExecution.reservePage, {
+    ...auth,
+    campaignId: s.campaignId,
+    token: "page-lease",
+  });
+  await expect(s.t.mutation(api.growth.updateQuery, args)).rejects.toThrow(
+    "current discovery",
+  );
+  await s.t.mutation(api.growthExecution.page, {
+    ...auth,
+    campaignId: s.campaignId,
+    token: "page-lease",
+  });
+  await s.t.mutation(api.growth.request, {
+    ...auth,
+    actor,
+    appId,
+    campaignId: s.campaignId,
+    release,
+    action: "discover",
+  });
+  await expect(s.t.mutation(api.growth.updateQuery, args)).rejects.toThrow(
+    "current discovery",
+  );
+});
 async function setup(
   text = "Anyone recommend a photo journal app to find older memories by caption?",
 ) {
