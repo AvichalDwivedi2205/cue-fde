@@ -33,6 +33,7 @@ export async function design(name: "bloom" | "cue") {
   );
   if (name === "cue")
     html = html
+      .replace("const gLink = o => ", "let gLink = o => ")
       .replace(
         "const commit = () => S.run.rev ? 'b71e04d' : 'a3f9c2e';",
         "const commit = () => S.liveRun?.commit?.slice(0,8) || 'pending';",

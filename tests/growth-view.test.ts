@@ -1,6 +1,43 @@
 import { expect, test } from "vitest";
 import { promises as fs } from "node:fs";
 import vm from "node:vm";
+import { design } from "../lib/design";
+
+test("assembled Cue bridge initializes against the supplied design bindings", async () => {
+  const html = await (await design("cue")).text();
+  const script = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)]
+    .map((match) => match[1])
+    .find((source) => source.includes("function growthPage()"))!;
+  const context = vm.createContext({
+    window: {},
+    document: { addEventListener: () => {} },
+    addEventListener: () => {},
+    matchMedia: () => ({ matches: false }),
+    fetch: () => new Promise(() => {}),
+    setInterval: () => 1,
+    localStorage: { getItem: () => null },
+  });
+  // Exercise every synchronous bridge initializer. DOM boot and provider requests
+  // are covered by native deployed checks rather than this isolated harness.
+  const executable = script.replace(
+    /hydrateIcons\(\);\s*initLanding\(\);\s*route\(\);\s*\}\)\(\);\s*$/,
+    `window.initialized = {
+      link: gLink({ link: 'https://cue.test/g/current' }),
+      capture: typeof A.gCapture,
+      approve: typeof A.gApprove,
+      discovered: G_TODO.includes('discovered'),
+      journey: gJourney({ author: '@tester', j: {} })
+    }; })();`,
+  );
+  expect(() => vm.runInContext(executable, context)).not.toThrow();
+  expect(context.window.initialized).toMatchObject({
+    link: "https://cue.test/g/current",
+    capture: "function",
+    approve: "function",
+    discovered: true,
+  });
+  expect(context.window.initialized.journey).toContain("Original source");
+});
 
 test("actual Growth bridge renders unqualified sources and unsupported needs without fixture facts", async () => {
   const supplied = await fs.readFile("design/cue.html", "utf8");
