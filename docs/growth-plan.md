@@ -42,6 +42,8 @@ A support complaint does not automatically create marketing consent. An unsuppor
 
 ## Integration inside Q
 
+The primary operator interaction follows the [Agent Workspace feature specification](agent-workspace-feature-spec.md): named agents, contextual conversations, task details and shared Activity. Growth's campaign and opportunity views supply those task details. The infinite canvas is deferred.
+
 Add **Growth** below Feature requests in the current sidebar. Reuse the existing typography, green accents, compact list/detail presentation and approval controls. Keep the product named Cue; do not add invented leads or decorative revenue numbers.
 
 Routes: `#/growth` for the workspace view and `#/growth/<opportunityId>` for an opportunity. Tabs inside Growth:
