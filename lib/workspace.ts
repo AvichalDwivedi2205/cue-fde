@@ -47,15 +47,26 @@ export async function postWorkspace(
   threadKey?: string,
 ) {
   const { config } = await workspaceApp(input.appId);
+  const references = new Set(input.text.match(/\b[a-z0-9]{26,40}\b/g) || []);
+  const tasks =
+    input.taskId || references.size
+      ? (
+          await db().query(api.workspace.snapshot, {
+            secret: secret(),
+            appId: input.appId,
+            participant: actor.id,
+          })
+        ).tasks
+      : [];
+  const matches = tasks.filter(
+    (t) => t.agent === input.agent && references.has(t._id),
+  );
   const selected = input.taskId
-    ? (
-        await db().query(api.workspace.snapshot, {
-          secret: secret(),
-          appId: input.appId,
-          participant: actor.id,
-        })
-      ).tasks.find((t) => t._id === input.taskId)
-    : null;
+    ? tasks.find((t) => t._id === input.taskId)
+    : matches.length === 1
+      ? matches[0]
+      : null;
+  const taskId = input.taskId || selected?._id;
   const words = input.text.toLowerCase();
   let growthCommand:
     | {
@@ -134,7 +145,7 @@ export async function postWorkspace(
     key: input.key,
     text: input.text,
     via,
-    ...(input.taskId ? { taskId: input.taskId as Id<"agentTasks"> } : {}),
+    ...(taskId ? { taskId: taskId as Id<"agentTasks"> } : {}),
     ...(issueId ? { issueId: issueId as Id<"issues"> } : {}),
     ...(action ? { action } : {}),
     ...growthCommand,

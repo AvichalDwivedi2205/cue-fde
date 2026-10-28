@@ -4,6 +4,7 @@ import { slackMember } from "./roles";
 import { postWorkspace, workspaceApp } from "./workspace";
 import { slackPost } from "./slack";
 import type { SlackConfig } from "./integration-config";
+import { growthOutcomeSummary } from "./growth-outcomes";
 const payload = z.object({
   team_id: z.string(),
   event: z.object({
@@ -76,7 +77,34 @@ export async function receiveWorkspaceSlack(
     threadKey,
   );
   if (result.duplicate) return true;
-  const body = `${agent[0].toUpperCase() + agent.slice(1)} · ${result.response.replaceAll("#/", (process.env.CUE_PUBLIC_URL || "https://cue.latchgrid.in") + "/cue#/")}`;
+  let outcomes = "";
+  if (agent === "growth" && result.taskId) {
+    try {
+      const workspace = await db().query(api.workspace.snapshot, {
+        secret: secret(),
+        appId: app.id,
+        participant: "email" in member ? member.email : `slack:${e.user}`,
+      });
+      const task = workspace.tasks.find((t) => t._id === result.taskId);
+      if (task?.opportunityId) {
+        const growth = await db().query(api.growth.snapshot, {
+          secret: secret(),
+          appId: app.id,
+        });
+        outcomes =
+          "\n" +
+          growthOutcomeSummary(
+            growth.touches.filter(
+              (t) => t.opportunityId === task.opportunityId,
+            ),
+            growth.browsers,
+          );
+      }
+    } catch {
+      outcomes = "\nProduct outcomes unavailable; open saved Growth context.";
+    }
+  }
+  const body = `${agent[0].toUpperCase() + agent.slice(1)} · ${result.response.replaceAll("#/", (process.env.CUE_PUBLIC_URL || "https://cue.latchgrid.in") + "/cue#/")}${outcomes}`;
   const id = await db().mutation(api.deliveries.reserve, {
     secret: secret(),
     key: `agent-reply:${p.team_id}:${e.channel}:${e.ts}`,
