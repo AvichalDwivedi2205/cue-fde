@@ -34,6 +34,10 @@ export async function design(name: "bloom" | "cue") {
         "<span>Tagged @bloomwithcue</span>",
         "<span>${/@bloomwithcue\\b/i.test(m.text) ? 'Tagged @bloomwithcue' : 'X post'}</span>",
       )
+      .replaceAll(
+        "<span>Captured by operator</span>",
+        "<span>${esc(c.source.intakeLabel || 'Captured by operator')}</span>",
+      )
       .replaceAll("a3f9c2e", "example")
       .replaceAll("bloom/bloom-app#128", "Example pull request");
   html = html
