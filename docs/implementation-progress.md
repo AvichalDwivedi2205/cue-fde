@@ -1,20 +1,20 @@
 # Agent Workspace and Growth implementation progress
 
-Updated October 11, 2026. This is an acceptance ledger, not a completion certificate. Full evidence, exact releases and retained failed evaluations are in [the Agent/Growth verification report](verification-agent-growth-2026-10-11.md).
+Updated October 11, 2026. **Approved configured-workspace Agent and Bloom Growth functional acceptance is complete.** This ledger retains quality limits and the separately deferred platform scope. Full evidence, exact releases and retained failed evaluations are in [the Agent/Growth verification report](verification-agent-growth-2026-10-11.md).
 
 ## Agent Workspace
 
-| Acceptance path                                                                                          | State                                                                                            |
-| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Supplied Home/Agent/task/Activity visual design                                                          | Preserved and integrated; final native checks pending                                            |
-| App-bound Agent component conversations and factual answers                                              | Implemented; saved real hosted contextual answer and exact replay observed                       |
-| Questions versus typed authorized instructions                                                           | Implemented; handler role/app/replay and no-implementation-job checks pass                       |
-| Shared issue/run ownership, dependencies and handoffs                                                    | Implemented; real existing runs imported, no duplicate coderun fabricated                        |
-| Cancellation, supported retry, explicit revision, completed-work deduplication and lost-lease visibility | Implemented; meaningful concurrent/stale/canceled/failed tests pass                              |
-| Slack operator routing and shared Q/thread context                                                       | Implemented with signature/member/team/channel checks; fresh native Engineering exchange pending |
-| Role Home reviews, app/time/state/task Activity filters and task evidence                                | Implemented; final public native navigation/reload verification pending                          |
+| Acceptance path                                                                                          | State                                                                                                                                                                                                   |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Supplied Home/Agent/task/Activity visual design                                                          | Preserved and integrated; actual native Home/Agent/task/Activity inspected                                                                                                                              |
+| App-bound Agent component conversations and factual answers                                              | Implemented; saved real hosted contextual answer and exact replay observed                                                                                                                              |
+| Questions versus typed authorized instructions                                                           | Implemented; handler role/app/replay and no-implementation-job checks pass                                                                                                                              |
+| Shared issue/run ownership, dependencies and handoffs                                                    | Implemented; real existing runs imported, no duplicate coderun fabricated                                                                                                                               |
+| Cancellation, supported retry, explicit revision, completed-work deduplication and lost-lease visibility | Implemented; meaningful concurrent/stale/canceled/failed tests pass                                                                                                                                     |
+| Slack operator routing and shared Q/thread context                                                       | Implemented with signature/member/team/channel checks; actual native Engineering request/thread follow-up restored in Q; actual task-scoped Growth reply and unmentioned follow-up passed on `e100f3c…` |
+| Role Home reviews, app/time/state/task Activity filters and task evidence                                | Implemented; native scope/reload/Home/Activity filters and actual evidence passed on `e100f3c…`                                                                                                         |
 
-Latest validation: 263 root tests across 36 files, root/Convex type checking, lint, production build and assembled inline-script parsing passed. Actual hosted explanation correctly reports exact review as a blocker and no publication/activation. Isolated checks are not native/provider proof.
+Latest validation: 287 root tests across 40 files, root/Convex type checking, lint, production build and assembled inline-script parsing passed. Earlier hosted explanation correctly reported review as blocker. Genuine publication and activation are now observed; actual current-state Q/Slack answers passed on `e100f3c…`. Isolated checks are not native/provider proof.
 
 ## Growth
 
@@ -23,15 +23,15 @@ Latest validation: 263 root tests across 36 files, root/Convex type checking, li
 | Exact deployed Bloom caption-search capability                                      | Verified publicly on release `02c24e50d71457fc872c8f08f8b3735495b7478d`; owned/all-word/title-only/other-guest negatives pass |
 | Paused campaign, separate cursor and bounded official X discovery                   | Implemented; real consenting tester inquiry collected by actual recent-search API                                             |
 | Source provenance, qualification, supported claims and guarded draft                | Implemented; real hosted qualification/draft saved; unsupported/promo/claim/link checks pass                                  |
-| Exact Product review through Slack                                                  | Real card delivered; Holly's actual approval pending                                                                          |
-| Owner native/manual publication and official independent verification               | Implemented; actual publication remains pending                                                                               |
-| Opaque verified links, trusted first-browser attribution, private milestone outbox  | Implemented; live positive path remains pending publication                                                                   |
-| First real save, owned caption match and ordered activation evidence                | Implemented; fresh native visitor acceptance pending                                                                          |
-| Replay, preview, wrong-app/time/key, returning/internal and private-data exclusions | Isolated checks pass; final public gateway negative checks passed on `042820c…`                                               |
-| Unsupported PDF request and normal feature handoff                                  | Implemented and handler-tested; genuine native demonstration pending                                                          |
-| Public reload persistence and exclusion from organic totals                         | Implemented; final controlled journey acceptance pending                                                                      |
+| Exact role-authorized review through Slack                                          | Actual Owner approved exact v1 in native Slack under standing approval; actor is Avichal, not Holly                           |
+| Owner native/manual publication and official independent verification               | Actual native brand reply posted once; independent official author/thread/exact body/destination verification passed          |
+| Opaque verified links, trusted first-browser attribution, private milestone outbox  | Actual verified-link fresh session and three trusted Bloom outbox events passed                                               |
+| First real save, owned caption match and ordered activation evidence                | Actual fresh browser first save and owned caption match passed on public Cue `beb6fb1…` / Bloom `02c24e5…`                    |
+| Replay, preview, wrong-app/time/key, returning/internal and private-data exclusions | Isolated checks pass; public gateway negatives passed on `beb6fb1…` before actual publication verification                    |
+| Unsupported PDF request and normal feature handoff                                  | Genuine native PDF source → truthful assisted lookup → Needs feature → normal feature candidate, no draft or implementation   |
+| Public reload persistence and exclusion from organic totals                         | Actual reload/search replay retains one controlled browser and three events; organic totals zero                              |
 
-No fabricated source, review identity, publication receipt or activation event closes these rows. The controlled participant must remain outside organic totals. A controlled activation would prove integration, not customer acquisition or revenue.
+No fabricated source, review identity, publication receipt or activation event closes these rows. The controlled participant must remain outside organic totals. The observed controlled activation proves integration; organic acquisition, revenue and retention remain unclaimed.
 
 ## Quality gaps
 
@@ -42,9 +42,11 @@ No fabricated source, review identity, publication receipt or activation event c
 - **Receiving email:** managed Resend inbound and branded outbound retained deliberately; root-domain MX preserved. Branded inbound is not falsely claimed.
 - **Reddit:** general discovery/API access remains unavailable. Notification intake and operator-assisted source provenance remain explicit.
 
-## Required remaining acceptance
+## Final acceptance checks
 
-Public Cue release `042820cdc9fbe1bf5055dfbc279f5ed0306dca38` and Bloom `02c24e50d71457fc872c8f08f8b3735495b7478d` are verified. Final UI fix `042820c` is deployed; hosting, Growth boundaries and saved hosted Agent answers pass on that exact release. Mac unlock for native Cue/Slack checks; Holly's exact review; native Bloom-brand reply with independent verification; fresh attributed visit/save/search; unsupported PDF demonstration; human listening and blind draft review. The complete release is **not yet accepted**.
+Actual positive journey passed on Cue `beb6fb1a5c26106b6fb6a983cab45d252aadab9f` and Bloom `02c24e50d71457fc872c8f08f8b3735495b7478d`. Functional release `e100f3c3d6c6c51c29fc38bd52c6adb2a02d43c8` passed native current-state answer, Slack task/outcome continuity, Home/Activity/app/reload and no-coding-job checks, plus ten public hosting/Growth gateway checks. **Final public application release `b69d511e2e609f8d68b81ff0cf98414fc01c6f58`** removes the duplicate model-copied footer. Cloud Build succeeded; Cloud Run `cue-00021-hb9` serves 100% traffic. Its ten public checks, fresh native contextual follow-up with one footer, restored Growth Results, unchanged one-browser/three-event state and no-new-coding-job comparison all passed. Documentation commits after this hash do not change application code.
+
+Human listening, blind draft usefulness/edit-time and target-operator usability remain unmeasured quality research, explicitly retained under the handoff's “address or explicitly retain” instruction. Grouping recall is limited; manual linking/review remains the fallback. No organic acquisition, revenue, retention or general quality-superiority claim follows from the controlled activation.
 
 ## Separately deferred platform work
 

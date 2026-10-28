@@ -1,6 +1,6 @@
 # Cue Growth: product research, integration and demo plan
 
-Research date: October 11, 2026. This is an implementation plan; the Growth module is not built or deployed. Existing Cue/Bloom support, engineering and channel verification remains recorded separately.
+Research date: October 11, 2026. This plan records the approved scope and research hypotheses. The configured Bloom Growth implementation is now deployed, with actual controlled publication/activation and retained quality limits recorded in [the verification report](verification-agent-growth-2026-10-11.md). Organic acquisition and comparative quality remain unproven. Existing Cue/Bloom support, engineering and channel verification remains recorded separately.
 
 ## Recommendation
 

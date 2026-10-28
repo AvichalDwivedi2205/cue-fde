@@ -1,7 +1,7 @@
 # Cue Agent Workspace Feature Specification
 
 Date: October 11, 2026  
-Status: Approved product direction; implementation pending  
+Status: Approved product direction; configured-workspace implementation deployed and functional acceptance recorded in [the verification report](verification-agent-growth-2026-10-11.md)<br>
 Audience: Product designer and implementation engineers  
 Related plans: [Growth](growth-plan.md), [platform boundaries](platform-boundaries.md)
 
