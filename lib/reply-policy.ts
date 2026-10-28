@@ -78,6 +78,26 @@ export function diagnosticQuestion(c: ReplyContext) {
       ? "Both photos get stuck. Does the upload finish on a different network?"
       : "Does a different photo upload successfully?";
   if (
+    /caption/i.test(supplied) &&
+    /edit|chang/i.test(supplied) &&
+    /disappear|revert|older text|old(?:er)? (?:words|caption)|goes? back/i.test(
+      supplied,
+    )
+  ) {
+    const otherFieldsSaved =
+      /title.{0,45}(?:stay|saved|persist)|photo and title.{0,30}(?:stay|saved)/i.test(
+        supplied,
+      );
+    const otherBrowserTried =
+      /(?:different|another|second|other).{0,25}browser.{0,100}(?:also|same|still|happen|revert|disappear)/i.test(
+        supplied,
+      );
+    if (!otherFieldsSaved)
+      return "Do changes to the memory title stay saved after a refresh?";
+    if (!otherBrowserTried)
+      return "Does the caption change stay saved when you try another browser?";
+  }
+  if (
     !/upload|photo|picture|image|memory|memories|caption|search|find|journal|sign.?in|log.?in|export|pdf|button|page|notification|saving|save|add|delete|payment|checkout/i.test(
       supplied,
     )

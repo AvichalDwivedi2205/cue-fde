@@ -26,11 +26,18 @@ async function call(body: object) {
   return data;
 }
 const { sessionId } = await call({ action: "start", consent: true });
-const sentences = [
-  "So I don't think this platform is working. Can you check once?",
-  "I am trying to upload a three megabyte photo on my Pixel in Chrome. It stays on a loading screen and never finishes.",
-  "A different small photo also stays on the loading screen. There is no error message.",
-];
+const novel = process.env.CUE_VOICE_NOVEL === "true";
+const sentences = novel
+  ? [
+      "Something goes wrong when I edit a memory. Can you help me?",
+      "I am editing an existing caption in Chrome on my Pixel. The save button looks successful, but my new words disappear after I refresh.",
+      "The photo and title stay saved. Only the caption goes back to the older text, and there is no error message. It happens on two entries.",
+    ]
+  : [
+      "So I don't think this platform is working. Can you check once?",
+      "I am trying to upload a three megabyte photo on my Pixel in Chrome. It stays on a loading screen and never finishes.",
+      "A different small photo also stays on the loading screen. There is no error message.",
+    ];
 const turns: {
   transcript: string;
   reply: string;
@@ -41,8 +48,8 @@ let caseId;
 try {
   for (const [i, sentence] of sentences.entries()) {
     const fixture = await synthesizeReply(sentence);
-    const input = `.cue/voice-conversation-${i}.mp3`,
-      wav = `.cue/voice-conversation-${i}.wav`;
+    const input = `.cue/voice-${novel ? "novel-" : "conversation-"}${i}.mp3`,
+      wav = `.cue/voice-${novel ? "novel-" : "conversation-"}${i}.wav`;
     await fs.writeFile(input, Buffer.from(fixture.data, "base64"), {
       mode: 0o600,
     });
@@ -110,7 +117,7 @@ try {
         "Don't repeat already answered device/size questions",
       );
     }
-    const replyFile = `artifacts/cue-voice-reply-${i}.mp3`;
+    const replyFile = `artifacts/cue-voice-${novel ? "novel-" : "reply-"}${i}.mp3`;
     await fs.writeFile(replyFile, Buffer.from(turn.audio.data, "base64"));
     const duration = Number(
       execFileSync(
@@ -172,6 +179,9 @@ assert.equal(visible.conversation.progress.steps[1].state, "pending");
 assert(!JSON.stringify(visible).includes('"audio"'));
 const result = {
   checkedAt: new Date().toISOString(),
+  fixture: novel
+    ? "Novel caption edit persistence diagnostic"
+    : "Original upload diagnostic",
   origin: base,
   caseId,
   turns,

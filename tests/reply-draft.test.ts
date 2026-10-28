@@ -265,3 +265,35 @@ test.each([
   expect(await draft(context)).toBe(fallbackReply(context));
   expect(generateContent).toHaveBeenCalledTimes(2);
 });
+
+test("caption persistence diagnosis advances instead of accepting a symptom-only echo", async () => {
+  generateContent.mockResolvedValue({
+    text: "Your caption edits disappear after refresh on your Pixel in Chrome.",
+  });
+  const reply = await draft({
+    medium: "voice",
+    message:
+      "I edited a memory caption in Chrome on my Pixel. The new words disappear when I refresh.",
+    messages: [],
+  });
+  expect(reply).toMatch(/title.*\?/i);
+  expect(generateContent).toHaveBeenCalledTimes(2);
+});
+test("known saved fields move diagnosis to another browser without repeating title or error questions", async () => {
+  generateContent.mockResolvedValue({
+    text: "The caption reverts and the photo and title stay saved. There is no error.",
+  });
+  const reply = await draft({
+    medium: "voice",
+    message:
+      "Only the caption goes back to older text. The photo and title stay saved, and there is no error.",
+    messages: [
+      {
+        role: "customer",
+        body: "I am editing a memory caption in Chrome on my Pixel. It disappears after refresh.",
+      },
+    ],
+  });
+  expect(reply).toMatch(/another browser.*\?/i);
+  expect(reply).not.toMatch(/what.*(?:error|device)|title.*\?/i);
+});
