@@ -4,6 +4,7 @@ import { promises as fs } from "node:fs";
 import { photo } from "../demo/bloom/fixture.mjs";
 nextEnv.loadEnvConfig(process.cwd());
 const base = process.env.CUE_VERIFY_ORIGIN;
+const expectedRelease = process.env.CUE_VERIFY_RELEASE;
 assert(
   base?.startsWith("https:"),
   "Set CUE_VERIFY_ORIGIN to the public HTTPS origin",
@@ -26,6 +27,13 @@ const initial = await fresh.json();
 assert.equal(initial.health.hosting, "cloud");
 assert.equal(initial.health.maxUploadBytes, 5 * 1024 * 1024);
 assert(/^[a-f0-9]{40}$/.test(initial.health.release));
+if (expectedRelease) {
+  assert.equal(
+    initial.health.release,
+    expectedRelease,
+    "Public deployment must report the expected release before mutation checks",
+  );
+}
 pass(
   "Public HTTPS gateway sets a secure signed customer cookie and identifies its release",
 );
