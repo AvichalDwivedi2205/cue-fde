@@ -40,7 +40,7 @@ const growthResults: Array<
 > = [];
 for (const item of growth) {
   const p = sourcePolicy(item.text),
-    simple = p.matched && p.explicit && !p.unsupported;
+    simple = p.matched && p.explicit && !p.unsupported && !p.promotional;
   try {
     const result = await qualifyGrowth(item.text, { claims });
     const draft = result.eligible
