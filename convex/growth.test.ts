@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+/// <reference types="node" />
 import { convexTest } from "convex-test";
 import workpool from "@convex-dev/workpool/test";
 import { beforeEach, afterEach, expect, test, vi } from "vitest";
