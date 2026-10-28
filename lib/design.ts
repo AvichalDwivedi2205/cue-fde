@@ -40,6 +40,10 @@ export async function design(name: "bloom" | "cue") {
       )
       .replaceAll("a3f9c2e", "example")
       .replaceAll("bloom/bloom-app#128", "Example pull request");
+  if (name === "cue" && process.env.CUE_BLOOM_PUBLIC_URL) {
+    const bloomOrigin = new URL(process.env.CUE_BLOOM_PUBLIC_URL).origin;
+    html = html.replaceAll('href="/bloom', 'href="' + bloomOrigin + '/');
+  }
   html = html
     .replace(
       "</head>",

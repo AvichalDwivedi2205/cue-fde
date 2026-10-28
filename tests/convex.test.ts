@@ -87,6 +87,7 @@ describe("Cue permissions and lifecycle", () => {
       body: "First report",
       initialBody: "First report with context",
       sourceUrl: "https://app.example.com/journal",
+      ack: "Which screen gets stuck?",
     };
     const [a, b] = await Promise.all([
       t.mutation(api.intake.widgetMessage, message),
@@ -94,6 +95,7 @@ describe("Cue permissions and lifecycle", () => {
         ...message,
         body: "Second report",
         initialBody: "Second report with context",
+        ack: "Does the journal show an error?",
       }),
     ]);
     expect(a.caseId).toBe(b.caseId);
@@ -104,6 +106,11 @@ describe("Cue permissions and lifecycle", () => {
     expect(
       conversation!.messages.filter((m) => m.role === "customer"),
     ).toHaveLength(2);
+    expect(
+      conversation!.messages.filter((m) => m.role === "cue").map((m) => m.body),
+    ).toEqual(
+      expect.arrayContaining([message.ack, "Does the journal show an error?"]),
+    );
     await expect(
       t.mutation(api.intake.widgetMessage, { ...message, appId: "other_app" }),
     ).rejects.toThrow("Invalid widget");

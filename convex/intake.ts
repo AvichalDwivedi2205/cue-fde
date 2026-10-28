@@ -15,6 +15,7 @@ export const widgetMessage = mutation({
     body: v.string(),
     initialBody: v.string(),
     sourceUrl: v.string(),
+    ack: v.optional(v.string()),
   },
   returns: v.object({ caseId: v.id("cases"), created: v.boolean() }),
   handler: async (ctx, a) => {
@@ -43,6 +44,14 @@ export const widgetMessage = mutation({
         role: "customer",
         createdAt: Date.now(),
       });
+      if (a.ack)
+        await ctx.db.insert("messages", {
+          caseId: existing._id,
+          author: "Cue",
+          body: a.ack,
+          role: "cue",
+          createdAt: Date.now(),
+        });
       await ctx.db.patch("cases", existing._id, { updatedAt: Date.now() });
       await ctx.runMutation(internal.triageQueue.enqueue, {
         caseId: existing._id,
@@ -59,6 +68,7 @@ export const widgetMessage = mutation({
       title: a.title,
       body: a.initialBody,
       sourceUrl: a.sourceUrl,
+      ack: a.ack,
     });
     return { caseId, created: true };
   },
