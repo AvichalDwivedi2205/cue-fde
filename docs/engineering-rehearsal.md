@@ -14,8 +14,10 @@ All test records identify the controlled scenario. Copied context is setup data,
 not evidence of new discovery. Native external-channel receipts are required to
 claim native email, Slack or X delivery; replayed reports remain fixtures.
 
-After the coordinated backend/web deployment and worker restart, run from the
-repository root (the script reads saved environment without printing secrets):
+The first rehearsal used these commands after the coordinated backend/web
+deployment and worker restart, from the repository root. The script reads saved
+environment without printing secrets. This historical key is consumed; a future
+rehearsal must use a new key and free ports:
 
 ```sh
 CUE_REHEARSAL_CUE_ORIGIN=https://cue.latchgrid.in \
@@ -52,10 +54,40 @@ scenario's own prior runtime. Finish by retrying the original photo, saving a
 memory, reloading, and inspecting the resolved widget conversation. This final
 browser check is required for complete rehearsal evidence.
 
-Before a recording, prepare a second key on different free ports, for example
-`rehearsal-20261012-b` on frontend `4403` and backend `4321`. Leave it at the broken
-baseline with no report/job/approval. The first rehearsal remains inspectable;
-never reset history, re-open its resolved issue or present its run as new.
+Rehearsals `rehearsal-20261012-a` and `rehearsal-20261012-b` completed two
+consecutive actual native passes. Each used a fresh app, a real 3 MiB failure,
+its installed widget report, a new Codex investigation, eight independent
+checks, exact commit approval, scoped release verification and the original
+photo retry/save/reload. Their deployed fixture commits are
+`d35309781317a89a23a416edf04515a536b2d148` and
+`93495520dc3882b882419918eeddcf47d0bf0400`, respectively. Keep both runs and their
+native evidence inspectable; do not reset history or present either as new.
+
+The fresh recording run used `recording-20261012-c`, app
+`cue_app_c6adfa8b29daa6b5722fc076`, frontend `http://127.0.0.1:4404`, backend
+`http://127.0.0.1:4322`. Its frozen broken baseline is
+`d499f6f392f30e61ef4d17c08146acf83fa79f5c`. The actual 3 MiB upload failure and
+installed-widget report led to new Codex run `jn7c88jp2xnkqkvvphwrdq09x58g5ymx`.
+Its fix commit is `ee431005102dbfed46ebaa71cae21b71997e85e2`, with
+[PR #5](https://github.com/AvichalDwivedi2205/cue-bloom-demo/pull/5). All eight
+independent HTTP tests passed. Native Slack approval receipt
+`p1791820226411299` approved that exact commit before the scoped release.
+The original generated `fixtures/synthetic-photo-3mb.png` remained in the New
+memory form and passed the actual retry, save and reload after release. This run
+is now consumed and its evidence must remain intact; any future rehearsal needs
+a unique key and free ports. The healthy public Bloom deployment remains
+separate. See [the final timed recording plan](demo-recording-plan-final.md).
+
+The latest Cue operator release is source
+`b49c358187454c2bf4cd287cdf3d6f8f6eef7345`, Cloud Run `cue-00048-kic`, built by
+successful Cloud Build `1437f7fe-1a31-4507-9e90-62edefd833c4`. Its selected-case
+history fix passed 43 scoped tests, typecheck and scoped lint;
+the earlier 419-test full suite was not rerun for this commit. Release checks
+verified the exact built browser asset, release SHA and unauthenticated denials.
+Native authenticated browser checks confirmed the existing Email and Slack
+conversations now show their original reports, follow-ups and actual replies.
+Those historical channel receipts are separate from recording-c's fresh widget
+report and do not represent new email or Slack reports.
 
 Local verification: `npm run typecheck` and
 `npx vitest run tests/rehearsals.test.ts tests/rehearsal-runtime.test.ts tests/convex.test.ts tests/coding.test.ts`.
@@ -65,5 +97,6 @@ they do not count as a live Codex implementation or deployed production proof.
 Implementation note: one `npx convex codegen --typecheck disable` invocation
 unexpectedly uploaded additive backend functions while generating bindings. No
 scenario/app, coding job, approval, public frontend release or recording was
-created by that invocation. A coordinated final deployment must use the final
-tested source before any live rehearsal is executed.
+created by that invocation. The coordinated backend/web deployment subsequently
+completed before the native rehearsals; the latest operator release is recorded
+above.

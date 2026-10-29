@@ -1,0 +1,21 @@
+Consumer apps hear from users everywhere, but whoever reads the complaint usually can't fix it. Cue connects support, company knowledge, engineering and growth.
+
+Here are our widget, email, Slack and X reports. Anyone on your team can tag bugs, check evidence and talk to agents. Requests keeps track of features people want.
+
+This is Bloom, a photo journal. We give Cue its guides and FAQs so it can answer users with sources. Users tell us if the answer helped. If it didn’t, the team can turn that conversation into an FAQ draft.
+
+Now something breaks. This isolated Bloom deployment promises five megabytes, but a three megabyte photo fails. I report it through the widget.
+
+Cue groups the report, confirms the failure and sends it to Codex. It opens a draft pull request. Eight independent checks pass: valid uploads succeed, oversized files and invalid images get rejected. Protected files stay outside its control.
+
+Cue sends the review to Slack. I check the exact commit and approve it. Cue verifies the deployment and updates the same customer conversation. My original photo retries, saves and survives a reload.
+
+Here’s an X request for a photo journal with caption search. Cue checks that Bloom can do what they’re asking for, then uses Claude through LiteLLM to write a reply in Bloom’s voice. I review it before posting. We can see what happens after the click: a saved memory and a search. Requests keeps track of features people want, like PDF export, which is planned here.
+
+Cue even had a bug of its own. Neatlogs showed us where our agent changed "all caption words" to "any." Small word, wrong feature. We fixed the prompt, and two later traces kept "all."
+
+And with Entire, you can see how Cue was built: the real Codex session, its decisions and its code, linked to our public repo.
+
+Last, the money. In cfo.ai, we modeled twenty hypothetical customers paying ninety-nine dollars a month. Raising coding costs from three to twelve dollars per investigation cuts modeled margin from seventy-seven to about thirty-two percent. That excludes salaries and payment fees.
+
+That's Cue. Customer problems in. Verified fixes out.

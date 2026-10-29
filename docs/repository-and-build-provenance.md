@@ -25,11 +25,12 @@ artifacts remain ignored. This is a publication check, not a security audit.
 
 ## Current deployed release
 
-- Cue source: `0a96ead73323d3cc340afaf4f687826b522bf167`.
-- Cue deployment: Cloud Run `cue-00042-max`, serving 100% of traffic when verified.
+- Cue source: `b49c358187454c2bf4cd287cdf3d6f8f6eef7345`.
+- Cue deployment: Cloud Run `cue-00048-kic`, serving 100% of traffic when verified.
+- Cloud Build: `1437f7fe-1a31-4507-9e90-62edefd833c4`, succeeded.
 - Workspace: <https://cue.latchgrid.in/cue#/home>.
 - Bloom: <https://bloom-with-cue.vercel.app>.
-- Bloom source: `02c24e50d71457fc872c8f08f8b3735495b7478d`.
+- Bloom source: `4a9481f11528621aae7c636f1b529996e5f0b560`.
 
 The release includes the integrated workspace design and Tailwind, published
 company context and brand voice, shared knowledge retrieval for widget replies
@@ -37,12 +38,26 @@ and Growth drafts, customer answer outcomes, and an app-scoped knowledge-gap
 queue. Voice and typed turns share the same customer conversation. Support and
 qualification use Gemini; Growth writing uses Claude Sonnet 4.6 through LiteLLM.
 
-The current release adds the supplied signal logo to the public landing,
-workspace, React shell, favicon and Apple icon. Lint, typecheck, local and cloud
-production builds passed. Five read-only checks passed on both preview and
-production; the icons matched the supplied files exactly and operator endpoints
-remained authenticated. Native Chrome inspection verified all three application
-surfaces. See [the logo release record](verification-cue-logo-2026-10-12.md).
+The supplied signal logo appears on the public landing, workspace, React shell,
+favicon and Apple icon, and the existing Slack app now uses that logo. The
+earlier workspace fixes passed 419 tests across 68 files, lint, typecheck and a
+production build. The subsequent Growth prompt-budget fix passed its 45 relevant tests,
+lint and typecheck. Its cloud build succeeded, and seven read-only checks passed
+on both preview and production, including exact stylesheet and icon bytes and
+authenticated operator endpoints. A genuine hosted Sonnet draft completed
+without fallback after deployment. See [the original logo release record](verification-cue-logo-2026-10-12.md)
+and [the recording plan](demo-recording-plan-final.md).
+
+The latest Cue release fixes selected-case conversation history. It loads real
+stored messages through the case index, checks the parent case's app scope, and
+retains the legacy Bloom scope for cases without an app ID. Its verification
+passed 43 scoped tests, typecheck, scoped lint and diff checks.
+The earlier 419-test suite was not rerun for `b49c358`. The frozen source archive
+passed its cloud production build; the exact built browser asset, release commit
+and unauthenticated endpoint denials were verified before and after promotion.
+Native authenticated browser checks then confirmed the original Email and Slack
+reports, customer follow-ups and actual replies load in both legacy conversations.
+The previous `cue-00046-tuj` release remains available as the fallback.
 
 Verification retained for the underlying product release
 `70033e31cd60bebb610d6953a3fb097f19325ec0`:
@@ -61,29 +76,42 @@ Verification retained for the underlying product release
 The documentation commit does not redeploy or change the running application.
 Private OAuth sync, verified customer account lookups, general multi-company
 onboarding, and arbitrary-app autonomous fixes remain outside this release.
-Organic Growth acquisition remains zero. A fresh full recording rehearsal has
-not been certified, and no new demo video was created by this repository update.
+Organic Growth acquisition remains zero. The earlier native engineering
+rehearsals a and b remain genuine historical evidence. The fresh recording-c run
+`jn7c88jp2xnkqkvvphwrdq09x58g5ymx` also completed its actual widget report, Codex
+patch, eight independent HTTP tests, exact-commit Slack approval and scoped
+release. Its fixture fix is `ee431005102dbfed46ebaa71cae21b71997e85e2`, with
+[PR #5](https://github.com/AvichalDwivedi2205/cue-bloom-demo/pull/5) and native
+Slack approval receipt `p1791820226411299`. The original 3 MiB photo then passed
+the journal retry, memory save and reload. These controlled runs are excluded
+from customer and organic acquisition counts. Growth publication and the
+same-browser first-save/caption-search activation are verified controlled
+evidence. Video rendering and publication are separate from this evidence update.
 
 ## Entire
 
-The official Entire CLI captures the genuine Codex build session. The checkpoint
-documentation commit `878fb7b` carries its ID in an `Entire-Checkpoint`
-trailer, and its checkpoint Git ref is published alongside the source.
+The official Entire CLI captures the genuine Codex building session. Commit
+`08132130c457420586d0ec5704e42e057e4c28e9` carries the checkpoint ID in its
+`Entire-Checkpoint` trailer. Its checkpoint ref is published alongside main.
 
-Checkpoint ID: **`01M4R2NJSBS811SF9BFG13YA4F`**. The refresh captured 112 genuine
-Codex session turns on October 12, 2026 at 12:51 UTC (18:21 IST), including the
-latest product build and repository consolidation work available at capture.
-It is one cumulative session capture, not a claim that all 145 development
-commits were captured automatically.
+Checkpoint ID: **`01M4RAVQZBH96V76R2QHD6GKZR`**. The refresh captured **152 genuine
+Codex session turns** on October 12, 2026 at **15:14:30 UTC (20:44:30 IST)**.
+The native session snapshot ends at 15:14:02 UTC and its application source is
+`26e30384e0ddec0c24dc1953dadfb38fec42df90`. It is a cumulative session capture;
+automatic capture of every development commit is not claimed. This checkpoint
+precedes the latest `b49c358` release.
 
 - [Entire captured session](https://entire.io/gh/AvichalDwivedi2205/cue-b2c/session/01a129c7-7f3e-7e00-80a5-dbdbea47cf3c)
-- [Published checkpoint record](https://github.com/AvichalDwivedi2205/cue-b2c/commit/6c13ec961da9d5c6348b6d34d7cb8e6e623fc361)
+- [Published checkpoint record](https://github.com/AvichalDwivedi2205/cue-b2c/commit/1eb9e9722c6cce153c2e47c436b771e2b137ca4b)
+- Ref: `refs/entire/checkpoints/ZR/01M4RAVQZBH96V76R2QHD6GKZR`
 
-The six refreshed checkpoint blobs passed the configured-secret scan before
-publication. Five generic-key scanner findings were copies of explanatory
-prose, checked against the source documentation. Entire's configured credential
-and PII redaction was applied to the exported transcript.
+The seven exported blobs passed a private scan for ten configured credential
+values. Seven generic-key scanner findings were reviewed repetitions of
+explanatory documentation prose, with no actual credential findings. Official
+redaction was applied after a privacy-filtered native export replaced embedded
+images and authentication-link queries with explicit omission markers. All
+original native records, user messages and timestamps were retained before
+redaction. The raw local Codex session was not modified or published.
 
-The GitHub App remains restricted to `cue-b2c`. Automatic Codex hooks still
-require approval in `/hooks`; this refresh uses the official manual session
-attachment command and does not claim automatic per-commit capture.
+The GitHub App remains restricted to `cue-b2c`. This refresh uses official manual
+session attachment. It does not claim automatic per-commit capture.
