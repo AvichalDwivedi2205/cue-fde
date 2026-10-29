@@ -285,6 +285,33 @@ test("historical sources are dismissed rather than drafted even when the model c
   ).toHaveLength(0);
 });
 
+test("new policy refresh cannot replace an existing reviewed publication", async () => {
+  const s = await setup();
+  await published(s);
+  const r = (
+    await s.t.run((ctx) => ctx.db.query("growthReceipts").take(20))
+  ).find((r) => r.action === "qualify")!;
+  await s.t.run((ctx) =>
+    ctx.db.patch("growthReceipts", r._id, { qualificationPolicyVersion: 2 }),
+  );
+  const before = await s.t.query(api.growth.snapshot, { ...auth, appId });
+  await expect(
+    s.t.mutation(api.growth.request, {
+      ...auth,
+      actor,
+      appId,
+      campaignId: s.campaignId,
+      opportunityId: s.opportunityId,
+      release,
+      action: "qualify",
+      automatic: true,
+    }),
+  ).rejects.toThrow("Reviewed or published evidence");
+  expect(await s.t.query(api.growth.snapshot, { ...auth, appId })).toEqual(
+    before,
+  );
+});
+
 test("starting Growth resumes source work but cannot exceed the discovery budget or saved role", async () => {
   const s = await setup();
   await s.t.run((ctx) =>

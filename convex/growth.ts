@@ -447,6 +447,16 @@ export const request = mutation({
         (a.action === "draft" && latestDraft?._id === old.resultDraftId))
     )
       return old.taskId;
+    if (
+      a.action === "qualify" &&
+      o &&
+      !["discovered", "qualified", "needs-feature", "dismissed"].includes(
+        o.status,
+      )
+    )
+      throw new ConvexError(
+        "Reviewed or published evidence is retained; qualification cannot restart this recommendation",
+      );
     const taskId = await ctx.db.insert("agentTasks", {
       appId: a.appId,
       agent: "growth",
