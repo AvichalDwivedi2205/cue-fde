@@ -6,6 +6,7 @@ import schema from "./schema";
 import type { Doc, Id } from "./_generated/dataModel";
 import { knowledgeReply } from "./knowledgeSchema";
 import { currentHits } from "./knowledge";
+import { brandCurrent } from "./companyContext";
 
 function active(session: Doc<"voiceSessions"> | null, owner: string) {
   if (!session || session.owner !== owner)
@@ -153,6 +154,7 @@ export const finish = mutation({
     const validKnowledge =
       !k ||
       (!!s.appId &&
+        (await brandCurrent(ctx, k.workspaceId, s.appId, k.brandVersion)) &&
         k.usedChunkIds.length <= 4 &&
         k.citedChunkIds.every((id) => k.usedChunkIds.includes(id)) &&
         (
@@ -227,6 +229,9 @@ export const finish = mutation({
           outputTokens: k.outputTokens,
           createdAt: Date.now(),
           ...(k.retrieval ? { retrieval: k.retrieval } : {}),
+          ...(k.brandVersion !== undefined
+            ? { brandVersion: k.brandVersion }
+            : {}),
         });
     }
     await ctx.db.patch("voiceSessions", s._id, {

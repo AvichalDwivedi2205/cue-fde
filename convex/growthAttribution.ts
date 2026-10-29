@@ -5,6 +5,7 @@ import { actor } from "./workspaceValidators";
 import { growthEventType } from "./growthSchema";
 import schema from "./schema";
 import { transition } from "./growthTasks";
+import { requireGrounding } from "./companyContext";
 export const prepare = mutation({
   args: {
     secret: v.string(),
@@ -86,6 +87,7 @@ export const report = mutation({
       cap.version !== d.capabilityVersion
     )
       throw new ConvexError("Current exact approved draft required");
+    await requireGrounding(ctx, a.appId, d.grounding);
     const t = await ctx.db
       .query("growthTouches")
       .withIndex("by_opportunityId", (q) => q.eq("opportunityId", o._id))
@@ -153,6 +155,7 @@ export const verify = mutation({
       d.capabilityVersion !== cap.version
     )
       throw new ConvexError("Review invalidated while checking");
+    if (a.ok) await requireGrounding(ctx, t.appId, d.grounding);
     await ctx.db.patch("growthTouches", t._id, {
       status: a.ok ? "verified" : "failed",
       verification: a.method.slice(0, 500),

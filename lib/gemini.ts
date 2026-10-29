@@ -3,6 +3,11 @@ import { z } from "zod";
 import { uploadRegressionCandidate } from "./symptoms";
 import { instrumentModel, observed } from "./observability";
 import {
+  BRAND_POLICY,
+  brandStyle,
+  type BrandVoice,
+} from "./company-context-policy";
+import {
   fallbackReply,
   REPLY_POLICY,
   replyFacts,
@@ -23,7 +28,9 @@ export function client(instrument = true) {
         location: process.env.GOOGLE_CLOUD_LOCATION || "global",
         httpOptions: { timeout: 30000 },
       });
-  return instrument ? instrumentModel(model, !process.env.GEMINI_API_KEY) : model;
+  return instrument
+    ? instrumentModel(model, !process.env.GEMINI_API_KEY)
+    : model;
 }
 // Verified against https://ai.google.dev/gemini-api/docs/audio.
 // Audio is sent for this turn only; Cue does not persist the recording.
@@ -60,7 +67,7 @@ async function transcribeAudioImpl(bytes: Buffer, mimeType: string) {
     throw new Error("No clear speech heard. Please try again.");
   return result.transcript;
 }
-async function draftImpl(context: unknown) {
+async function draftImpl(context: unknown, brand?: BrandVoice) {
   const supplied = (
     context && typeof context === "object" ? context : {}
   ) as ReplyContext & {
@@ -68,6 +75,7 @@ async function draftImpl(context: unknown) {
   };
   const c: ReplyContext = { ...supplied.conversation, ...supplied };
   const evidence = {
+    brandStyle: brand && brandStyle(brand),
     appName: c.appName || "Bloom",
     workflowFacts: replyFacts(c),
     report: c.case && { title: c.case.title, body: c.case.body },
@@ -92,7 +100,7 @@ async function draftImpl(context: unknown) {
       model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
       contents: JSON.stringify({ ...evidence, correction }),
       config: {
-        systemInstruction: REPLY_POLICY,
+        systemInstruction: REPLY_POLICY + BRAND_POLICY,
         temperature: 0.3,
         thinkingConfig: { thinkingBudget: 0 },
         maxOutputTokens: 1000,

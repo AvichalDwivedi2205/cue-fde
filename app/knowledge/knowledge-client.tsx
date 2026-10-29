@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge, Button, EmptyState, Icon, Notice } from "../components/ui";
 import { WidgetPreview } from "./widget-preview";
+import { CompanyContextPanel } from "./company-context-panel";
 type Source = {
   _id: string;
   title: string;
@@ -39,6 +40,7 @@ type TestResult = {
   provider: string;
   model: string;
   retrieval: string;
+  brandVersion?: number;
   inputTokens: number;
   outputTokens: number;
   citations: {
@@ -98,7 +100,10 @@ export function KnowledgeClient() {
       if (!id && data.apps[0]) {
         let preferred = "";
         try {
-          preferred = sessionStorage.getItem("cue-agent-app") || "";
+          preferred =
+            new URLSearchParams(location.search).get("app") ||
+            sessionStorage.getItem("cue-agent-app") ||
+            "";
         } catch {}
         setApp(
           data.apps.find((a: { id: string }) => a.id === preferred)?.id ||
@@ -274,7 +279,11 @@ export function KnowledgeClient() {
         }
         setView("editor");
       } else
-        setView(["test", "widget"].includes(parts[0]) ? parts[0] : "sources");
+        setView(
+          ["test", "widget", "coverage", "brand"].includes(parts[0])
+            ? parts[0]
+            : "sources",
+        );
     };
     queueMicrotask(sync);
     window.addEventListener("hashchange", sync);
@@ -384,6 +393,9 @@ export function KnowledgeClient() {
             ? "Rule-based reply"
             : answer.model}{" "}
         · {answer.retrieval} · {answer.inputTokens + answer.outputTokens} tokens
+        {answer.brandVersion !== undefined
+          ? ` · brand v${answer.brandVersion}`
+          : ""}
       </div>
       {answer.status !== "answered" && (
         <Button
@@ -462,6 +474,12 @@ export function KnowledgeClient() {
             className="ui-input min-w-40"
             disabled={busy}
             onChange={(e) => {
+              if (
+                dirty &&
+                !window.confirm("Leave without saving your changes?")
+              )
+                return;
+              setDirty(false);
               if (dirty && !window.confirm("Switch apps without saving?"))
                 return;
               setSnapshot(null);
@@ -487,6 +505,8 @@ export function KnowledgeClient() {
       <nav className="ui-tabs" aria-label="Knowledge views">
         {[
           ["sources", "Sources", "book"],
+          ["coverage", "Coverage", "gauge"],
+          ["brand", "Brand voice", "sparkle"],
           ["test", "Test answers", "sparkle"],
           ["widget", "Customer widget", "chat"],
         ].map(([k, label, icon]) => (
@@ -508,6 +528,14 @@ export function KnowledgeClient() {
         ))}
       </nav>
       {notice && <Notice>{notice}</Notice>}
+      {snapshot && ["coverage", "brand"].includes(view) && (
+        <CompanyContextPanel
+          key={app + view}
+          kind={view === "brand" ? "brand" : "coverage"}
+          appId={app}
+          onDirty={setDirty}
+        />
+      )}
       {!snapshot && (
         <div className="ui-card">
           <EmptyState

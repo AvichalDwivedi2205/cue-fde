@@ -6,6 +6,7 @@ import type { Id } from "./_generated/dataModel";
 import { socialSource } from "../lib/social-source";
 import { knowledgeReply } from "./knowledgeSchema";
 import { currentHits } from "./knowledge";
+import { brandCurrent } from "./companyContext";
 
 export const widgetMessage = mutation({
   args: {
@@ -27,6 +28,12 @@ export const widgetMessage = mutation({
     const validKnowledge =
       !knowledge ||
       (knowledge.usedChunkIds.length <= 4 &&
+        (await brandCurrent(
+          ctx,
+          knowledge.workspaceId,
+          a.appId,
+          knowledge.brandVersion,
+        )) &&
         knowledge.citedChunkIds.every((id) =>
           knowledge.usedChunkIds.includes(id),
         ) &&
@@ -55,6 +62,9 @@ export const widgetMessage = mutation({
         chunkIds: knowledge.citedChunkIds,
         usedChunkIds: knowledge.usedChunkIds,
         ...(knowledge.retrieval ? { retrieval: knowledge.retrieval } : {}),
+        ...(knowledge.brandVersion !== undefined
+          ? { brandVersion: knowledge.brandVersion }
+          : {}),
         status: knowledge.status,
         provider: knowledge.provider,
         model: knowledge.model,

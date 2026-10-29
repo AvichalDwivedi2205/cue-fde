@@ -5,6 +5,7 @@ import { roleLabels, can, type Role } from "@/lib/roles";
 import { Badge, Button, EmptyState, Icon, Notice } from "../components/ui";
 import { TeamEditor } from "./team-editor";
 import { useRouter } from "next/navigation";
+import { CompanyContextPanel } from "../knowledge/company-context-panel";
 type Snapshot = {
   actor: { name: string; email: string; role: Role };
   canManage: boolean;
@@ -24,6 +25,7 @@ const sections = [
   ["general", "General", "settings"],
   ["team", "Team and roles", "users"],
   ["models", "Models", "cpu"],
+  ["brand", "Brand voice", "sparkle"],
   ["usage", "Usage and limits", "gauge"],
   ["approvals", "Approvals", "shield"],
 ];
@@ -131,6 +133,7 @@ export function SettingsClient() {
             </div>
           ) : (
             <>
+              {section === "brand" && <CompanyContextPanel kind="brand" />}
               {section === "general" && (
                 <form
                   className="ui-card"

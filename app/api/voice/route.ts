@@ -159,6 +159,7 @@ export async function POST(request: NextRequest) {
               inputTokens: knowledge.inputTokens,
               outputTokens: knowledge.outputTokens,
               retrieval: knowledge.retrieval,
+              brandVersion: knowledge.brandVersion,
             },
           }
         : {}),

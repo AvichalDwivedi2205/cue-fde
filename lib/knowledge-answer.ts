@@ -23,11 +23,14 @@ import {
 } from "./reply-policy";
 import type { Id } from "../convex/_generated/dataModel";
 import { configuredSupportModel } from "./model-config";
+import { readBrandVoice } from "./brand-voice";
+import { BRAND_POLICY, brandStyle } from "./company-context-policy";
 export type KnowledgeHit = {
   _id: Id<"knowledgeChunks">;
   sourceId: Id<"knowledgeSources">;
   versionId: Id<"knowledgeVersions">;
   title: string;
+  revision?: number;
   text: string;
   heading: string;
   page?: number;
@@ -45,6 +48,7 @@ export type KnowledgeAnswer = {
   inputTokens: number;
   outputTokens: number;
   retrieval: string;
+  brandVersion?: number;
 };
 export const SUPPORT_MODELS = [
   "gemini-2.5-flash",
@@ -185,6 +189,7 @@ async function answerImpl(
   } = {},
 ): Promise<KnowledgeAnswer> {
   const message = context.message || "";
+  const brand = await readBrandVoice(appId);
   const previous =
     [...(context.messages || [])].reverse().find((m) => m.role === "customer")
       ?.body || "";
@@ -198,6 +203,7 @@ async function answerImpl(
   const base = {
     hits,
     retrieval,
+    brandVersion: brand.version,
     citedIds: [] as Id<"knowledgeChunks">[],
     inputTokens: 0,
     outputTokens: 0,
@@ -243,7 +249,7 @@ async function answerImpl(
         text: "I don’t have published information to answer that reliably. Your question can stay in this support conversation for the team to review.",
       };
     // Preserve existing evidence-based diagnostics and verified workflow answers.
-    const text = await draft(context);
+    const text = await draft(context, brand);
     return {
       ...base,
       text,
@@ -259,11 +265,13 @@ async function answerImpl(
     const response = await knowledgeModel(
       model,
       KNOWLEDGE_REPLY_POLICY +
+        BRAND_POLICY +
         (context.medium === "voice"
           ? "\nThis is a spoken reply: keep it below 1,200 characters, with a direct answer and one useful next step."
           : ""),
       {
         appName: context.appName,
+        brandStyle: brandStyle(brand),
         question: message,
         conversation: context.messages
           ?.filter((m) => ["customer", "staff", "cue"].includes(m.role || ""))

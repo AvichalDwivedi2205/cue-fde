@@ -8,6 +8,8 @@ import { hash } from "@/lib/growth-links";
 import { growthX } from "@/lib/growth-x";
 import { createXApi } from "@/lib/x-api";
 import { sendGrowthReview } from "@/lib/growth-slack";
+import { growthContext } from "@/lib/company-context";
+import { KNOWLEDGE_WORKSPACE } from "@/lib/knowledge-policy";
 export const runtime = "nodejs";
 const input = z
   .object({
@@ -70,7 +72,20 @@ export async function GET(request: Request) {
       appId: app.id,
     });
     return Response.json(
-      { ...saved, appId: app.id, releaseHealth },
+      {
+        ...saved,
+        appId: app.id,
+        releaseHealth,
+        contextEvidence: await db().query(api.companyContext.growthEvidence, {
+          secret: secret(),
+          workspaceId: KNOWLEDGE_WORKSPACE,
+          appId: app.id,
+          draftIds: saved.opportunities.flatMap((o) => {
+            const d = saved.drafts.find((d) => d.opportunityId === o._id);
+            return d ? [d._id] : [];
+          }),
+        }),
+      },
       { headers: { "cache-control": "no-store" } },
     );
   } catch {
@@ -205,6 +220,9 @@ export async function POST(request: Request) {
           release,
           text: a.text.trim(),
           hash: hash(a.text.trim()),
+          grounding: (
+            await growthContext(a.appId, o.text + "\n" + (o.need || ""))
+          ).grounding,
         });
         break;
       case "requestReview":

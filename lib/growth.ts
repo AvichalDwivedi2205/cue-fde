@@ -7,6 +7,7 @@ import { qualifyGrowth, draftGrowth } from "./growth-model";
 import { hash, issueGrowthToken } from "./growth-links";
 import type { Id } from "../convex/_generated/dataModel";
 import { observed } from "./observability";
+import { growthContext } from "./company-context";
 export async function observedRelease(appId: string) {
   const { app } = await workspaceApp(appId);
   const destination = app.origins.find(
@@ -164,11 +165,16 @@ async function processGrowthImpl(receiptId: Id<"growthReceipts">) {
         job.opportunity._id,
         job.receipt.actor,
       );
+      const context = await growthContext(
+        job.receipt.appId,
+        job.opportunity.text + "\n" + job.capability.need,
+      );
       const text = await draftGrowth(
         job.opportunity.text,
         job.capability.claims,
         touch.link,
         (await workspaceApp(job.receipt.appId)).app.name,
+        context,
       );
       await db().mutation(api.growthExecution.commitDraft, {
         secret: secret(),
@@ -177,6 +183,7 @@ async function processGrowthImpl(receiptId: Id<"growthReceipts">) {
         release,
         text,
         hash: hash(text),
+        grounding: context.grounding,
       });
       detail =
         "Draft saved for exact-version Product review. No public message sent.";

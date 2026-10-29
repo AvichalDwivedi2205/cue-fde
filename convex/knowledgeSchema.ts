@@ -18,6 +18,7 @@ export const knowledgeReply = v.object({
   inputTokens: v.number(),
   outputTokens: v.number(),
   retrieval: v.optional(v.string()),
+  brandVersion: v.optional(v.number()),
 });
 export const knowledgeTables = {
   knowledgeSources: defineTable({
@@ -45,6 +46,11 @@ export const knowledgeTables = {
     createdBy: v.string(),
     createdAt: v.number(),
     updatedAt: v.number(),
+    publishedAt: v.optional(v.number()),
+    activeRevision: v.optional(v.number()),
+    activePassageCount: v.optional(v.number()),
+    activeIndexedPassageCount: v.optional(v.number()),
+    latestPassageCount: v.optional(v.number()),
   }).index("by_workspaceId_and_appId", ["workspaceId", "appId"]),
   knowledgeVersions: defineTable({
     sourceId: v.id("knowledgeSources"),
@@ -95,6 +101,7 @@ export const knowledgeTables = {
     chunkIds: v.array(v.id("knowledgeChunks")),
     usedChunkIds: v.optional(v.array(v.id("knowledgeChunks"))),
     retrieval: v.optional(v.string()),
+    brandVersion: v.optional(v.number()),
     status: v.string(),
     provider: v.string(),
     model: v.string(),

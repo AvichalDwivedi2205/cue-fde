@@ -4,8 +4,10 @@ import { agentId, taskState, taskAction } from "./workspaceValidators";
 import { growthTables } from "./growthSchema";
 import { prospectTables } from "./prospectSchema";
 import { knowledgeTables } from "./knowledgeSchema";
+import { companyContextTables } from "./companyContextSchema";
 
 export default defineSchema({
+  ...companyContextTables,
   ...knowledgeTables,
   ...growthTables,
   ...prospectTables,

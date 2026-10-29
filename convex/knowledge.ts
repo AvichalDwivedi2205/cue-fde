@@ -29,6 +29,7 @@ export const hitValidator = v.object({
   sourceId: v.id("knowledgeSources"),
   versionId: v.id("knowledgeVersions"),
   title: v.string(),
+  revision: v.optional(v.number()),
   text: v.string(),
   heading: v.string(),
   page: v.optional(v.number()),
@@ -85,6 +86,7 @@ export async function currentHits(
       sourceId: s._id,
       versionId: version._id,
       title: version.title,
+      revision: version.revision,
       text: c.text,
       heading: c.heading,
       ...(c.page !== undefined ? { page: c.page } : {}),
@@ -272,6 +274,7 @@ export const save = mutation({
     }
     await ctx.db.patch("knowledgeSources", sourceId, {
       latestVersionId: versionId,
+      latestPassageCount: a.passages.length,
       revision,
       indexStatus: "idle",
       pendingVersionId: undefined,
@@ -469,6 +472,10 @@ export const commit = mutation({
       });
     await ctx.db.patch("knowledgeSources", s._id, {
       activeVersionId: version._id,
+      activeRevision: version.revision,
+      activePassageCount: chunks.length,
+      activeIndexedPassageCount: chunks.length,
+      publishedAt: Date.now(),
       visibility: version.visibility,
       title: version.title,
       status: "published",

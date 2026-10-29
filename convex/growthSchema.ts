@@ -1,6 +1,7 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
 import { actor } from "./workspaceValidators";
+import { growthGrounding, growthSourceReceipt } from "./companyContextSchema";
 export const growthEventType = v.union(
   v.literal("session_confirmed"),
   v.literal("memory_created"),
@@ -79,6 +80,8 @@ export const growthTables = {
     opportunityId: v.id("growthOpportunities"),
     capabilityId: v.id("growthCapabilities"),
     capabilityVersion: v.number(),
+    grounding: v.optional(growthGrounding),
+    contextSources: v.optional(v.array(growthSourceReceipt)),
     release: v.string(),
     text: v.string(),
     hash: v.string(),

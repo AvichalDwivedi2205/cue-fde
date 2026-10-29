@@ -216,6 +216,7 @@ export async function POST(request: Request) {
         inputTokens: answer.inputTokens,
         outputTokens: answer.outputTokens,
         retrieval: answer.retrieval,
+        brandVersion: answer.brandVersion,
         citations: answer.hits
           .filter((h) => answer.citedIds.includes(h._id))
           .map((h) => ({

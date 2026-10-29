@@ -165,6 +165,7 @@ export async function POST(request: Request) {
                 inputTokens: knowledge.inputTokens,
                 outputTokens: knowledge.outputTokens,
                 retrieval: knowledge.retrieval,
+                brandVersion: knowledge.brandVersion,
               },
             }
           : {}),

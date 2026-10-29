@@ -10,6 +10,8 @@
 
 import type * as background from "../background.js";
 import type * as bloom from "../bloom.js";
+import type * as companyContext from "../companyContext.js";
+import type * as companyContextSchema from "../companyContextSchema.js";
 import type * as crons from "../crons.js";
 import type * as cue from "../cue.js";
 import type * as deliveries from "../deliveries.js";
@@ -45,6 +47,8 @@ import type {
 declare const fullApi: ApiFromModules<{
   background: typeof background;
   bloom: typeof bloom;
+  companyContext: typeof companyContext;
+  companyContextSchema: typeof companyContextSchema;
   crons: typeof crons;
   cue: typeof cue;
   deliveries: typeof deliveries;

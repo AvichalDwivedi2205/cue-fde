@@ -10,6 +10,9 @@ import schema from "./schema";
 import { pool } from "./triageQueue";
 import { journey, transition } from "./growthTasks";
 import { sourcePolicy, growthDraftSupported } from "./growthPolicy";
+import { growthGrounding } from "./companyContextSchema";
+import { requireGrounding } from "./companyContext";
+import { currentHits } from "./knowledge";
 const growthAction = v.union(
   v.literal("discover"),
   v.literal("qualify"),
@@ -686,6 +689,7 @@ export const saveDraft = mutation({
     release: v.string(),
     text: v.string(),
     hash: v.string(),
+    grounding: v.optional(growthGrounding),
   },
   returns: v.id("growthDrafts"),
   handler: async (ctx, a) => {
@@ -695,6 +699,25 @@ export const saveDraft = mutation({
     if (!o || o.appId !== a.appId || !o.eligible || !o.capabilityId)
       throw new ConvexError("Opportunity cannot support a recommendation");
     const cap = await capability(ctx, o.capabilityId, a.release);
+    await requireGrounding(ctx, a.appId, a.grounding);
+    const contextSources = a.grounding
+      ? (
+          await currentHits(
+            ctx,
+            a.grounding.chunkIds,
+            a.grounding.workspaceId,
+            a.appId,
+            "customer",
+          )
+        ).map((h) => ({
+          sourceId: h.sourceId,
+          versionId: h.versionId,
+          title: h.title,
+          heading: h.heading,
+          excerpt: h.text,
+          revision: h.revision!,
+        }))
+      : undefined;
     const touch = await ctx.db
       .query("growthTouches")
       .withIndex("by_opportunityId", (q) => q.eq("opportunityId", o._id))
@@ -720,13 +743,16 @@ export const saveDraft = mutation({
     if (
       old?.hash === a.hash &&
       old.text === a.text.trim() &&
-      old.capabilityVersion === cap.version
+      old.capabilityVersion === cap.version &&
+      JSON.stringify(old.grounding) === JSON.stringify(a.grounding)
     )
       return old._id;
     const id = await ctx.db.insert("growthDrafts", {
       opportunityId: o._id,
       capabilityId: cap._id,
       capabilityVersion: cap.version,
+      ...(a.grounding ? { grounding: a.grounding } : {}),
+      ...(contextSources ? { contextSources } : {}),
       release: cap.release,
       text: a.text.trim(),
       hash: a.hash,
@@ -776,6 +802,7 @@ export const requestReview = mutation({
       .order("desc")
       .first();
     const cap = await capability(ctx, draft.capabilityId, a.release);
+    await requireGrounding(ctx, a.appId, draft.grounding);
     if (
       latest?._id !== draft._id ||
       cap.version !== draft.capabilityVersion ||
@@ -838,6 +865,7 @@ export const decide = mutation({
       .order("desc")
       .first();
     const cap = await capability(ctx, draft.capabilityId, a.release);
+    if (a.approve) await requireGrounding(ctx, a.appId, draft.grounding);
     if (latest?._id !== draft._id || cap.version !== draft.capabilityVersion)
       throw new ConvexError(
         "Draft or capability changed; approval invalidated",
