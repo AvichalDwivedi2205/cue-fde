@@ -2,7 +2,7 @@
 
 The canonical public repository is [AvichalDwivedi2205/cue-b2c](https://github.com/AvichalDwivedi2205/cue-b2c). It contains the actual development history, product source, tests, and submission evidence. The earlier `cue-neathack-2026` snapshot is retired; new work belongs here.
 
-The current hosted Cue release is `70033e31cd60bebb610d6953a3fb097f19325ec0` (`cue-00040-wit`). It passed 408 tests in 64 files, lint, typecheck, production build, 17 hosted boundary checks, and six live widget checks. The longer workflow reports below include earlier retained verification; [current build provenance](docs/repository-and-build-provenance.md) records the latest release and checkpoint.
+The current hosted Cue release is `0a96ead73323d3cc340afaf4f687826b522bf167` (`cue-00042-max`). This logo update passed lint, typecheck, local and cloud production builds, five checks on both preview and production, and native inspection of the landing, workspace and Knowledge screens. The underlying product release `70033e3` passed 408 tests in 64 files, 17 hosted boundary checks and six live widget checks. [Current build provenance](docs/repository-and-build-provenance.md) separates the releases and their verification.
 
 A working implementation of customer support turning into an engineering fix. Both applications use the supplied designs in `design/bloom.html` and `design/cue.html`; live adapters replace their browser-only story state.
 

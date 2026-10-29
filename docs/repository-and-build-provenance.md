@@ -25,8 +25,8 @@ artifacts remain ignored. This is a publication check, not a security audit.
 
 ## Current deployed release
 
-- Cue source: `70033e31cd60bebb610d6953a3fb097f19325ec0`.
-- Cue deployment: Cloud Run `cue-00040-wit`, serving 100% of traffic when verified.
+- Cue source: `0a96ead73323d3cc340afaf4f687826b522bf167`.
+- Cue deployment: Cloud Run `cue-00042-max`, serving 100% of traffic when verified.
 - Workspace: <https://cue.latchgrid.in/cue#/home>.
 - Bloom: <https://bloom-with-cue.vercel.app>.
 - Bloom source: `02c24e50d71457fc872c8f08f8b3735495b7478d`.
@@ -37,7 +37,15 @@ and Growth drafts, customer answer outcomes, and an app-scoped knowledge-gap
 queue. Voice and typed turns share the same customer conversation. Support and
 qualification use Gemini; Growth writing uses Claude Sonnet 4.6 through LiteLLM.
 
-Verification retained for this exact release:
+The current release adds the supplied signal logo to the public landing,
+workspace, React shell, favicon and Apple icon. Lint, typecheck, local and cloud
+production builds passed. Five read-only checks passed on both preview and
+production; the icons matched the supplied files exactly and operator endpoints
+remained authenticated. Native Chrome inspection verified all three application
+surfaces. See [the logo release record](verification-cue-logo-2026-10-12.md).
+
+Verification retained for the underlying product release
+`70033e31cd60bebb610d6953a3fb097f19325ec0`:
 
 - 408 tests across 64 files, lint, typecheck, and the production build passed.
 - 17 hosted release, stylesheet, authentication, and WorkOS PKCE checks passed.
@@ -58,8 +66,8 @@ not been certified, and no new demo video was created by this repository update.
 
 ## Entire
 
-The official Entire CLI captures the genuine Codex build session. The latest
-documentation commit carries its checkpoint ID in an `Entire-Checkpoint`
+The official Entire CLI captures the genuine Codex build session. The checkpoint
+documentation commit `878fb7b` carries its ID in an `Entire-Checkpoint`
 trailer, and its checkpoint Git ref is published alongside the source.
 
 Checkpoint ID: **`01M4R2NJSBS811SF9BFG13YA4F`**. The refresh captured 112 genuine

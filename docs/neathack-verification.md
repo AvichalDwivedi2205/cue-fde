@@ -16,7 +16,7 @@ evidence. Submission publication remains a separate step.
   `5d778a808be77e589417208b002f93f2b187c899`. Bloom's installed source-card
   renderer is source commit `f15b664` and Vercel deployment
   `dpl_9K9emwAdjFAdCdyuKvF2g9R15tki`.
-- Current hosted Cue: <https://cue.latchgrid.in>; source `70033e31cd60bebb610d6953a3fb097f19325ec0`, Cloud Run revision `cue-00040-wit`. The current release passed 408 tests across 64 files, lint, typecheck, production build, 17 hosted boundary checks, and six live widget checks; details are in [current provenance](repository-and-build-provenance.md).
+- Current hosted Cue: <https://cue.latchgrid.in>; source `0a96ead73323d3cc340afaf4f687826b522bf167`, Cloud Run revision `cue-00042-max`. This logo-only update passed lint, typecheck, local and cloud production builds, five read-only checks on both preview and production, and native logo inspection. The underlying `70033e3` product release passed 408 tests across 64 files, 17 hosted boundary checks and six live widget checks; details are in [current provenance](repository-and-build-provenance.md).
 - Earlier Crustdata release: Cloud Run revision `cue-00034-fm9`.
   Historical container digest
   `sha256:0a86b674d375b88067cec78411a7ad9866782a567654a4404727087eb2c6e0e8`.
