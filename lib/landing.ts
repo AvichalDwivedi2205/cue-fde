@@ -132,8 +132,9 @@ export function renderCueLanding(source: string) {
   );
   const publicHead = serialize(head).replace(
     "Cue — Bloom workspace",
-    "Cue — customer problems to verified fixes",
+    "Cue: customer problems to verified fixes",
   );
+  content = content.replaceAll("—", "·");
   const progress = nodes.find((n) => attr(n, "id")?.value === "progress");
   return `<!doctype html><html lang="en"><head>${publicHead}<link rel="icon" href="/cue-favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/cue-workspace.css"><link rel="stylesheet" href="/cue-waitlist.css"><style>html{scroll-behavior:smooth;scroll-padding-top:80px} .ticker-list{height:auto;min-height:270px} .ticker-list::after{display:none} .t-item .t-text{white-space:normal} .t-tag{white-space:nowrap} .lnav{border-bottom-color:var(--line)} #marquee>span[aria-hidden]{display:contents} @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}</style><noscript><style>.chapter{opacity:1}.stage-label + .scene{opacity:1;transform:none}</style></noscript></head><body>${progress ? serializeOuter(progress) : ""}${content}<script src="/cue-landing.js" defer></script><script src="/cue-waitlist.js" defer></script></body></html>`;
 }
