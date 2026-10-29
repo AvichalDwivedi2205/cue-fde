@@ -110,6 +110,15 @@ test("enrichment failure retains search evidence with unknown spend and no retry
 });
 test("fit requires product evidence, target size and exact enrichment; a company profile never establishes buying intent", () => {
   expect(assessProspect(company(), true).fit).toBe("potential");
+  const missingWebsite = assessProspect(
+    {
+      ...company(),
+      basic_info: { ...company().basic_info, primary_domain: null },
+    },
+    true,
+  );
+  expect(missingWebsite.fit).toBe("review");
+  expect(missingWebsite.gaps.join()).toContain("verify the company");
   expect(
     assessProspect({ ...company(), headcount: { total: 200 } }, true).fit,
   ).toBe("low");

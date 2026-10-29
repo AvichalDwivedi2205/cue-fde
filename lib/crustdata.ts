@@ -69,6 +69,7 @@ export function assessProspect(
   enriched: boolean,
 ): ProspectCompany {
   const description = (c.basic_info?.description || "").slice(0, 1600);
+  const domain = prospectDomain(c.basic_info?.primary_domain || "");
   const employees = c.headcount?.total ?? null;
   const relevant =
     /\b(journal\w*|habit\w*|wellness|meditation|personal productivity|consumer|mental health|fitness|self[- ]care)\b/i.test(
@@ -96,12 +97,16 @@ export function assessProspect(
   if (!enriched)
     gaps.push("Exact-ID enrichment unavailable; facts are from search only.");
   if (employees === null) gaps.push("Employee count is unavailable.");
+  if (!domain)
+    gaps.push(
+      "Website unavailable; verify the company and product identity before shortlisting.",
+    );
   if (!relevant || !product)
     gaps.push("Read the company website to verify its product and audience.");
   return {
     companyId: c.crustdata_company_id,
     name: (c.basic_info?.name || "Unnamed company").slice(0, 120),
-    domain: prospectDomain(c.basic_info?.primary_domain || ""),
+    domain,
     description,
     employees,
     country: c.locations?.country?.slice(0, 80) || null,
@@ -109,7 +114,7 @@ export function assessProspect(
     fit:
       employees !== null && employees > 50
         ? "low"
-        : relevant && product && small && enriched
+        : relevant && product && small && enriched && domain
           ? "potential"
           : "review",
     reasons,
@@ -206,8 +211,8 @@ export function createCrustdata(key: string, fetcher: typeof fetch = fetch) {
         filters: {
           op: "and",
           conditions: [
-              { field: "headcount.total", type: "=>", value: 1 },
-              { field: "headcount.total", type: "=<", value: 50 },
+            { field: "headcount.total", type: "=>", value: 1 },
+            { field: "headcount.total", type: "=<", value: 50 },
           ],
         },
         fields: [
