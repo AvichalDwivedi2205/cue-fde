@@ -1,4 +1,4 @@
-import { mutation } from "./_generated/server";
+import { mutation, type MutationCtx } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { v, ConvexError } from "convex/values";
 import { authorize } from "./cue";
@@ -7,7 +7,41 @@ import { socialSource } from "../lib/social-source";
 import { knowledgeReply } from "./knowledgeSchema";
 import { currentHits } from "./knowledge";
 import { brandCurrent } from "./companyContext";
-import { recordGap } from "./feedbackGaps";
+import { recordGap, excludeVerificationGaps } from "./feedbackGaps";
+
+// Voice and typed widget turns share the same indexed visitor conversation.
+// Reading this range inside both mutations also prevents duplicate creation
+// when a spoken response and a typed message commit concurrently.
+export async function widgetConversation(
+  ctx: MutationCtx,
+  owner: string,
+  appId: string,
+) {
+  if (!owner.startsWith(`widget:${appId}:`))
+    throw new ConvexError("Wrong app conversation");
+  const canonical = await ctx.db
+    .query("cases")
+    .withIndex("by_sourceKey", (q) => q.eq("sourceKey", owner))
+    .unique();
+  const existing =
+    canonical ||
+    (await ctx.db
+      .query("cases")
+      .withIndex("by_owner", (q) => q.eq("owner", owner))
+      .order("desc")
+      .first());
+  if (!existing) return null;
+  if (
+    existing.owner !== owner ||
+    existing.appId !== appId ||
+    existing.channel !== "chat" ||
+    (existing.sourceKey && existing.sourceKey !== owner)
+  )
+    throw new ConvexError("Wrong app conversation");
+  if (!existing.sourceKey)
+    await ctx.db.patch("cases", existing._id, { sourceKey: owner });
+  return existing;
+}
 
 export const widgetMessage = mutation({
   args: {
@@ -74,7 +108,14 @@ export const widgetMessage = mutation({
         createdAt: Date.now(),
       });
       if (["needs_review", "conflict"].includes(knowledge.status))
-        await recordGap(ctx, { workspaceId: knowledge.workspaceId, appId: a.appId, owner: a.owner, caseId, messageId, reason: "unanswered" });
+        await recordGap(ctx, {
+          workspaceId: knowledge.workspaceId,
+          appId: a.appId,
+          owner: a.owner,
+          caseId,
+          messageId,
+          reason: "unanswered",
+        });
     };
     if (
       !a.owner.startsWith(`widget:${a.appId}:`) ||
@@ -82,10 +123,7 @@ export const widgetMessage = mutation({
       a.body.length > 12000
     )
       throw new ConvexError("Invalid widget message");
-    const existing = await ctx.db
-      .query("cases")
-      .withIndex("by_sourceKey", (q) => q.eq("sourceKey", a.owner))
-      .unique();
+    const existing = await widgetConversation(ctx, a.owner, a.appId);
     if (existing) {
       if (
         existing.owner !== a.owner ||
@@ -139,6 +177,91 @@ export const widgetMessage = mutation({
       if (message) await recordEvidence(caseId, message._id);
     }
     return { caseId, created: true };
+  },
+});
+
+// The trusted harness derives app and origin from the registered integration.
+// This narrowly labels typed fixtures without deleting their evidence.
+export const markVerificationCase = mutation({
+  args: {
+    secret: v.string(),
+    caseId: v.id("cases"),
+    expectedOwner: v.string(),
+    expectedAppId: v.string(),
+    expectedQuestion: v.string(),
+    expectedOrigin: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, a) => {
+    authorize(a.secret);
+    let origin: URL;
+    try {
+      origin = new URL(a.expectedOrigin);
+    } catch {
+      throw new ConvexError("Typed verification fixture does not match");
+    }
+    const c = await ctx.db.get("cases", a.caseId);
+    if (
+      !c ||
+      c.channel !== "chat" ||
+      c.externalId !== undefined ||
+      c.customer !== "Synthetic answer-outcome verification" ||
+      c.owner !== a.expectedOwner ||
+      c.sourceKey !== a.expectedOwner ||
+      c.appId !== a.expectedAppId ||
+      !a.expectedOwner.startsWith(`widget:${a.expectedAppId}:`) ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        a.expectedOwner.slice(`widget:${a.expectedAppId}:`.length),
+      ) ||
+      !a.expectedQuestion.trim() ||
+      a.expectedQuestion.length > 2000 ||
+      c.body !== a.expectedQuestion ||
+      c.sourceUrl !== a.expectedOrigin ||
+      a.expectedOrigin !== origin.origin ||
+      origin.pathname !== "/" ||
+      origin.search ||
+      origin.hash ||
+      origin.username ||
+      origin.password ||
+      (origin.protocol !== "https:" &&
+        !(
+          origin.protocol === "http:" &&
+          ["localhost", "127.0.0.1", "[::1]"].includes(origin.hostname)
+        ))
+    )
+      throw new ConvexError("Typed verification fixture does not match");
+    if (c.provenance === "Synthetic answer-outcome verification") return null;
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_caseId_and_createdAt", (q) => q.eq("caseId", c._id))
+      .take(101);
+    if (
+      messages.length > 100 ||
+      !messages.some(
+        (m) => m.role === "customer" && m.body === a.expectedQuestion,
+      ) ||
+      messages.some(
+        (m) =>
+          m.role === "note" &&
+          m.body.startsWith("Customer opted into a voice session."),
+      )
+    )
+      throw new ConvexError("Typed verification fixture does not match");
+    await ctx.db.patch("cases", c._id, {
+      provenance: "Synthetic answer-outcome verification",
+    });
+    await excludeVerificationGaps(
+      ctx,
+      messages.map((m) => m._id),
+    );
+    await ctx.db.insert("messages", {
+      caseId: c._id,
+      author: "Verification harness",
+      role: "note",
+      createdAt: Date.now(),
+      body: `Generated typed fixture, not a customer report. Original provenance: ${c.provenance}. Messages and failure evidence retained.`,
+    });
+    return null;
   },
 });
 

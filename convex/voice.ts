@@ -8,6 +8,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { knowledgeReply } from "./knowledgeSchema";
 import { currentHits } from "./knowledge";
 import { brandCurrent } from "./companyContext";
+import { widgetConversation } from "./intake";
 
 function active(session: Doc<"voiceSessions"> | null, owner: string) {
   if (!session || session.owner !== owner)
@@ -29,23 +30,33 @@ export const start = mutation({
   returns: v.id("voiceSessions"),
   handler: async (ctx, a) => {
     authorize(a.secret);
+    if (
+      a.owner.startsWith("widget:") &&
+      (!a.appId || !a.owner.startsWith(`widget:${a.appId}:`))
+    )
+      throw new ConvexError("Voice session belongs to another app");
     const old = await ctx.db
       .query("voiceSessions")
       .withIndex("by_owner_and_status", (q) =>
         q.eq("owner", a.owner).eq("status", "active"),
       )
       .first();
+    if (old && old.appId !== a.appId)
+      throw new ConvexError("Voice session belongs to another app");
     if (old && Date.now() - old.createdAt < 15 * 60_000) return old._id;
     if (old)
       await ctx.db.patch("voiceSessions", old._id, {
         status: "ended",
         endedAt: Date.now(),
       });
-    const c = await ctx.db
-      .query("cases")
-      .withIndex("by_owner", (q) => q.eq("owner", a.owner))
-      .order("desc")
-      .first();
+    const c =
+      a.appId && a.owner.startsWith("widget:")
+        ? await widgetConversation(ctx, a.owner, a.appId)
+        : await ctx.db
+            .query("cases")
+            .withIndex("by_owner", (q) => q.eq("owner", a.owner))
+            .order("desc")
+            .first();
     return await ctx.db.insert("voiceSessions", {
       owner: a.owner,
       customer: a.customer.slice(0, 80),
@@ -171,10 +182,15 @@ export const finish = mutation({
       ? a.reply
       : "The published information changed while I was answering. Please ask again so I can use the current version.";
     let id: Id<"cases">;
-    if (s.caseId) {
-      const c = await ctx.db.get("cases", s.caseId);
-      if (!c || c.owner !== a.owner || c.appId !== s.appId)
-        throw new ConvexError("Voice case not found");
+    let c = s.caseId ? await ctx.db.get("cases", s.caseId) : null;
+    if (
+      s.caseId &&
+      (!c || c.owner !== a.owner || c.appId !== s.appId || c.channel !== "chat")
+    )
+      throw new ConvexError("Voice case not found");
+    if (s.appId && a.owner.startsWith("widget:"))
+      c = (await widgetConversation(ctx, a.owner, s.appId)) || c;
+    if (c) {
       id = c._id;
       for (const [role, author, body] of [
         ["customer", s.customer, a.transcript],
@@ -192,6 +208,9 @@ export const finish = mutation({
       id = await ctx.runMutation(api.cue.createCase, {
         secret: a.secret,
         owner: a.owner,
+        ...(s.appId && a.owner.startsWith(`widget:${s.appId}:`)
+          ? { sourceKey: a.owner }
+          : {}),
         appId: s.appId,
         customer: s.customer,
         title: a.transcript.slice(0, 100),
@@ -235,7 +254,14 @@ export const finish = mutation({
             : {}),
         });
         if (["needs_review", "conflict"].includes(k.status))
-          await recordGap(ctx, { workspaceId: k.workspaceId, appId: s.appId, owner: a.owner, caseId: id, messageId: message._id, reason: "unanswered" });
+          await recordGap(ctx, {
+            workspaceId: k.workspaceId,
+            appId: s.appId,
+            owner: a.owner,
+            caseId: id,
+            messageId: message._id,
+            reason: "unanswered",
+          });
       }
     }
     await ctx.db.patch("voiceSessions", s._id, {
@@ -341,7 +367,10 @@ export const markVerificationCase = mutation({
     await ctx.db.patch("cases", c._id, {
       provenance: "Synthetic voice verification",
     });
-    await excludeVerificationGaps(ctx, messages.map(m => m._id));
+    await excludeVerificationGaps(
+      ctx,
+      messages.map((m) => m._id),
+    );
     await ctx.db.insert("messages", {
       caseId: c._id,
       author: "Verification harness",

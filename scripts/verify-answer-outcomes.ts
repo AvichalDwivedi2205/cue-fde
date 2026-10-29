@@ -47,6 +47,7 @@ const auth = {
 };
 let sessionId: string | undefined,
   caseId: Id<"cases"> | undefined,
+  typedCaseId: Id<"cases"> | undefined,
   transcript: string | undefined;
 try {
   sessionId = (
@@ -94,6 +95,7 @@ try {
     action: "message",
     text: question,
   });
+  typedCaseId = message.id;
   assert.equal(message.id, caseId);
   const conversation = await call("/api/widget", { ...auth, action: "read" });
   const answer = conversation.messages
@@ -199,5 +201,20 @@ try {
         expectedTranscript: transcript,
       })
       .catch(() => {});
+  // Retain a failed cross-mode regression's typed companion as test evidence.
+  // It must never appear as a customer report if voice and typing split again.
+  if (typedCaseId && typedCaseId !== caseId) {
+    const snapshot = await db().query(api.cue.snapshot, { secret: secret() });
+    const typed = snapshot.cases.find((c) => c._id === typedCaseId);
+    if (typed?.owner)
+      await db().mutation(api.intake.markVerificationCase, {
+        secret: secret(),
+        caseId: typedCaseId,
+        expectedOwner: typed.owner,
+        expectedAppId: app.id,
+        expectedQuestion: "What is the photo upload limit?",
+        expectedOrigin: origin,
+      });
+  }
   await shutdownObservability();
 }
