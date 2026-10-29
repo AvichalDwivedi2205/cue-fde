@@ -24,6 +24,7 @@ export const metadata: Metadata = {
   description: "Customer problems to verified fixes",
   icons: {
     icon: "/cue-icon.svg",
+    apple: "/apple-touch-icon.png",
   },
 };
 

@@ -27,6 +27,64 @@ export function Icon({
     />
   );
 }
+// Brand mark (design/brand): the C and its signal dot. "dark" = for Night surfaces.
+const brandInk = (tone: "dark" | "light") =>
+  tone === "dark" ? "#FFFFFF" : "#14181A";
+export function CueSymbol({
+  size = 22,
+  tone = "dark",
+}: {
+  size?: number;
+  tone?: "dark" | "light";
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 100 100"
+      className="block shrink-0"
+      aria-hidden="true"
+    >
+      <path
+        d="M52.79 16.05A34 34 0 1 0 79.52 73.99"
+        fill="none"
+        stroke={brandInk(tone)}
+        strokeWidth={20}
+        strokeLinecap="round"
+      />
+      <circle
+        cx="79.52"
+        cy="25.9"
+        r="11"
+        fill={tone === "dark" ? "#3DD68C" : "#17A05E"}
+      />
+    </svg>
+  );
+}
+export function CueWordmark({
+  height = 15,
+  tone = "dark",
+}: {
+  height?: number;
+  tone?: "dark" | "light";
+}) {
+  return (
+    <svg
+      width={Math.round((height * 306.1) / 104)}
+      height={height}
+      viewBox="0 -102 306.1 104"
+      className="block shrink-0"
+      aria-hidden="true"
+    >
+      <g fill="none" stroke={brandInk(tone)} strokeWidth={18.5}>
+        <path d="M81.89 -79.35A42.25 42.25 0 1 0 81.89 -20.65" />
+        <path d="M103.8 -100V-50A38.02 38.02 0 0 0 179.85 -50" />
+        <path d="M179.85 -100V0" />
+        <path d="M212.35 -50H296.85A42.25 42.25 0 1 0 288.78 -25.17" />
+      </g>
+    </svg>
+  );
+}
 export function Button({
   children,
   variant = "default",

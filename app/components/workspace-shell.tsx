@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Icon } from "./ui";
+import { CueSymbol, CueWordmark, Icon } from "./ui";
 import { readIntegrations } from "@/lib/integration-config";
 import { WorkspacePreferences } from "./workspace-preferences";
 import { WorkspaceApplication } from "./workspace-application";
@@ -72,13 +72,13 @@ export async function WorkspaceShell({
         >
           <a
             href="/cue#/home"
-            className="mb-3 flex items-center justify-center gap-2.5 px-2 pb-1 text-[15px] font-semibold text-white min-[961px]:justify-start"
+            className="mb-3 flex items-center justify-center gap-1.5 px-2 pb-1 min-[961px]:justify-start"
             aria-label="Cue home"
           >
-            <span className="grid size-[22px] place-items-center rounded-md bg-white text-cue-sidebar">
-              <Icon name="cue" size={13} />
+            <CueSymbol size={22} />
+            <span className="hidden min-[961px]:flex">
+              <CueWordmark height={15} />
             </span>
-            <span className="hidden min-[961px]:inline">Cue</span>
           </a>
           <nav aria-label="Workspace navigation">
             {groups.map((group) => (

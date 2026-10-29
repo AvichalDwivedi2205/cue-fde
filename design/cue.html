@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cue — Bloom workspace</title>
+<link rel="icon" href="/cue-icon.svg">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="description" content="Cue turns customer problems into reproduced, approved and verified fixes.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -89,7 +91,7 @@ svg{flex:none}
 .lnav{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;padding:14px clamp(16px,4vw,48px);background:rgba(250,250,247,.75);backdrop-filter:blur(12px) saturate(1.4);border-bottom:1px solid transparent;transition:border-color var(--t2)}
 .lnav.scrolled{border-bottom-color:var(--line)}
 .logo{display:flex;align-items:center;gap:8px;font-weight:650;font-size:15px;letter-spacing:-.01em}
-.logo-mark{width:22px;height:22px;border-radius:6px;background:var(--ink);display:grid;place-items:center}
+.logo svg,.sb-top svg,.mac-logo svg{display:block;flex:none}
 .lnav-links{display:flex;gap:26px;color:var(--ink-2);font-size:13.5px}
 .lnav-links a{text-decoration:none;transition:color var(--t1)}
 .lnav-links a:hover{color:var(--ink)}
@@ -424,7 +426,7 @@ svg{flex:none}
 .mac-live i{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px var(--accent-t)}
 .mac-body{display:flex;height:calc(100% - 38px)}
 .mac-sb{width:52px;flex:none;background:#111513;display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:14px}
-.mac-logo{width:24px;height:24px;border-radius:7px;background:#fff;display:grid;place-items:center;margin-bottom:8px}
+.mac-logo{width:24px;height:24px;display:grid;place-items:center;margin-bottom:8px}
 .mac-ni{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;color:#7D8681;transition:background var(--t2),color var(--t2)}
 .mac-ni.on{background:#1D2420;color:#fff}
 .mac-main{position:relative;flex:1;min-width:0;background:var(--bg)}
@@ -605,8 +607,8 @@ svg{flex:none}
 #app{display:none;height:100vh;grid-template-columns:232px 1fr;grid-template-rows:52px 1fr}
 #app.show{display:grid}
 .sb{grid-row:1/3;background:var(--sidebar);color:var(--sb-text);display:flex;flex-direction:column;padding:12px 10px;gap:2px;min-width:0}
-.sb-top{display:flex;align-items:center;gap:9px;padding:4px 8px 14px;color:#fff;font-weight:650;font-size:14.5px;text-decoration:none}
-.sb-top .logo-mark{background:#fff}
+.sb-top{display:flex;align-items:center;gap:6px;padding:4px 8px 14px;color:#fff;font-weight:650;font-size:14.5px;text-decoration:none}
+.sb-top>span{display:flex}
 .sb-sec{font:500 11.5px var(--mono);letter-spacing:.08em;color:var(--sb-mute);text-transform:uppercase;padding:14px 10px 6px}
 .nav{display:flex;align-items:center;gap:10px;height:32px;padding:0 10px;border-radius:7px;color:var(--sb-text);text-decoration:none;font-weight:500;position:relative;transition:background var(--t1),color var(--t1)}
 .nav:hover{background:#181e1b;color:#fff}
@@ -2006,7 +2008,7 @@ a.appr-btn{text-decoration:none}
 <!-- ================= LANDING ================= -->
 <div id="landing">
   <nav class="lnav" id="lnav" aria-label="Primary">
-    <a class="logo" href="#/" style="text-decoration:none"><span class="logo-mark"><i data-ic="cue" data-c="#fff" data-s="13"></i></span>Cue</a>
+    <a class="logo" href="#/" style="text-decoration:none" aria-label="Cue home"><svg width="86" height="24" viewBox="0 -117.5 484.45 135" aria-hidden="true"><path d="M62.9 -101.61A51.77 51.77 0 1 0 103.61 -13.39" fill="none" stroke="#14181A" stroke-width="30.45" stroke-linecap="round"/><circle cx="103.61" cy="-86.61" r="16.75" fill="#17A05E"/><g transform="translate(178.36 0)" fill="none" stroke="#14181A" stroke-width="18.5"><path d="M81.89 -79.35A42.25 42.25 0 1 0 81.89 -20.65"/><path d="M103.8 -100V-50A38.02 38.02 0 0 0 179.85 -50"/><path d="M179.85 -100V0"/><path d="M212.35 -50H296.85A42.25 42.25 0 1 0 288.78 -25.17"/></g></svg></a>
     <div class="lnav-links"><a href="#how" data-scroll>The loop</a><a href="#act-grow" data-scroll>Growth</a><a href="#act-agents" data-scroll>Agents</a><a href="#principles" data-scroll>Principles</a><a href="#faq" data-scroll>FAQ</a></div>
     <a class="btn dark" href="#/home">Open workspace <i data-ic="arrowR" data-s="14"></i></a>
   </nav>
@@ -2158,7 +2160,7 @@ a.appr-btn{text-decoration:none}
     <p class="l-note">Sample workspace · no sign-up · every sample is labeled</p>
   </section>
   <footer class="lfoot">
-    <div class="lf-brand"><span class="logo"><span class="logo-mark"><i data-ic="cue" data-c="#fff" data-s="13"></i></span>Cue</span><p>Customer problems to verified resolution, and the growth that follows.</p></div>
+    <div class="lf-brand"><span class="logo" role="img" aria-label="Cue"><svg width="86" height="24" viewBox="0 -117.5 484.45 135" aria-hidden="true"><path d="M62.9 -101.61A51.77 51.77 0 1 0 103.61 -13.39" fill="none" stroke="#14181A" stroke-width="30.45" stroke-linecap="round"/><circle cx="103.61" cy="-86.61" r="16.75" fill="#17A05E"/><g transform="translate(178.36 0)" fill="none" stroke="#14181A" stroke-width="18.5"><path d="M81.89 -79.35A42.25 42.25 0 1 0 81.89 -20.65"/><path d="M103.8 -100V-50A38.02 38.02 0 0 0 179.85 -50"/><path d="M179.85 -100V0"/><path d="M212.35 -50H296.85A42.25 42.25 0 1 0 288.78 -25.17"/></g></svg></span><p>Customer problems to verified resolution, and the growth that follows.</p></div>
     <div class="lf-col"><b>Product</b><a href="#/inbox">Inbox</a><a href="#/issues">Issues</a><a href="#/growth">Growth</a><a href="#/agents">Agents</a></div>
     <div class="lf-col"><b>Story</b><a href="#how" data-scroll>The loop</a><a href="#principles" data-scroll>Principles</a><a href="#faq" data-scroll>FAQ</a></div>
     <div class="lf-col"><b>Workspace</b><a href="#/integrations">Integrations</a><a href="#/settings">Settings</a><a href="bloom.html">Bloom demo app ↗</a></div>
@@ -2257,19 +2259,22 @@ const P = {
   reddit: '<circle cx="12" cy="14" r="7"/><path d="M9.5 16.5c1.5 1 3.5 1 5 0"/><circle cx="9.5" cy="13" r=".6" fill="currentColor"/><circle cx="14.5" cy="13" r=".6" fill="currentColor"/><path d="m12 7 1.2-4 3.8 1"/><circle cx="18.3" cy="4.3" r="1.3"/>',
 };
 const ic = (n, s = 16, c) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${c || 'currentColor'}" stroke-width="${n === 'cue' ? 3.2 : 1.8}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n] || ''}</svg>`;
+// Brand mark (design/brand): the C and its signal dot. dark = white C, bright signal for Night surfaces.
+const cueSymbol = (s = 22, dark = true) => `<svg class="cue-symbol" width="${s}" height="${s}" viewBox="0 0 100 100" aria-hidden="true"><path d="M52.79 16.05A34 34 0 1 0 79.52 73.99" fill="none" stroke="${dark ? '#fff' : '#14181A'}" stroke-width="20" stroke-linecap="round"/><circle cx="79.52" cy="25.9" r="11" fill="${dark ? '#3DD68C' : '#17A05E'}"/></svg>`;
+const cueWordmark = (h = 15, dark = true) => `<svg class="cue-word" width="${Math.round(h * 306.1 / 104)}" height="${h}" viewBox="0 -102 306.1 104" aria-hidden="true"><g fill="none" stroke="${dark ? '#fff' : '#14181A'}" stroke-width="18.5"><path d="M81.89 -79.35A42.25 42.25 0 1 0 81.89 -20.65"/><path d="M103.8 -100V-50A38.02 38.02 0 0 0 179.85 -50"/><path d="M179.85 -100V0"/><path d="M212.35 -50H296.85A42.25 42.25 0 1 0 288.78 -25.17"/></g></svg>`;
 function hydrateIcons(root = document) { $$('i[data-ic]', root).forEach(el => { el.outerHTML = ic(el.dataset.ic, +el.dataset.s || 16, el.dataset.c); }); }
 
 /* ------------------------------------------------------------------ helpers */
 const CH = { x: { label: 'X', icon: 'xlogo', s: 9 }, chat: { label: 'In-app chat', icon: 'chat', s: 10 }, email: { label: 'Email', icon: 'mail', s: 10 } };
 const chIc = ch => `<span class="ch-ic ${ch}" title="${CH[ch].label}">${ic(CH[ch].icon, CH[ch].s)}</span>`;
-const av = (p, cls = '') => `<span class="av ${cls}" style="background:${p.color}" aria-hidden="true">${esc(p.ini)}</span>`;
+const av = (p, cls = '') => `<span class="av ${cls}" style="background:${p.color}" aria-hidden="true">${p === CUE ? cueSymbol('62%') : esc(p.ini)}</span>`;
 const prio = p => `<span class="chip ${p.toLowerCase()}">${p}</span>`;
 const pad = n => String(n).padStart(2, '0');
 const clock = t => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
 const hm = t => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 function rel(t) { const s = (Date.now() - t) / 1000; if (s < 45) return 'now'; if (s < 3600) return Math.round(s / 60) + 'm'; if (s < 86400) return Math.round(s / 3600) + 'h'; return Math.round(s / 86400) + 'd'; }
 const OP = { name: 'Avi Dwivedi', short: 'Avi', ini: 'AV', color: '#1E7A53' };
-const CUE = { name: 'Cue', ini: '✦', color: '#14181A' };
+const CUE = { name: 'Cue', ini: '✦', color: '#111513' };
 
 /* ------------------------------------------------------------------ data */
 const MIN = 60e3, HR = 36e5, DAY = 864e5;
@@ -2529,7 +2534,7 @@ function macHTML(only) {
   const scenes = only == null ? STORY.map((_, i) => sceneHTML(i)).join('') : sceneHTML(only);
   const ch = only == null ? 0 : only;
   return `<div class="mac"><div class="mac-bar"><span class="mac-dots"><i></i><i></i><i></i></span><span class="mac-url">app.cue.so / <b class="mac-u">${STORY[ch].url}</b></span><span class="mac-live"><i></i>Bloom</span></div>
-    <div class="mac-body"><div class="mac-sb"><span class="mac-logo">${ic('cue', 12, '#111513')}</span>${navI.map((n, j) => `<span class="mac-ni ${j === STORY[ch].nav ? 'on' : ''}">${ic(n, 15)}</span>`).join('')}</div>
+    <div class="mac-body"><div class="mac-sb"><span class="mac-logo">${cueSymbol(22)}</span>${navI.map((n, j) => `<span class="mac-ni ${j === STORY[ch].nav ? 'on' : ''}">${ic(n, 15)}</span>`).join('')}</div>
     <div class="mac-main">${scenes}</div></div></div>`;
 }
 const annHTML = ([ch, k, c, txt, dir, top]) => `<div class="ann ${c} ${dir}" data-ch="${ch}" data-k="${k}" style="top:${top}px"><svg viewBox="0 0 96 44" aria-hidden="true"><path d="${dir === 'up' ? 'M92 30 C 64 34, 34 26, 8 10' : 'M92 12 C 64 8, 34 16, 8 34'}"/><path d="${dir === 'up' ? 'M8 10 L20 10 M8 10 L13 21' : 'M8 34 L13 23 M8 34 L20 35'}"/></svg><span>${txt}</span></div>`;
@@ -2689,7 +2694,7 @@ function renderSidebar() {
     chip = `<button class="run-chip ${map[0]}" data-act="toRun" title="${esc(map[1] + ' — ' + map[2])}"><span class="rc-dot ${['', 'wait'].includes(map[0]) && r.status !== 'done' ? 'pulse' : ''}"></span><span class="rc-t">${esc(map[1])}<small>${esc(map[2])}${r.status === 'running' || r.status === 'deploying' ? ` · <span data-el="${r.cur}">0.0s</span>` : ''}</small></span></button>`;
   }
   $('#sb').innerHTML = `
-    <a class="sb-top" href="#/" aria-label="Cue home"><span class="logo-mark">${ic('cue', 13, '#111513')}</span><span>Cue</span></a>
+    <a class="sb-top" href="#/" aria-label="Cue home">${cueSymbol(22)}<span>${cueWordmark(15)}</span></a>
     ${NAV_GROUPS.map(([g, keys]) => `<div class="sb-grp">${g ? `<div class="sb-sec">${g}</div>` : ''}${keys.map(k => nav.find(x => x[0] === k)).filter(Boolean).map(([k, l, i, n]) => `<a class="nav ${S.sec === k ? 'on' : ''}" href="#/${k}" ${S.sec === k ? 'aria-current="page"' : ''} title="${l}${KEY_OF[k] ? ' · G ' + KEY_OF[k].toUpperCase() : ''}">${ic(i, 16)}<span class="lbl">${l}</span>${n !== '' ? `<span class="cnt">${n}</span>` : ''}</a>`).join('')}</div>`).join('')}
     <div class="sb-foot">${chip}<button class="sb-keys" data-act="keys" aria-label="Keyboard shortcuts">${ic('zap', 13)}<span>Shortcuts</span><span class="kbd">?</span></button><div class="sb-ws">${ic('leaf', 14, '#6fcf97')}<span>Cue · Bloom</span></div></div>`;
 }
@@ -4512,7 +4517,7 @@ renderSidebar = function () {
     const map = { running: ['', 'Cue is investigating', STAGES[r.cur] ? STAGES[r.cur].t : ''], failed: ['fail', 'Investigation needs you', 'A step failed · retry'], awaiting: ['wait', 'Fix ready for approval', 'Photos above 2 MB'], rejected: ['fail', 'Fix rejected', 'Run again with feedback'], deploying: ['', 'Deploying the fix', STAGES[r.cur] ? STAGES[r.cur].t : ''], done: ['ok', 'Fixed and verified', 'Customers told'] }[r.status];
     chip = `<button class="run-chip ${map[0]}" data-act="toRun" title="${esc(map[1] + ' — ' + map[2])}"><span class="rc-dot ${['', 'wait'].includes(map[0]) && r.status !== 'done' ? 'pulse' : ''}"></span><span class="rc-t">${esc(map[1])}<small>${esc(map[2])}</small></span></button>`;
   }
-  $('#sb').innerHTML = `<a class="sb-top" href="#/" aria-label="Cue home"><span class="logo-mark">${ic('cue', 13, '#111513')}</span><span>Cue</span></a>
+  $('#sb').innerHTML = `<a class="sb-top" href="#/" aria-label="Cue home">${cueSymbol(22)}<span>${cueWordmark(15)}</span></a>
     ${NAV_GROUPS.map(([, keys]) => `<div class="sb-grp">${keys.map(k => { const [l, i, n] = nav[k]; return `<a class="nav ${navOn(k) ? 'on' : ''}" href="#/${k}" ${navOn(k) ? 'aria-current="page"' : ''} title="${l}${KEY_OF[k] ? ' · G ' + KEY_OF[k].toUpperCase() : ''}">${ic(i, 16)}<span class="lbl">${l}</span>${n !== '' ? `<span class="cnt">${n}</span>` : ''}</a>`; }).join('')}</div>`).join('')}
     <div class="sb-foot">${chip}<button class="sb-keys" data-act="keys" aria-label="Keyboard shortcuts">${ic('zap', 13)}<span>Shortcuts</span><span class="kbd">?</span></button><div class="sb-ws">${ic('leaf', 14, '#6fcf97')}<span>Bloom</span></div></div>`;
 };
