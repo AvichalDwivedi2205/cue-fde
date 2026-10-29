@@ -229,6 +229,13 @@ test("new discovered sources automatically qualify, draft and enter exact review
     token: "auto-draft",
   });
   const text = "Find your saved captions in Bloom: " + link;
+  const generation = {
+    provider: "litellm" as const,
+    model: "claude-sonnet-4.6" as const,
+    inputTokens: 412,
+    outputTokens: 38,
+    durationMs: 1250,
+  };
   await s.t.mutation(api.growthExecution.commitDraft, {
     ...auth,
     receiptId: draft._id,
@@ -236,6 +243,7 @@ test("new discovered sources automatically qualify, draft and enter exact review
     release,
     text,
     hash: hash(text),
+    generation,
   });
   const saved = await s.t.query(api.growth.snapshot, { ...auth, appId });
   expect(saved.opportunities.find((o) => o._id === opportunityId)?.status).toBe(
@@ -244,6 +252,9 @@ test("new discovered sources automatically qualify, draft and enter exact review
   expect(
     saved.drafts.find((d) => d.opportunityId === opportunityId)?.status,
   ).toBe("requested");
+  expect(
+    saved.drafts.find((d) => d.opportunityId === opportunityId)?.generation,
+  ).toEqual(generation);
   expect(saved.touches.every((t) => t.status === "unpublished")).toBe(true);
   await s.t.mutation(api.growth.capture, {
     ...auth,
@@ -266,6 +277,59 @@ test("new discovered sources automatically qualify, draft and enter exact review
       (r) => r.opportunityId === opportunityId,
     ),
   ).toHaveLength(2);
+});
+test("new generation receipts cannot replace the metadata of an already saved exact draft", async () => {
+  const s = await setup(),
+    d = await drafted(s);
+  const args = {
+    ...auth,
+    actor,
+    appId,
+    release,
+    opportunityId: s.opportunityId,
+    text: d.text,
+    hash: d.hash,
+  };
+  const generation = {
+    provider: "litellm" as const,
+    model: "claude-sonnet-4.6" as const,
+    inputTokens: 100,
+    outputTokens: 20,
+    durationMs: 250,
+  };
+  const generatedId = await s.t.mutation(api.growth.saveDraft, {
+    ...args,
+    generation,
+  });
+  expect(generatedId).not.toBe(d.draftId);
+  expect(
+    await s.t.mutation(api.growth.saveDraft, { ...args, generation }),
+  ).toBe(generatedId);
+  const original = await s.t.run((ctx) =>
+    ctx.db.get("growthDrafts", d.draftId),
+  );
+  expect(original).not.toHaveProperty("generation");
+  const revisedId = await s.t.mutation(api.growth.saveDraft, {
+    ...args,
+    generation: { ...generation, inputTokens: 110 },
+  });
+  expect(revisedId).not.toBe(generatedId);
+  expect(
+    (await s.t.run((ctx) => ctx.db.get("growthDrafts", generatedId)))
+      ?.generation,
+  ).toEqual(generation);
+  await expect(
+    s.t.mutation(api.growth.saveDraft, {
+      ...args,
+      generation: { ...generation, provider: "google" },
+    }),
+  ).rejects.toThrow("Invalid draft generation receipt");
+  await expect(
+    s.t.mutation(api.growth.saveDraft, {
+      ...args,
+      generation: { ...generation, inputTokens: -1 },
+    }),
+  ).rejects.toThrow("Invalid draft generation receipt");
 });
 
 test("historical sources are dismissed rather than drafted even when the model claims a fit", async () => {

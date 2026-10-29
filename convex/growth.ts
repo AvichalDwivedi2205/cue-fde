@@ -11,6 +11,7 @@ import { pool } from "./triageQueue";
 import { journey, transition } from "./growthTasks";
 import { sourcePolicy, growthDraftSupported } from "./growthPolicy";
 import { growthGrounding } from "./companyContextSchema";
+import { growthGeneration } from "./growthSchema";
 import { requireGrounding } from "./companyContext";
 import { currentHits } from "./knowledge";
 const growthAction = v.union(
@@ -690,6 +691,7 @@ export const saveDraft = mutation({
     text: v.string(),
     hash: v.string(),
     grounding: v.optional(growthGrounding),
+    generation: v.optional(growthGeneration),
   },
   returns: v.id("growthDrafts"),
   handler: async (ctx, a) => {
@@ -700,6 +702,20 @@ export const saveDraft = mutation({
       throw new ConvexError("Opportunity cannot support a recommendation");
     const cap = await capability(ctx, o.capabilityId, a.release);
     await requireGrounding(ctx, a.appId, a.grounding);
+    if (
+      a.generation &&
+      ((a.generation.provider === "google") !==
+        (a.generation.model === "gemini-2.5-flash") ||
+        [
+          a.generation.inputTokens,
+          a.generation.outputTokens,
+          a.generation.durationMs,
+        ].some((n) => !Number.isSafeInteger(n) || n < 0 || n > 10000000) ||
+        (a.generation.traceId &&
+          !/^[a-f0-9]{16,64}$/.test(a.generation.traceId)) ||
+        (a.generation.fallbackFrom && a.generation.provider !== "google"))
+    )
+      throw new ConvexError("Invalid draft generation receipt");
     const contextSources = a.grounding
       ? (
           await currentHits(
@@ -744,7 +760,8 @@ export const saveDraft = mutation({
       old?.hash === a.hash &&
       old.text === a.text.trim() &&
       old.capabilityVersion === cap.version &&
-      JSON.stringify(old.grounding) === JSON.stringify(a.grounding)
+      JSON.stringify(old.grounding) === JSON.stringify(a.grounding) &&
+      JSON.stringify(old.generation) === JSON.stringify(a.generation)
     )
       return old._id;
     const id = await ctx.db.insert("growthDrafts", {
@@ -753,6 +770,7 @@ export const saveDraft = mutation({
       capabilityVersion: cap.version,
       ...(a.grounding ? { grounding: a.grounding } : {}),
       ...(contextSources ? { contextSources } : {}),
+      ...(a.generation ? { generation: a.generation } : {}),
       release: cap.release,
       text: a.text.trim(),
       hash: a.hash,

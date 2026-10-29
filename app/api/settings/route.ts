@@ -4,6 +4,7 @@ import { requirePermission } from "@/lib/roles";
 import { readIntegrations, updateIntegrations } from "@/lib/integration-config";
 import { SUPPORT_MODELS } from "@/lib/knowledge-answer";
 import { EMBEDDING_MODEL, EMBEDDING_DIMENSIONS } from "@/lib/knowledge-policy";
+import { GROWTH_MODELS } from "@/lib/model-config";
 const input = z.discriminatedUnion("action", [
   z
     .object({
@@ -28,6 +29,12 @@ const input = z.discriminatedUnion("action", [
       supportModel: z.enum(SUPPORT_MODELS),
     })
     .strict(),
+  z
+    .object({
+      action: z.literal("growth-model"),
+      growthModel: z.enum(GROWTH_MODELS),
+    })
+    .strict(),
 ]);
 export async function GET(request: Request) {
   try {
@@ -50,9 +57,16 @@ export async function GET(request: Request) {
             process.env.CUE_SUPPORT_MODEL ||
             "gemini-2.5-flash",
           agent: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+          qualification: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+          coding: "Codex",
+          growth:
+            config.workspace?.growthModel ||
+            process.env.CUE_GROWTH_MODEL ||
+            "gemini-2.5-flash",
           embedding: EMBEDDING_MODEL,
           dimensions: EMBEDDING_DIMENSIONS,
           litellm: !!process.env.LITELLM_API_KEY,
+          litellmCreditsRemaining: null,
         },
       },
       { headers: { "cache-control": "no-store" } },
@@ -76,8 +90,9 @@ export async function POST(request: Request) {
   try {
     const body = input.parse(await request.json());
     if (
-      body.action === "model" &&
-      !body.supportModel.startsWith("gemini") &&
+      ((body.action === "model" && !body.supportModel.startsWith("gemini")) ||
+        (body.action === "growth-model" &&
+          body.growthModel === "claude-sonnet-4.6")) &&
       !process.env.LITELLM_API_KEY
     )
       throw new Error("LiteLLM is not configured");
@@ -91,7 +106,9 @@ export async function POST(request: Request) {
                 name: "Cue workspace",
                 timezone: "Asia/Kolkata",
               }),
-              supportModel: body.supportModel,
+              ...(body.action === "model"
+                ? { supportModel: body.supportModel }
+                : { growthModel: body.growthModel }),
             },
     }));
     return Response.json({ ok: true });

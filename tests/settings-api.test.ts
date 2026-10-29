@@ -34,6 +34,7 @@ beforeEach(() => {
     slack: { botToken: "private-token", members: [] },
   });
   vi.stubEnv("CUE_SUPPORT_MODEL", "gemini-2.5-flash");
+  vi.stubEnv("CUE_GROWTH_MODEL", "");
   vi.stubEnv("LITELLM_API_KEY", "");
 });
 afterEach(() => vi.unstubAllEnvs());
@@ -49,7 +50,35 @@ test("settings reads show real configuration without leaking credentials", async
   expect(r.status).toBe(200);
   expect(data.models.support).toBe("gemini-2.5-flash");
   expect(data.models.litellm).toBe(false);
+  expect(data.models.growth).toBe("gemini-2.5-flash");
+  expect(data.models.coding).toBe("Codex");
+  expect(data.models.litellmCreditsRemaining).toBeNull();
   expect(JSON.stringify(data)).not.toContain("private-token");
+});
+test("Growth model is independently configurable and requires its actual provider", async () => {
+  const body = { action: "growth-model", growthModel: "claude-sonnet-4.6" };
+  expect((await POST(request(body))).status).toBe(400);
+  vi.stubEnv("LITELLM_API_KEY", "configured-test-key");
+  expect((await POST(request(body))).status).toBe(200);
+  const update = mocks.updateIntegrations.mock.calls[0][0];
+  expect(
+    update({
+      apps: [{ id: "a" }],
+      workspace: {
+        name: "Cue",
+        timezone: "UTC",
+        supportModel: "gemini-2.5-flash",
+      },
+    }),
+  ).toMatchObject({
+    workspace: {
+      supportModel: "gemini-2.5-flash",
+      growthModel: "claude-sonnet-4.6",
+    },
+  });
+  expect(
+    (await POST(request({ ...body, growthModel: "unknown" }))).status,
+  ).toBe(400);
 });
 test("non-owner and cross-origin writes are rejected before changing settings", async () => {
   mocks.operator.mockResolvedValue({ role: "product" });

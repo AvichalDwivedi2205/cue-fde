@@ -3,7 +3,7 @@ import { api, db, secret } from "./server-store";
 import { workspaceApp, type WorkspaceActor } from "./workspace";
 import { createXApi } from "./x-api";
 import { growthX } from "./growth-x";
-import { qualifyGrowth, draftGrowth } from "./growth-model";
+import { qualifyGrowth, generateGrowthDraft } from "./growth-model";
 import { hash, issueGrowthToken } from "./growth-links";
 import type { Id } from "../convex/_generated/dataModel";
 import { observed } from "./observability";
@@ -169,7 +169,7 @@ async function processGrowthImpl(receiptId: Id<"growthReceipts">) {
         job.receipt.appId,
         job.opportunity.text + "\n" + job.capability.need,
       );
-      const text = await draftGrowth(
+      const { text, generation } = await generateGrowthDraft(
         job.opportunity.text,
         job.capability.claims,
         touch.link,
@@ -184,6 +184,7 @@ async function processGrowthImpl(receiptId: Id<"growthReceipts">) {
         text,
         hash: hash(text),
         grounding: context.grounding,
+        generation,
       });
       detail =
         "Draft saved for exact-version Product review. No public message sent.";

@@ -1,12 +1,40 @@
-import { beforeEach, expect, test, vi } from "vitest";
-const { generate } = vi.hoisted(() => ({ generate: vi.fn() }));
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+const { generate, completion, configure } = vi.hoisted(() => ({
+  generate: vi.fn(),
+  completion: vi.fn(),
+  configure: vi.fn(),
+}));
 vi.mock("../lib/gemini", () => ({
   client: () => ({ models: { generateContent: generate } }),
 }));
-import { draftGrowth, qualifyGrowth } from "../lib/growth-model";
+vi.mock("openai", () => ({
+  default: class {
+    chat = { completions: { create: completion } };
+  },
+}));
+vi.mock("neatlogs", async (original) => ({
+  ...(await original<object>()),
+  wrapOpenAI: (sdk: unknown) => sdk,
+}));
+vi.mock("../lib/model-config", async (original) => ({
+  ...(await original<object>()),
+  configuredGrowthModel: configure,
+}));
+import {
+  draftGrowth,
+  generateGrowthDraft,
+  qualifyGrowth,
+} from "../lib/growth-model";
+import { DEFAULT_BRAND } from "../lib/company-context-policy";
+import type { Id } from "../convex/_generated/dataModel";
 const link = "https://cue.test/g/opaque";
 const claims = ["Find saved memories using all words in a caption query"];
-beforeEach(() => generate.mockReset());
+beforeEach(() => {
+  vi.resetAllMocks();
+  configure.mockResolvedValue("gemini-2.5-flash");
+  vi.stubEnv("LITELLM_API_KEY", "test-key");
+});
+afterEach(() => vi.unstubAllEnvs());
 test("unsupported qualification retains the actual request when the model copies a capability need", async () => {
   const source =
     "Anyone recommend a photo journal app that exports memories with photos and captions into a PDF?";
@@ -58,3 +86,124 @@ test("passes the actual product name and preserves all-word search", async () =>
     "Bloom",
   );
 });
+test("selected Claude route uses the same verified context and records actual token usage", async () => {
+  const text = "Bloom finds saved captions using all query words: " + link;
+  completion.mockResolvedValue({
+    choices: [{ message: { content: JSON.stringify({ reply: text }) } }],
+    usage: { prompt_tokens: 421, completion_tokens: 39 },
+  });
+  const context = {
+    brand: {
+      ...DEFAULT_BRAND,
+      enabled: true,
+      guidelines: "Warm plain language",
+    },
+    hits: [
+      {
+        _id: "passage" as Id<"knowledgeChunks">,
+        sourceId: "source" as Id<"knowledgeSources">,
+        versionId: "version" as Id<"knowledgeVersions">,
+        title: "Caption search",
+        text: claims[0],
+        heading: "Search",
+      },
+    ],
+  };
+  const result = await generateGrowthDraft(
+    "Find saved captions",
+    claims,
+    link,
+    "Bloom",
+    context,
+    { model: "claude-sonnet-4.6" },
+  );
+  expect(result).toMatchObject({
+    text,
+    generation: {
+      provider: "litellm",
+      model: "claude-sonnet-4.6",
+      inputTokens: 421,
+      outputTokens: 39,
+    },
+  });
+  expect(result.generation).not.toHaveProperty("fallbackFrom");
+  const call = completion.mock.calls[0][0];
+  expect(call.model).toBe("claude-sonnet-4.6");
+  expect(JSON.parse(call.messages[1].content)).toMatchObject({
+    source: "Find saved captions",
+    claims,
+    link,
+    productName: "Bloom",
+    groundingDocuments: [
+      { id: "passage", title: "Caption search", passage: claims[0] },
+    ],
+    brandStyle: { guidelines: "Warm plain language" },
+  });
+  expect(call.messages[0].content).toContain("never a source of product facts");
+  expect(generate).not.toHaveBeenCalled();
+});
+test.each([
+  "not JSON",
+  JSON.stringify({ reply: "Bloom syncs captions: " + link }),
+  JSON.stringify({ reply: "Bloom finds captions: " + link, extra: "ignored" }),
+  JSON.stringify({ reply: "x".repeat(281) }),
+])(
+  "invalid Claude output remains blocked without another model: %s",
+  async (content) => {
+    completion.mockResolvedValue({ choices: [{ message: { content } }] });
+    await expect(
+      generateGrowthDraft(
+        "Find saved captions",
+        claims,
+        link,
+        "Bloom",
+        undefined,
+        { model: "claude-sonnet-4.6" },
+      ),
+    ).rejects.toThrow();
+    expect(generate).not.toHaveBeenCalled();
+  },
+);
+test("a LiteLLM overload falls back to Gemini with identical facts and honest provider metadata", async () => {
+  completion.mockRejectedValue({ status: 503 });
+  const text = "Bloom finds saved captions using all query words: " + link;
+  generate.mockResolvedValue({
+    text,
+    usageMetadata: { promptTokenCount: 512, candidatesTokenCount: 32 },
+  });
+  const result = await generateGrowthDraft(
+    "Find saved captions",
+    claims,
+    link,
+    "Bloom",
+    undefined,
+    { model: "claude-sonnet-4.6" },
+  );
+  expect(generate.mock.calls[0][0].contents).toBe(
+    completion.mock.calls[0][0].messages[1].content,
+  );
+  expect(result.generation).toMatchObject({
+    provider: "google",
+    model: "gemini-2.5-flash",
+    fallbackFrom: "claude-sonnet-4.6",
+    inputTokens: 512,
+    outputTokens: 32,
+  });
+});
+test.each([400, 401, 403])(
+  "configuration error %i does not switch models",
+  async (status) => {
+    completion.mockRejectedValue({ status });
+    await expect(
+      generateGrowthDraft(
+        "Find saved captions",
+        claims,
+        link,
+        "Bloom",
+        undefined,
+        { model: "claude-sonnet-4.6" },
+      ),
+    ).rejects.toMatchObject({ status });
+    expect(generate).not.toHaveBeenCalled();
+  },
+);

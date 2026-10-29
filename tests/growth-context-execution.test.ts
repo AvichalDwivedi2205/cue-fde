@@ -21,7 +21,7 @@ vi.mock("../lib/workspace", () => ({
   }),
 }));
 vi.mock("../lib/growth-model", () => ({
-  draftGrowth: m.draft,
+  generateGrowthDraft: m.draft,
   qualifyGrowth: vi.fn(),
 }));
 vi.mock("../lib/knowledge-embedding", () => ({
@@ -93,9 +93,16 @@ beforeEach(() => {
         ? { link }
         : null,
   );
-  m.draft.mockResolvedValue(
-    "Bloom searches saved captions using all query words: " + link,
-  );
+  m.draft.mockResolvedValue({
+    text: "Bloom searches saved captions using all query words: " + link,
+    generation: {
+      provider: "litellm",
+      model: "claude-sonnet-4.6",
+      inputTokens: 500,
+      outputTokens: 40,
+      durationMs: 400,
+    },
+  });
 });
 afterEach(() => vi.unstubAllGlobals());
 test("guarded Growth job retrieves its app's public knowledge and commits the exact voice and source receipt", async () => {
@@ -122,6 +129,13 @@ test("guarded Growth job retrieves its app's public knowledge and commits the ex
       chunkIds: ["passage"],
       brandVersion: 3,
       retrieval: "keyword-fallback",
+    },
+    generation: {
+      provider: "litellm",
+      model: "claude-sonnet-4.6",
+      inputTokens: 500,
+      outputTokens: 40,
+      durationMs: 400,
     },
   });
   expect(commit.hash).toMatch(/^[a-f0-9]{64}$/);

@@ -7,6 +7,15 @@ export const growthEventType = v.union(
   v.literal("memory_created"),
   v.literal("caption_search_match"),
 );
+export const growthGeneration = v.object({
+  provider: v.union(v.literal("google"), v.literal("litellm")),
+  model: v.union(v.literal("gemini-2.5-flash"), v.literal("claude-sonnet-4.6")),
+  inputTokens: v.number(),
+  outputTokens: v.number(),
+  durationMs: v.number(),
+  traceId: v.optional(v.string()),
+  fallbackFrom: v.optional(v.literal("claude-sonnet-4.6")),
+});
 export const growthTables = {
   growthCapabilities: defineTable({
     appId: v.string(),
@@ -82,6 +91,7 @@ export const growthTables = {
     capabilityVersion: v.number(),
     grounding: v.optional(growthGrounding),
     contextSources: v.optional(v.array(growthSourceReceipt)),
+    generation: v.optional(growthGeneration),
     release: v.string(),
     text: v.string(),
     hash: v.string(),

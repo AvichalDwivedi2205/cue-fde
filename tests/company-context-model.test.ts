@@ -15,6 +15,8 @@ vi.mock("../lib/gemini", () => ({
 }));
 vi.mock("../lib/model-config", () => ({
   configuredSupportModel: async () => "gemini-2.5-flash",
+  configuredGrowthModel: async () => "gemini-2.5-flash",
+  GROWTH_MODELS: ["gemini-2.5-flash", "claude-sonnet-4.6"],
 }));
 import { getFunctionName } from "convex/server";
 import { answerKnowledge } from "../lib/knowledge-answer";

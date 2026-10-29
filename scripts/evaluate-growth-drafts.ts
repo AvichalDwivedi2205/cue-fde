@@ -49,6 +49,8 @@ for (const item of cases) {
       capability.claims,
       touch.link,
       "Bloom",
+      undefined,
+      { model: "gemini-2.5-flash" },
     );
   } catch {
     // Preserve a rejected generation; do not retry until one passes.
@@ -70,7 +72,7 @@ const result = {
   appId,
   capabilityId: capability._id,
   release: capability.release,
-  model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+  model: "gemini-2.5-flash",
   budget:
     "One model call per inquiry, one call at a time; fixed answer uses zero model calls. Identical verified facts, full destination and 280-character limit.",
   guardPassed: rows.filter((r) => r.model).length,

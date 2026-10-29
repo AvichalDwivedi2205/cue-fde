@@ -1,5 +1,6 @@
 import { v, ConvexError } from "convex/values";
 import { growthGrounding } from "./companyContextSchema";
+import { growthGeneration } from "./growthSchema";
 import { mutation, internalMutation, env } from "./_generated/server";
 import schema from "./schema";
 import { api } from "./_generated/api";
@@ -260,6 +261,7 @@ export const commitDraft = mutation({
     text: v.string(),
     hash: v.string(),
     grounding: v.optional(growthGrounding),
+    generation: v.optional(growthGeneration),
   },
   returns: v.null(),
   handler: async (ctx, a) => {
@@ -306,6 +308,7 @@ export const commitDraft = mutation({
       text: a.text,
       hash: a.hash,
       ...(a.grounding ? { grounding: a.grounding } : {}),
+      ...(a.generation ? { generation: a.generation } : {}),
     });
     if (r.automatic)
       await ctx.runMutation(api.growth.requestReview, {

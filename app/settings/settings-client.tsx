@@ -16,9 +16,13 @@ type Snapshot = {
   models: {
     support: string;
     agent: string;
+    qualification: string;
+    coding: string;
+    growth: string;
     embedding: string;
     dimensions: number;
     litellm: boolean;
+    litellmCreditsRemaining: null;
   };
 };
 const sections = [
@@ -36,13 +40,15 @@ export function SettingsClient() {
     [notice, setNotice] = useState(""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
-    [model, setModel] = useState("");
+    [model, setModel] = useState(""),
+    [growthModel, setGrowthModel] = useState("");
   const load = useCallback(async () => {
     const r = await fetch("/api/settings", { cache: "no-store" }),
       d = await r.json();
     if (!r.ok) throw new Error(d.error);
     setData(d);
     setModel(d.models.support);
+    setGrowthModel(d.models.growth);
   }, []);
   useEffect(() => {
     queueMicrotask(() => void load().catch((e) => setError(e.message)));
@@ -316,11 +322,39 @@ export function SettingsClient() {
                       </select>,
                     )}
                     {row(
-                      "Agents",
-                      "Investigation, specifications and growth drafts. Configured on the server.",
+                      "Qualification and triage",
+                      "Checks whether an explicit need matches a verified capability.",
                       <span className="font-mono text-[11px]">
-                        {data.models.agent}
+                        {data.models.qualification}
                       </span>,
+                    )}
+                    {row(
+                      "Growth writing",
+                      "Uses published company context and brand voice. Every draft needs human review before publication.",
+                      <select
+                        className="ui-input max-w-xs"
+                        value={growthModel}
+                        aria-label="Growth draft model"
+                        disabled={!data.canManage || busy}
+                        onChange={(e) => setGrowthModel(e.target.value)}
+                      >
+                        <option value="gemini-2.5-flash">Gemini Flash</option>
+                        {data.models.litellm && (
+                          <option value="claude-sonnet-4.6">
+                            Claude Sonnet 4.6 · LiteLLM
+                          </option>
+                        )}
+                      </select>,
+                    )}
+                    {row(
+                      "Code changes",
+                      "The connected coding worker implements scoped changes. Deployment requires exact-commit approval and verification.",
+                      <span className="text-xs">{data.models.coding}</span>,
+                    )}
+                    {row(
+                      "Reviewed FAQ answers",
+                      "An exact published FAQ answer is returned as reviewed.",
+                      <Badge>No model call</Badge>,
                     )}
                     {row(
                       "Embeddings",
@@ -336,24 +370,44 @@ export function SettingsClient() {
                         widget model affects future answers; existing answers
                         stay recorded.
                       </p>
-                      <Button
-                        variant="primary"
-                        disabled={
-                          !data.canManage ||
-                          busy ||
-                          model === data.models.support
-                        }
-                        onClick={() =>
-                          void save({ action: "model", supportModel: model })
-                        }
-                      >
-                        Save widget model
-                      </Button>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="primary"
+                          disabled={
+                            !data.canManage ||
+                            busy ||
+                            model === data.models.support
+                          }
+                          onClick={() =>
+                            void save({ action: "model", supportModel: model })
+                          }
+                        >
+                          Save widget model
+                        </Button>
+                        <Button
+                          variant="primary"
+                          disabled={
+                            !data.canManage ||
+                            busy ||
+                            growthModel === data.models.growth
+                          }
+                          onClick={() =>
+                            void save({
+                              action: "growth-model",
+                              growthModel,
+                            })
+                          }
+                        >
+                          Save Growth model
+                        </Button>
+                      </div>
                     </div>
                   </div>
                   <Notice>
-                    Gemini remains the default. You can compare models for
-                    individual questions in{" "}
+                    Gemini is the default for support. A Growth provider outage
+                    falls back to Gemini with the same facts and recorded
+                    provider. Unsupported or invalid output stays blocked. You
+                    can compare support models for individual questions in{" "}
                     <a className="underline" href="/knowledge#test">
                       Test answers
                     </a>
@@ -391,7 +445,7 @@ export function SettingsClient() {
                       </span>
                       <h2 className="mt-3 text-lg font-semibold">
                         {data.models.litellm
-                          ? "Connected · available on selection"
+                          ? "Configured · balance unavailable"
                           : "Not configured"}
                       </h2>
                       <p className="mt-2 text-xs leading-relaxed text-cue-muted">
@@ -410,10 +464,10 @@ export function SettingsClient() {
                       <Badge>Provider-managed</Badge>,
                     )}
                     {row(
-                      "Customer research",
-                      "15-credit ceiling per search, at most five searches per day. Balance checked before a run.",
-                      <a className="ui-button" href="/customers">
-                        Open research
+                      "Growth discovery",
+                      "Official X reads have a bounded campaign budget. Reviewed replies are published by a person.",
+                      <a className="ui-button" href="/cue#/growth">
+                        Open Growth
                       </a>,
                     )}
                     {row(
@@ -422,9 +476,10 @@ export function SettingsClient() {
                       <Icon name="lock" size={14} />,
                     )}
                     <div className="p-4 text-[11px] text-cue-muted">
-                      Token counts and retrieval details are shown for each
-                      tested answer. Aggregate cost charts and automatic budget
-                      alerts require a billing ledger.
+                      Token counts and retrieval details are recorded for each
+                      tested answer and generated Growth draft. Aggregate cost
+                      charts and automatic budget alerts require a billing
+                      ledger.
                     </div>
                   </div>
                 </>

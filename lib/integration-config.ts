@@ -216,7 +216,12 @@ export type IntegrationConfig = {
   email?: EmailConfig;
   coding?: CodingConfig[];
   x?: XConfig;
-  workspace?: { name: string; timezone: string; supportModel?: string };
+  workspace?: {
+    name: string;
+    timezone: string;
+    supportModel?: string;
+    growthModel?: string;
+  };
 };
 const file = () => path.join(process.cwd(), ".cue", "integrations.enc");
 const key = () =>

@@ -90,13 +90,23 @@ for (const source of [
     context.hits.length &&
       context.grounding.brandVersion === saved.brand.version,
   );
-  const baseline = await draftGrowth(source, cap.claims, link, app.name);
+  const baseline = await draftGrowth(
+    source,
+    cap.claims,
+    link,
+    app.name,
+    undefined,
+    {
+      model: "gemini-2.5-flash",
+    },
+  );
   const contextual = await draftGrowth(
     source,
     cap.claims,
     link,
     app.name,
     context,
+    { model: "gemini-2.5-flash" },
   );
   rows.push({
     kind: "growth-ablation",
