@@ -10,12 +10,13 @@ await mkdir(".cue", { recursive: true });
 await writeFile(".cue/reference.css", css);
 await writeFile(
   ".cue/workspace.css",
-  `@import "tailwindcss";
+  `@import "tailwindcss" source(none);
 @import "./reference.css" layer(components);
 @import "../styles/workspace.css";
 @source "../design/cue.html";
 @source "../lib/browser";
 @source "../app";
+@source "../components";
 `,
 );
 for (const [input, output] of [

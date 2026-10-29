@@ -1,5 +1,7 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
 @import "../styles/tokens.css";
+@source "./";
+@source "../components";
 @theme inline {
   --color-cue-bg: var(--bg);
   --color-cue-panel: var(--panel);
