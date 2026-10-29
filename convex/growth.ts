@@ -3,7 +3,7 @@ import { vOnCompleteArgs } from "@convex-dev/workpool";
 import { mutation, query, internalMutation } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { authorize } from "./cue";
 import { actor } from "./workspaceValidators";
 import schema from "./schema";
@@ -15,7 +15,12 @@ const growthAction = v.union(
   v.literal("qualify"),
   v.literal("draft"),
 );
-const QUALIFICATION_POLICY_VERSION = 2;
+const QUALIFICATION_POLICY_VERSION = 3;
+export const growthAgent = {
+  id: "growth-agent",
+  name: "Growth agent",
+  role: "product" as const,
+};
 function permit(role: string, allowed: string[]) {
   if (!allowed.includes(role))
     throw new ConvexError("Saved role cannot perform this Growth action");
@@ -313,6 +318,7 @@ export const capture = mutation({
     sourceAt: v.number(),
     provenance: v.string(),
     controlled: v.boolean(),
+    automatic: v.optional(v.boolean()),
   },
   returns: v.id("growthOpportunities"),
   handler: async (ctx, a) => {
@@ -332,18 +338,38 @@ export const capture = mutation({
         q.eq("appId", a.appId).eq("sourceKey", a.sourceKey),
       )
       .unique();
-    if (old) return old._id;
-    const { secret: _secret, ...data } = a;
+    const { secret: _secret, automatic: _automatic, ...data } = a;
     void _secret;
-    const id = await ctx.db.insert("growthOpportunities", {
-      ...data,
-      eligible: false,
-      reasons: [],
-      status: "discovered",
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    });
-    await journey(ctx, (await ctx.db.get("growthOpportunities", id))!);
+    void _automatic;
+    const id =
+      old?._id ||
+      (await ctx.db.insert("growthOpportunities", {
+        ...data,
+        eligible: false,
+        reasons: [],
+        status: "discovered",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      }));
+    const opportunity = (await ctx.db.get("growthOpportunities", id))!;
+    const task = await journey(ctx, opportunity);
+    const cap = await ctx.db.get("growthCapabilities", campaign.capabilityId);
+    if (
+      a.automatic !== false &&
+      opportunity.status === "discovered" &&
+      !task.cancel &&
+      cap?.valid
+    )
+      await ctx.runMutation(api.growth.request, {
+        secret: a.secret,
+        actor: growthAgent,
+        appId: a.appId,
+        campaignId: campaign._id,
+        opportunityId: id,
+        release: cap.release,
+        action: "qualify",
+        automatic: true,
+      });
     return id;
   },
 });
@@ -357,6 +383,7 @@ export const request = mutation({
     opportunityId: v.optional(v.id("growthOpportunities")),
     release: v.string(),
     revision: v.optional(v.boolean()),
+    automatic: v.optional(v.boolean()),
   },
   returns: v.id("agentTasks"),
   handler: async (ctx, a): Promise<Id<"agentTasks">> => {
@@ -399,7 +426,11 @@ export const request = mutation({
       .withIndex("by_key", (q) => q.eq("key", key))
       .order("desc")
       .first();
-    if (old?.status === "queued") return old.taskId;
+    if (old?.status === "queued") {
+      if (a.automatic && !old.automatic)
+        await ctx.db.patch("growthReceipts", old._id, { automatic: true });
+      return old.taskId;
+    }
     const latestDraft =
       o &&
       (await ctx.db
@@ -446,6 +477,7 @@ export const request = mutation({
       ...(o ? { opportunityId: o._id } : {}),
       key,
       capabilityVersion: currentCapability.version,
+      automatic: a.automatic ?? a.action === "discover",
       ...(a.action === "qualify"
         ? { qualificationPolicyVersion: QUALIFICATION_POLICY_VERSION }
         : {}),
@@ -543,23 +575,31 @@ export const qualify = mutation({
     const campaign = o && (await ctx.db.get("growthCampaigns", o.campaignId));
     if (!o || !campaign) throw new ConvexError("Opportunity missing");
     const cap = await capability(ctx, campaign.capabilityId, a.release);
+    if (receipt.capabilityVersion !== cap.version)
+      throw new ConvexError("Capability changed during qualification");
     const {
       unsupported,
       explicit,
       promotional,
       matched: sourceMatched,
     } = sourcePolicy(o.text);
-    const matched = a.matched && sourceMatched && !unsupported && !promotional;
+    const stale =
+      o.sourceAt < Date.now() - 7 * 86400000 ||
+      o.sourceAt > Date.now() + 300000;
+    const matched =
+      a.matched && sourceMatched && !unsupported && !promotional && !stale;
     const eligible = a.eligible && explicit;
-    const gateReason = unsupported
-      ? "Unsupported need: no verified export, sync or collaboration capability"
-      : promotional
-        ? "Promotional source; no consumer recommendation is authorized"
-        : !explicit
-          ? "Source contains no explicit consumer request for a recommendation or help"
-          : !sourceMatched
-            ? "Source does not ask to find or search photo-journal memories"
-            : null;
+    const gateReason = stale
+      ? "Historical or invalid source date; outside the current seven-day discovery window"
+      : unsupported
+        ? "Unsupported need: no verified export, sync or collaboration capability"
+        : promotional
+          ? "Promotional source; no consumer recommendation is authorized"
+          : !explicit
+            ? "Source contains no explicit consumer request for a recommendation or help"
+            : !sourceMatched
+              ? "Source does not ask to find or search photo-journal memories"
+              : null;
     await ctx.db.patch("growthOpportunities", o._id, {
       // The deterministic source gate also owns the explanation. Model-supplied
       // fit or need text cannot contradict the gate that rejected eligibility.
@@ -573,7 +613,7 @@ export const qualify = mutation({
       status:
         matched && eligible
           ? "qualified"
-          : unsupported
+          : unsupported && !stale
             ? "needs-feature"
             : "dismissed",
       updatedAt: Date.now(),
@@ -583,12 +623,22 @@ export const qualify = mutation({
       ctx,
       o._id,
       "Growth",
-      matched && eligible ? "blocked" : "completed",
-      matched && eligible ? "Draft not requested" : "Qualification finished",
       matched && eligible
-        ? "Eligible need matched. Product can request a reviewed draft."
+        ? receipt.automatic
+          ? "running"
+          : "blocked"
+        : "completed",
+      matched && eligible
+        ? receipt.automatic
+          ? "Preparing reply"
+          : "Draft not requested"
+        : "Qualification finished",
+      matched && eligible
+        ? receipt.automatic
+          ? "Eligible need matched. Growth is preparing an exact draft for review."
+          : "Eligible need matched. Product can request a reviewed draft."
         : "Unmet or ineligible need recorded. No recommendation promised.",
-      matched && eligible ? "Product" : undefined,
+      matched && eligible && !receipt.automatic ? "Product" : undefined,
     );
     await ctx.db.patch("agentTasks", receipt.taskId, {
       state: "completed",
@@ -603,6 +653,17 @@ export const qualify = mutation({
         ? "Qualification recorded from source and verified capability. No public message sent."
         : "Unmet need recorded. Unsupported feature not promised.",
     );
+    if (matched && eligible && receipt.automatic)
+      await ctx.runMutation(api.growth.request, {
+        secret: a.secret,
+        actor: receipt.actor,
+        appId: o.appId,
+        campaignId: campaign._id,
+        opportunityId: o._id,
+        release: cap.release,
+        action: "draft",
+        automatic: true,
+      });
     return null;
   },
 });

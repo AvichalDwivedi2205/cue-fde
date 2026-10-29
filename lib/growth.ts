@@ -132,10 +132,21 @@ export async function processGrowth(receiptId: Id<"growthReceipts">) {
       }
     } else if (job.receipt.action === "qualify") {
       if (!job.opportunity) throw new Error("Opportunity missing");
-      const result = await qualifyGrowth(job.opportunity.text, {
-        need: job.capability.need,
-        claims: job.capability.claims,
-      });
+      const stale =
+        job.opportunity.sourceAt < Date.now() - 7 * 86400000 ||
+        job.opportunity.sourceAt > Date.now() + 300000;
+      const result = stale
+        ? {
+            need: job.opportunity.text,
+            eligible: false,
+            matched: false,
+            fit: "Low" as const,
+            reasons: ["Historical source"],
+          }
+        : await qualifyGrowth(job.opportunity.text, {
+            need: job.capability.need,
+            claims: job.capability.claims,
+          });
       await db().mutation(api.growth.qualify, {
         secret: secret(),
         receiptId,

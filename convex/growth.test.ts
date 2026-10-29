@@ -5,7 +5,7 @@ import workpool from "@convex-dev/workpool/test";
 import { beforeEach, afterEach, expect, test, vi } from "vitest";
 import { createHash } from "node:crypto";
 import schema from "./schema";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 const modules = import.meta.glob(["./**/*.{ts,js}", "!./**/*.test.ts"]);
 const auth = { secret: "growth-test-secret" },
   actor = { id: "holly-member-id", name: "Holly", role: "product" as const },
@@ -164,9 +164,188 @@ async function setup(
     sourceAt: Date.now(),
     provenance: "Official read fixture",
     controlled: true,
+    automatic: false,
   });
   return { t, capabilityId, campaignId, opportunityId, evidence };
 }
+test("new discovered sources automatically qualify, draft and enter exact review without operator stage clicks", async () => {
+  const s = await setup();
+  const opportunityId = await s.t.mutation(api.growth.capture, {
+    ...auth,
+    appId,
+    campaignId: s.campaignId,
+    sourceKey: "x:automatic-source",
+    sourceUrl: "https://x.com/test/status/456",
+    channel: "x",
+    author: "@newtester",
+    text: "Anyone recommend a photo journal app to find older memories by caption?",
+    sourceAt: Date.now(),
+    provenance: "Agent discovery · Official X recent search",
+    controlled: true,
+  });
+  const receipts = await s.t.run((ctx) =>
+    ctx.db.query("growthReceipts").take(20),
+  );
+  const qualification = receipts.find(
+    (r) => r.opportunityId === opportunityId && r.action === "qualify",
+  );
+  expect(qualification).toBeDefined();
+  if (!qualification) return;
+  await s.t.mutation(api.growthExecution.begin, {
+    ...auth,
+    receiptId: qualification._id,
+    token: "auto-qualify",
+  });
+  await s.t.mutation(api.growth.qualify, {
+    ...auth,
+    receiptId: qualification._id,
+    token: "auto-qualify",
+    release,
+    need: "Find saved memories by caption",
+    eligible: true,
+    matched: true,
+    fit: "High",
+    reasons: ["Explicit request"],
+  });
+  const draft = (
+    await s.t.run((ctx) => ctx.db.query("growthReceipts").take(20))
+  ).find((r) => r.opportunityId === opportunityId && r.action === "draft");
+  expect(draft).toBeDefined();
+  if (!draft) return;
+  const link = "https://cue.test/g/autonomous";
+  await s.t.mutation(api.growthAttribution.prepare, {
+    ...auth,
+    actor,
+    appId,
+    opportunityId,
+    tokenHash: hash("autonomous"),
+    link,
+    destination: "https://bloom.test",
+    expiresAt: Date.now() + 60000,
+  });
+  await s.t.mutation(api.growthExecution.begin, {
+    ...auth,
+    receiptId: draft._id,
+    token: "auto-draft",
+  });
+  const text = "Find your saved captions in Bloom: " + link;
+  await s.t.mutation(api.growthExecution.commitDraft, {
+    ...auth,
+    receiptId: draft._id,
+    token: "auto-draft",
+    release,
+    text,
+    hash: hash(text),
+  });
+  const saved = await s.t.query(api.growth.snapshot, { ...auth, appId });
+  expect(saved.opportunities.find((o) => o._id === opportunityId)?.status).toBe(
+    "awaiting-review",
+  );
+  expect(
+    saved.drafts.find((d) => d.opportunityId === opportunityId)?.status,
+  ).toBe("requested");
+  expect(saved.touches.every((t) => t.status === "unpublished")).toBe(true);
+  await s.t.mutation(api.growth.capture, {
+    ...auth,
+    appId,
+    campaignId: s.campaignId,
+    sourceKey: "x:automatic-source",
+    sourceUrl: "https://x.com/test/status/456",
+    channel: "x",
+    author: "@newtester",
+    text: "Anyone recommend a photo journal app to find older memories by caption?",
+    sourceAt: Date.now(),
+    provenance: "Agent discovery · Official X recent search",
+    controlled: true,
+  });
+  expect(
+    (await s.t.query(api.growth.snapshot, { ...auth, appId })).drafts,
+  ).toEqual(saved.drafts);
+  expect(
+    (await s.t.run((ctx) => ctx.db.query("growthReceipts").take(20))).filter(
+      (r) => r.opportunityId === opportunityId,
+    ),
+  ).toHaveLength(2);
+});
+
+test("historical sources are dismissed rather than drafted even when the model claims a fit", async () => {
+  const s = await setup();
+  await s.t.run((ctx) =>
+    ctx.db.patch("growthOpportunities", s.opportunityId, {
+      sourceAt: Date.now() - 8 * 86400000,
+    }),
+  );
+  await qualified(s);
+  const o = (await s.t.query(api.growth.snapshot, { ...auth, appId }))
+    .opportunities[0];
+  expect(o).toMatchObject({ status: "dismissed", eligible: false, fit: "Low" });
+  expect(o.reasons.join(" ")).toContain("outside the current seven-day");
+  expect(
+    (await s.t.query(api.growth.snapshot, { ...auth, appId })).drafts,
+  ).toHaveLength(0);
+});
+
+test("starting Growth resumes source work but cannot exceed the discovery budget or saved role", async () => {
+  const s = await setup();
+  await s.t.run((ctx) =>
+    ctx.db.patch("growthCampaigns", s.campaignId, { used: 20 }),
+  );
+  const args = {
+    ...auth,
+    actor,
+    appId,
+    campaignId: s.campaignId,
+    release,
+    paused: false,
+  };
+  await expect(
+    s.t.mutation(api.growthExecution.pause, {
+      ...args,
+      actor: { ...actor, role: "support" },
+    }),
+  ).rejects.toThrow("Product role");
+  await expect(
+    s.t.mutation(api.growthExecution.pause, {
+      ...args,
+      release: "b".repeat(40),
+    }),
+  ).rejects.toThrow("verified capability");
+  await s.t.mutation(api.growthExecution.pause, args);
+  const receipts = await s.t.run((ctx) =>
+    ctx.db.query("growthReceipts").take(20),
+  );
+  expect(receipts).toHaveLength(1);
+  expect(receipts[0]).toMatchObject({ action: "qualify", automatic: true });
+  const c = (await s.t.query(api.growth.snapshot, { ...auth, appId }))
+    .campaigns[0];
+  expect(c).toMatchObject({ paused: false, used: 20, dailyLimit: 20 });
+});
+
+test("hosted schedule waits at exhausted budget and resumes once on a new UTC day", async () => {
+  vi.stubEnv("CUE_BACKGROUND_ORIGIN", "https://cue.test");
+  const s = await setup();
+  await s.t.run((ctx) =>
+    ctx.db.patch("growthCampaigns", s.campaignId, { paused: false, used: 20 }),
+  );
+  await s.t.mutation(internal.growthExecution.schedule, {});
+  expect(
+    await s.t.run((ctx) => ctx.db.query("growthReceipts").take(20)),
+  ).toHaveLength(0);
+  await s.t.run((ctx) =>
+    ctx.db.patch("growthCampaigns", s.campaignId, {
+      budgetDay: "2020-01-01",
+      lastScheduledAt: 1577836800000,
+      lastRunAt: 1577836800000,
+    }),
+  );
+  await s.t.mutation(internal.growthExecution.schedule, {});
+  await s.t.mutation(internal.growthExecution.schedule, {});
+  const receipts = await s.t.run((ctx) =>
+    ctx.db.query("growthReceipts").take(20),
+  );
+  expect(receipts).toHaveLength(1);
+  expect(receipts[0]).toMatchObject({ action: "discover", automatic: true });
+});
 async function qualified(s: Awaited<ReturnType<typeof setup>>) {
   const taskId = await s.t.mutation(api.growth.request, {
     ...auth,

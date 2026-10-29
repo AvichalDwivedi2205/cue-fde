@@ -171,5 +171,6 @@ export const growthTables = {
     resultDraftId: v.optional(v.id("growthDrafts")),
     capabilityVersion: v.optional(v.number()),
     qualificationPolicyVersion: v.optional(v.number()),
+    automatic: v.optional(v.boolean()),
   }).index("by_key", ["key"]),
 };

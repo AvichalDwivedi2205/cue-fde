@@ -6,6 +6,7 @@ import { authorize } from "./cue";
 import type { Id } from "./_generated/dataModel";
 import { actor } from "./workspaceValidators";
 import { journey, transition } from "./growthTasks";
+import { growthAgent } from "./growth";
 export const begin = mutation({
   args: {
     secret: v.string(),
@@ -140,6 +141,7 @@ export const pause = mutation({
     appId: v.string(),
     campaignId: v.id("growthCampaigns"),
     paused: v.boolean(),
+    release: v.string(),
   },
   returns: v.null(),
   handler: async (ctx, a) => {
@@ -148,6 +150,51 @@ export const pause = mutation({
       throw new ConvexError("Product role required");
     const c = await ctx.db.get("growthCampaigns", a.campaignId);
     if (c?.appId !== a.appId) throw new ConvexError("Campaign app mismatch");
+    if (!a.paused) {
+      const cap = await ctx.db.get("growthCapabilities", c.capabilityId);
+      if (!cap?.valid || cap.release !== a.release)
+        throw new ConvexError(
+          "Current verified capability required to start Growth",
+        );
+      // Resume unfinished reasoning without touching reviewed or published work.
+      for (const o of await ctx.db
+        .query("growthOpportunities")
+        .withIndex("by_appId", (q) => q.eq("appId", a.appId))
+        .order("desc")
+        .take(100)) {
+        if (
+          o.campaignId !== c._id ||
+          !["discovered", "qualified"].includes(o.status)
+        )
+          continue;
+        if ((await journey(ctx, o)).cancel) continue;
+        await ctx.runMutation(api.growth.request, {
+          secret: a.secret,
+          actor: growthAgent,
+          appId: a.appId,
+          campaignId: c._id,
+          opportunityId: o._id,
+          release: a.release,
+          action: o.status === "discovered" ? "qualify" : "draft",
+          automatic: true,
+        });
+      }
+      const day = new Date().toISOString().slice(0, 10);
+      const used = c.budgetDay === day ? c.used : 0;
+      if (used + 10 <= c.dailyLimit && (c.retryAt || 0) <= Date.now()) {
+        await ctx.runMutation(api.growth.request, {
+          secret: a.secret,
+          actor: growthAgent,
+          appId: a.appId,
+          campaignId: c._id,
+          release: a.release,
+          action: "discover",
+        });
+        await ctx.db.patch("growthCampaigns", c._id, {
+          lastScheduledAt: Date.now(),
+        });
+      }
+    }
     await ctx.db.patch("growthCampaigns", c._id, { paused: a.paused });
     return null;
   },
@@ -238,6 +285,16 @@ export const commitDraft = mutation({
       throw new ConvexError(
         "Draft edited during generation; saved edit preserved",
       );
+    const campaign = await ctx.db.get("growthCampaigns", r.campaignId);
+    const cap =
+      campaign &&
+      (await ctx.db.get("growthCapabilities", campaign.capabilityId));
+    if (
+      !cap?.valid ||
+      cap.release !== a.release ||
+      cap.version !== r.capabilityVersion
+    )
+      throw new ConvexError("Capability changed during drafting");
     const resultDraftId = await ctx.runMutation(api.growth.saveDraft, {
       secret: a.secret,
       actor: r.actor,
@@ -247,6 +304,15 @@ export const commitDraft = mutation({
       text: a.text,
       hash: a.hash,
     });
+    if (r.automatic)
+      await ctx.runMutation(api.growth.requestReview, {
+        secret: a.secret,
+        actor: r.actor,
+        appId: r.appId,
+        draftId: resultDraftId,
+        hash: a.hash,
+        release: a.release,
+      });
     await ctx.db.patch("growthReceipts", r._id, {
       status: "completed",
       resultDraftId,
@@ -255,7 +321,9 @@ export const commitDraft = mutation({
     });
     await ctx.db.patch("agentTasks", r.taskId, {
       state: "completed",
-      stage: "Draft saved; review required",
+      stage: r.automatic
+        ? "Awaiting exact draft review in Cue"
+        : "Draft saved; review required",
       updatedAt: Date.now(),
     });
     await ctx.db.insert("agentTaskEvents", {
@@ -278,9 +346,16 @@ export const schedule = internalMutation({
       .withIndex("by_paused", (q) => q.eq("paused", false))
       .take(20);
     for (const c of campaigns) {
+      const day = new Date().toISOString().slice(0, 10);
+      const used = c.budgetDay === day ? c.used : 0;
       if (
-        (c.lastScheduledAt || 0) > Date.now() - 86400000 ||
-        (c.lastRunAt || 0) > Date.now() - 86400000
+        used + 10 > c.dailyLimit ||
+        (c.retryAt || 0) > Date.now() ||
+        (c.leaseUntil || 0) > Date.now() ||
+        (c.lastScheduledAt &&
+          new Date(c.lastScheduledAt).toISOString().slice(0, 10) === day) ||
+        (c.lastRunAt &&
+          new Date(c.lastRunAt).toISOString().slice(0, 10) === day)
       )
         continue;
       const cap = await ctx.db.get("growthCapabilities", c.capabilityId);
@@ -290,11 +365,7 @@ export const schedule = internalMutation({
       });
       await ctx.runMutation(api.growth.request, {
         secret: env.CUE_DEMO_SECRET,
-        actor: {
-          id: "configured-scheduler",
-          name: "Daily schedule",
-          role: "product",
-        },
+        actor: growthAgent,
         appId: c.appId,
         campaignId: c._id,
         release: cap.release,

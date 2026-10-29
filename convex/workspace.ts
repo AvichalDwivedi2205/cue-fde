@@ -331,6 +331,7 @@ export const post = mutation({
         campaignId: a.campaignId,
         opportunityId: a.opportunityId,
         release: a.release,
+        automatic: true,
       });
       task = await ctx.db.get("agentTasks", id);
       response = `Growth work saved: ${id} · ${task!.state}. No public message sent.\n${ref(task!)}`;
