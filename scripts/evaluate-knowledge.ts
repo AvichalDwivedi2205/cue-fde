@@ -20,9 +20,14 @@ type Source = {
   workspace?: string;
 };
 const fixture = JSON.parse(
-  readFileSync("tests/fixtures/knowledge-evaluation.json", "utf8"),
+  readFileSync(
+    process.env.CUE_EVALUATION_FIXTURE ||
+      "tests/fixtures/knowledge-evaluation.json",
+    "utf8",
+  ),
 ) as { sources: Source[]; development: Question[]; heldOut: Question[] };
-const appId = "cue-knowledge-evaluation-20261012";
+const appId =
+  process.env.CUE_EVALUATION_APP || "cue-knowledge-evaluation-20261012";
 process.env.LITELLM_API_KEY ||= readFileSync(".cue/litellm.key", "utf8").trim();
 const saved: {
   sourceId: Id<"knowledgeSources">;
@@ -99,54 +104,64 @@ try {
   for (const split of ["development", "heldOut"] as const) {
     for (const q of fixture[split]) {
       // Calls share the same context and token cap; no retries or model fallback.
-      for (const model of models) {
-        const start = Date.now();
-        const a = await answerKnowledge(
-          appId,
-          { appName: "Synthetic Bloom", message: q.question, channel: "chat" },
-          { model, allowDirectFaq: false },
-        );
-        const leaked =
-          /VIOLET-CANARY|OTHER-APP-CANARY|OTHER-WORKSPACE-CANARY/i.test(a.text);
-        const pass =
-          !leaked &&
-          (q.type === "fact"
-            ? a.status === "answered" &&
-              a.citedIds.length > 0 &&
-              q.patterns!.every((p) => new RegExp(p, "i").test(a.text))
-            : q.type === "conflict"
-              ? a.status === "conflict"
-              : ["needs_review", "clarification"].includes(a.status));
-        const row = {
-          split,
-          id: q.id,
-          model,
-          question: q.question,
-          expected: q.type,
-          status: a.status,
-          answer: a.text,
-          citations: a.citedIds.length,
-          sources: a.hits.map((h) => h.title),
-          retrieval: a.retrieval,
-          inputTokens: a.inputTokens,
-          outputTokens: a.outputTokens,
-          elapsedMs: Date.now() - start,
-          leaked,
-          pass,
-        };
-        results.push(row);
-        writeFileSync(output, JSON.stringify(report, null, 2), { mode: 0o600 });
-        console.log(
-          JSON.stringify({
+      await Promise.all(
+        models.map(async (model) => {
+          const start = Date.now();
+          const a = await answerKnowledge(
+            appId,
+            {
+              appName: "Synthetic Bloom",
+              message: q.question,
+              channel: "chat",
+            },
+            { model, allowDirectFaq: false },
+          );
+          const leaked =
+            /VIOLET-CANARY|OTHER-APP-CANARY|OTHER-WORKSPACE-CANARY/i.test(
+              a.text,
+            );
+          const pass =
+            !leaked &&
+            (q.type === "fact"
+              ? a.status === "answered" &&
+                a.citedIds.length > 0 &&
+                q.patterns!.every((p) => new RegExp(p, "i").test(a.text))
+              : q.type === "conflict"
+                ? a.status === "conflict"
+                : ["needs_review", "clarification"].includes(a.status));
+          const row = {
             split,
             id: q.id,
             model,
+            question: q.question,
+            expected: q.type,
             status: a.status,
+            answer: a.text,
+            citations: a.citedIds.length,
+            sources: a.hits.map((h) => h.title),
+            retrieval: a.retrieval,
+            inputTokens: a.inputTokens,
+            outputTokens: a.outputTokens,
+            elapsedMs: Date.now() - start,
+            leaked,
             pass,
-            elapsedMs: row.elapsedMs,
-          }),
-        );
-      }
+          };
+          results.push(row);
+          writeFileSync(output, JSON.stringify(report, null, 2), {
+            mode: 0o600,
+          });
+          console.log(
+            JSON.stringify({
+              split,
+              id: q.id,
+              model,
+              status: a.status,
+              pass,
+              elapsedMs: row.elapsedMs,
+            }),
+          );
+        }),
+      );
     }
   }
   // Matched Haiku keyword baseline across the identical held-out questions.
