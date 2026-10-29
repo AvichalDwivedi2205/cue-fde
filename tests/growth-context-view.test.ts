@@ -16,6 +16,7 @@ function render(status: string, current: boolean) {
     esc: escape,
     opportunity: {
       status,
+      appId: "bloom",
       draft: {
         contextEvidence: {
           current,
@@ -37,6 +38,7 @@ function render(status: string, current: boolean) {
 test("review shows immutable public context and gives stale unpublished drafts a regeneration action", () => {
   const current = render("awaiting", true);
   expect(current).toContain("Brand voice v2");
+  expect(current).toContain("/knowledge?app=bloom#source/source");
   expect(current).toContain("Caption guide · r3");
   expect(current).toContain("&lt;script>");
   expect(current).not.toContain("<script>");
