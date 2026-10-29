@@ -161,8 +161,18 @@ assert(
 assert(
   conversation.messages.some(
     (m: { role: string; body: string }) =>
-      m.role === "cue" && m.body.includes("?"),
+      m.role === "cue" &&
+      // A diagnostic request can be an imperative ("tell me your browser")
+      // or a question. Require both an information request and a relevant
+      // detail; punctuation alone also accepted unhelpful replies like "OK?".
+      /(?:^|[.!?]\s+)(?:what|which|how|when|where|does|is|are|do)\b|\b(?:tell me|let me know|do you see|are you seeing|can you|could you|would you)\b|(?:^|[.!?]\s+)(?:please\s+)?(?:share|describe|confirm|try|check)\b/i.test(
+        m.body,
+      ) &&
+      /\b(?:phone|device|browser|error|screen|refresh|network|photo|upload)\b/i.test(
+        m.body,
+      ),
   ),
+  "Cue must request relevant missing diagnostic information",
 );
 assert(conversation.progress?.steps.length === 4);
 assert.equal(conversation.attachments.length, 1);
