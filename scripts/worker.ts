@@ -31,6 +31,12 @@ const { startXListener } = await import("../lib/x-listener");
 const x = startXListener();
 const { sendSlackRunUpdate } = await import("../lib/delivery");
 const { implementFeature } = await import("../lib/feature-runner");
+const {
+  ensureRehearsal,
+  readRehearsalConfig,
+  sameRehearsal,
+  shutdownRehearsals,
+} = await import("../lib/rehearsal-runtime");
 const control = createServer(async (req, res) => {
   if (req.headers.authorization !== `Bearer ${auth}`) {
     res.writeHead(403);
@@ -55,6 +61,35 @@ const control = createServer(async (req, res) => {
     } catch {
       res.writeHead(500);
       return res.end("reset failed");
+    }
+  }
+  if (req.url === "/rehearsal/prepare" && req.method === "POST" && !busy) {
+    try {
+      let raw = "";
+      for await (const chunk of req) {
+        raw += chunk;
+        if (raw.length > 2048) throw new Error("Invalid rehearsal request");
+      }
+      const { appId } = JSON.parse(raw);
+      const registered = await store.query(api.rehearsals.get, {
+        secret: auth,
+        appId,
+      });
+      if (!registered) throw new Error("Rehearsal is not registered");
+      sameRehearsal(await readRehearsalConfig(appId), registered);
+      const target = await ensureRehearsal(appId);
+      res.setHeader("content-type", "application/json");
+      return res.end(
+        JSON.stringify({
+          ok: true,
+          appId,
+          frontendOrigin: target.config.frontendOrigin,
+          backendOrigin: target.origin,
+        }),
+      );
+    } catch (e) {
+      res.writeHead(400);
+      return res.end(e instanceof Error ? e.message : "Preparation failed");
     }
   }
   res.writeHead(409);
@@ -107,6 +142,7 @@ const stop = async () => {
   await x.stop();
   await publishStatus();
   await shutdownBloom();
+  await shutdownRehearsals();
   await shutdownObservability();
   process.exit(0);
 };

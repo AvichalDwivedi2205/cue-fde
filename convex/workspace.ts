@@ -9,6 +9,7 @@ import { authorize } from "./cue";
 import schema from "./schema";
 import { actor, agentId, commandAction } from "./workspaceValidators";
 import { pool } from "./triageQueue";
+import { registeredRehearsal } from "./rehearsalScope";
 
 const ref = (t: Doc<"agentTasks">) => `#/agents/${t.agent}/${t._id}`;
 const active = [
@@ -396,7 +397,8 @@ export const post = mutation({
                 "Current Product-approved specification and app repository policy required.";
             else if (
               a.action === "investigate" &&
-              issue.fingerprint !== "bloom:upload:413"
+              issue.fingerprint !== "bloom:upload:413" &&
+              !(await registeredRehearsal(ctx, issue))
             )
               blocker =
                 "Generic bug execution is unsupported. Use scoped investigation policy.";

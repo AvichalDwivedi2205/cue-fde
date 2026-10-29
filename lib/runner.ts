@@ -10,6 +10,13 @@ import { photo } from "../demo/bloom/fixture.mjs";
 import { sendSlackRunUpdate } from "./delivery";
 import { observed, recordWorkflowFailure } from "./observability";
 import { runCodexSession } from "./codex-session";
+import {
+  ensureRehearsal,
+  readRehearsalConfig,
+  rehearsalDirectory,
+  sameRehearsal,
+  rehearsalCodeHashes,
+} from "./rehearsal-runtime";
 const exec = promisify(execFile),
   root = () => path.join(process.cwd(), ".cue"),
   live = () => path.join(root(), "bloom-live");
@@ -182,8 +189,55 @@ async function investigateImpl(
   };
   try {
     await fs.mkdir(path.dirname(repo), { recursive: true });
-    const remote = process.env.CUE_GITHUB_REPO;
-    if (remote) {
+    const state = await store.query(api.cue.snapshot, { secret: auth });
+    const run = state.runs.find((r) => r._id === runId);
+    const rehearsal =
+      run?.deploymentMode === "rehearsal" && run.targetId
+        ? await readRehearsalConfig(run.targetId)
+        : null;
+    if (rehearsal) {
+      const registered = await store.query(api.rehearsals.get, {
+        secret: auth,
+        appId: rehearsal.appId,
+      });
+      if (!registered) throw new Error("Rehearsal is not registered");
+      sameRehearsal(rehearsal, registered);
+      const target = await ensureRehearsal(rehearsal.appId);
+      const health = await (await fetch(target.origin + "/health")).json();
+      if (
+        health.build !== rehearsal.baseCommit ||
+        health.maxUploadBytes !== 2 * 1024 * 1024
+      )
+        throw new Error(
+          "A fresh broken rehearsal baseline is required; use a new scenario after release",
+        );
+      await checked(
+        "git",
+        [
+          "clone",
+          "--no-hardlinks",
+          path.join(rehearsalDirectory(rehearsal.appId), "baseline"),
+          repo,
+        ],
+        process.cwd(),
+        60000,
+      );
+      if (rehearsal.repository)
+        await checked(
+          "git",
+          [
+            "remote",
+            "set-url",
+            "origin",
+            `https://github.com/${rehearsal.repository}.git`,
+          ],
+          repo,
+        );
+    }
+    const remote =
+      rehearsal?.repository ||
+      (!rehearsal ? process.env.CUE_GITHUB_REPO : undefined);
+    if (remote && !rehearsal) {
       if (!/^[\w.-]+\/[\w.-]+$/.test(remote))
         throw new Error("Invalid repository configuration");
       await checked(
@@ -201,7 +255,7 @@ async function investigateImpl(
         process.cwd(),
         60000,
       );
-    } else {
+    } else if (!rehearsal) {
       await fs.mkdir(repo, { recursive: true });
       await fs.cp(path.join(process.cwd(), "demo/bloom"), repo, {
         recursive: true,
@@ -210,7 +264,7 @@ async function investigateImpl(
     }
     await checked("git", ["config", "user.name", "Cue Demo"], repo);
     await checked("git", ["config", "user.email", "cue-demo@localhost"], repo);
-    if (!remote) {
+    if (!remote && !rehearsal) {
       await checked("git", ["add", "."], repo);
       await checked(
         "git",
@@ -218,8 +272,28 @@ async function investigateImpl(
         repo,
       );
     }
+    const base = await checked("git", ["rev-parse", "HEAD"], repo);
+    if (rehearsal && base !== rehearsal.baseCommit)
+      throw new Error("Frozen rehearsal baseline changed");
     await checked("git", ["checkout", "-b", `cue/fix-upload-${runId}`], repo);
-    await update({ repoPath: repo });
+    await update({ repoPath: repo, baseCommit: base });
+    if (rehearsal) {
+      const files = (await checked("git", ["ls-files"], repo)).split("\n");
+      const expected = await rehearsalCodeHashes(repo, files);
+      const deployed = await rehearsalCodeHashes(
+        path.join(rehearsalDirectory(rehearsal.appId), "live"),
+        files,
+      );
+      if (JSON.stringify(expected) !== JSON.stringify(deployed))
+        throw new Error(
+          "Browser upload baseline differs from the frozen coding checkout",
+        );
+      await log(
+        "Browser regression bound to checkout",
+        `App ${rehearsal.appId}; scenario ${rehearsal.key}; frontend ${rehearsal.frontendOrigin}; base ${base}. Protected source hashes match the upload service.`,
+        "system",
+      );
+    }
     await log(
       "Test environment prepared",
       "Isolated Git checkout; only limits.mjs is allowed to change.",
@@ -299,6 +373,8 @@ async function investigateImpl(
       },
     );
     if (signal.aborted) throw new Error("Run canceled");
+    if ((await checked("git", ["rev-parse", "HEAD"], repo)) !== base)
+      throw new Error("Agent changed Git history");
     const changed = await checked("git", ["diff", "HEAD", "--name-only"], repo);
     const untracked = await checked(
       "git",
@@ -307,6 +383,8 @@ async function investigateImpl(
     );
     if (changed !== "limits.mjs" || untracked)
       throw new Error("Patch scope violated: " + changed + " " + untracked);
+    if (!(await fs.lstat(path.join(repo, "limits.mjs"))).isFile())
+      throw new Error("Patch contains a non-file upload limit");
     for (const [file, hash] of hashes)
       if (
         createHash("sha256")
@@ -407,8 +485,30 @@ async function approveAndDeployImpl(runId: Id<"runs">) {
     !run.commit
   )
     throw new Error("Deployment needs an approved exact commit");
-  const repo = path.join(root(), "runs", runId),
-    backup = path.join(root(), "bloom-backup");
+  const repo = path.join(root(), "runs", runId);
+  const rehearsal =
+    run.deploymentMode === "rehearsal" && run.targetId
+      ? await readRehearsalConfig(run.targetId)
+      : null;
+  if (rehearsal) {
+    const registered = await store.query(api.rehearsals.get, {
+      secret: auth,
+      appId: rehearsal.appId,
+    });
+    if (!registered) throw new Error("Rehearsal is not registered");
+    sameRehearsal(rehearsal, registered);
+  }
+  const target = rehearsal
+    ? await ensureRehearsal(rehearsal.appId)
+    : {
+        origin: "http://127.0.0.1:4318",
+        live: live(),
+        backup: path.join(root(), "bloom-backup"),
+        releases: path.join(root(), "releases"),
+        start: startBloom,
+        stop: stopBloom,
+      };
+  const backup = target.backup;
   let previous = "original";
   if (run.repoPath !== repo) throw new Error("Unexpected run checkout");
   const commit = await checked("git", ["rev-parse", "HEAD"], repo);
@@ -418,11 +518,10 @@ async function approveAndDeployImpl(runId: Id<"runs">) {
   )
     throw new Error("Approved checkout changed");
   try {
-    previous = (await (await fetch("http://127.0.0.1:4318/health")).json())
-      .build;
+    previous = (await (await fetch(target.origin + "/health")).json()).build;
     await fs.rm(backup, { recursive: true, force: true });
-    await fs.cp(live(), backup, { recursive: true });
-    const exported = path.join(root(), "releases", commit);
+    await fs.cp(target.live, backup, { recursive: true });
+    const exported = path.join(target.releases, commit);
     await fs.mkdir(exported, { recursive: true });
     for (const file of (await checked("git", ["ls-files"], repo)).split("\n")) {
       await fs.mkdir(path.dirname(path.join(exported, file)), {
@@ -430,16 +529,16 @@ async function approveAndDeployImpl(runId: Id<"runs">) {
       });
       await fs.copyFile(path.join(repo, file), path.join(exported, file));
     }
-    await stopBloom();
-    await fs.rm(live(), { recursive: true, force: true });
-    await fs.cp(exported, live(), { recursive: true });
-    await startBloom(commit);
+    await target.stop();
+    await fs.rm(target.live, { recursive: true, force: true });
+    await fs.cp(exported, target.live, { recursive: true });
+    await target.start(commit);
     await store.mutation(api.cue.event, {
       secret: auth,
       runId,
       issueId: run.issueId,
       title: "Demo deployment updated",
-      detail: `Bloom release ${commit} is listening on the customer upload endpoint.`,
+      detail: `Bloom release ${commit} is listening on ${target.origin}.${rehearsal ? ` Owned controlled scenario ${rehearsal.key}; browser ${rehearsal.frontendOrigin}. Public Bloom unchanged.` : ""}`,
       kind: "deployment",
     });
     await store.mutation(api.cue.updateRun, {
@@ -447,14 +546,20 @@ async function approveAndDeployImpl(runId: Id<"runs">) {
       runId,
       fields: { deployed: true, phase: "verifying" },
     });
-    const health = await (await fetch("http://127.0.0.1:4318/health")).json();
+    const health = await (await fetch(target.origin + "/health")).json();
     if (health.build !== commit) throw new Error("Unexpected deployed release");
+    const releaseFiles = (await checked("git", ["ls-files"], repo)).split("\n");
+    if (
+      JSON.stringify(await rehearsalCodeHashes(repo, releaseFiles)) !==
+      JSON.stringify(await rehearsalCodeHashes(target.live, releaseFiles))
+    )
+      throw new Error("Deployed source differs from the approved checkout");
     const statuses = [];
     for (const [size, expected] of [
       [3 * 1024 * 1024, 201],
       [6 * 1024 * 1024, 413],
     ]) {
-      const r = await fetch("http://127.0.0.1:4318/upload", {
+      const r = await fetch(target.origin + "/upload", {
         method: "POST",
         headers: { "content-type": "image/png" },
         body: photo(size),
@@ -464,6 +569,46 @@ async function approveAndDeployImpl(runId: Id<"runs">) {
         throw new Error(
           `Deployed photo returned ${r.status}; expected ${expected}`,
         );
+    }
+    if (rehearsal) {
+      const frontendHealth = await (
+        await fetch(rehearsal.frontendOrigin + "/health")
+      ).json();
+      if (
+        frontendHealth.appId !== rehearsal.appId ||
+        frontendHealth.build !== commit
+      )
+        throw new Error(
+          "Journal frontend is not bound to the approved release",
+        );
+      for (const [size, expected] of [
+        [3 * 1024 * 1024, 201],
+        [6 * 1024 * 1024, 413],
+      ]) {
+        const form = new FormData();
+        form.append(
+          "file",
+          new Blob([new Uint8Array(photo(size))], { type: "image/png" }),
+          "controlled-upload.png",
+        );
+        const response = await fetch(rehearsal.frontendOrigin + "/api/bloom", {
+          method: "POST",
+          headers: { origin: rehearsal.frontendOrigin },
+          body: form,
+        });
+        if (response.status !== expected)
+          throw new Error(
+            `Journal upload returned ${response.status}; expected ${expected}`,
+          );
+      }
+      await store.mutation(api.cue.event, {
+        secret: auth,
+        runId,
+        issueId: run.issueId,
+        title: "Journal retry endpoint verified",
+        kind: "success",
+        detail: `Normal journal ${rehearsal.frontendOrigin} is bound to app ${rehearsal.appId}, build ${commit}. Its actual multipart upload endpoint accepted the controlled 3 MB PNG and rejected the 6 MB control. Browser retry remains available to the customer.`,
+      });
     }
     await store.mutation(api.cue.event, {
       secret: auth,
@@ -494,11 +639,11 @@ async function approveAndDeployImpl(runId: Id<"runs">) {
     });
   } catch (e) {
     recordWorkflowFailure(e);
-    await stopBloom();
+    await target.stop();
     try {
-      await fs.rm(live(), { recursive: true, force: true });
-      await fs.cp(backup, live(), { recursive: true });
-      await startBloom(previous);
+      await fs.rm(target.live, { recursive: true, force: true });
+      await fs.cp(backup, target.live, { recursive: true });
+      await target.start(previous);
     } catch {}
     await store.mutation(api.cue.updateRun, {
       secret: auth,

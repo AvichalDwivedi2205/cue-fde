@@ -4,6 +4,8 @@ import { v, ConvexError } from "convex/values";
 import { uploadRegressionCandidate } from "../lib/symptoms";
 import { fallbackReply } from "../lib/reply-policy";
 import { internal } from "./_generated/api";
+import { rehearsalForApp, registeredRehearsal } from "./rehearsalScope";
+import { rehearsalFingerprint } from "../lib/rehearsal-policy";
 
 export function authorize(secret: string) {
   if (!env.CUE_DEMO_SECRET || secret !== env.CUE_DEMO_SECRET)
@@ -289,7 +291,10 @@ export const createCase = mutation({
         : feature && /dark mode/.test(text)
           ? "bloom:feature:dark"
           : `report:${stamp()}:${args.customer}:${args.body}`;
-    const fingerprint = args.appId ? `${args.appId}:${group}` : group;
+    const rehearsal = upload ? await rehearsalForApp(ctx, args.appId) : null;
+    const fingerprint = rehearsal
+      ? rehearsalFingerprint(rehearsal.appId, rehearsal.key)
+      : args.appId ? `${args.appId}:${group}` : group;
     let issue = await ctx.db
       .query("issues")
       .withIndex("by_fingerprint", (q) => q.eq("fingerprint", fingerprint))
@@ -335,7 +340,9 @@ export const createCase = mutation({
       sourceUrl: args.sourceUrl,
       owner: args.owner,
       sourceKey: args.sourceKey,
-      provenance: args.sample
+      provenance: rehearsal
+        ? `Controlled rehearsal ${rehearsal.key} · ${args.channel === "chat" ? "connected widget report" : "operator fixture; native channel delivery not established"}`
+        : args.sample
         ? `Synthetic ${args.channel === "reddit" ? "Reddit" : "X"} sample · operator capture`
         : args.channel === "x"
           ? "Operator-assisted X capture"
@@ -432,7 +439,8 @@ export const startRun = mutation({
   handler: async (ctx, args) => {
     authorize(args.secret);
     const issue = await ctx.db.get("issues", args.issueId);
-    if (!issue || issue.fingerprint !== "bloom:upload:413")
+    const rehearsal = issue ? await registeredRehearsal(ctx, issue) : null;
+    if (!issue || (issue.fingerprint !== "bloom:upload:413" && !rehearsal))
       throw new ConvexError(
         "Live coding demo supports the Bloom upload issue.",
       );
@@ -455,6 +463,12 @@ export const startRun = mutation({
       status: "running",
       phase: "reproducing",
       provider: "Codex",
+      ...(rehearsal ? {
+        kind: "bug",
+        targetId: rehearsal.appId,
+        repository: rehearsal.repository,
+        deploymentMode: "rehearsal",
+      } : {}),
       createdAt: stamp(),
       updatedAt: stamp(),
     });
@@ -597,8 +611,10 @@ export const updateRun = mutation({
       });
     if (args.fields.status === "resolved") {
       await ctx.db.patch("issues", run.issueId, { status: "resolved" });
-      for (const c of await ctx.db.query("cases").take(100)) {
-        if (c.issueId !== run.issueId) continue;
+      const linked = await ctx.db.query("cases")
+        .withIndex("by_issueId", (q) => q.eq("issueId", run.issueId)).take(201);
+      if (linked.length > 200) throw new ConvexError("Release notifications require batching");
+      for (const c of linked) {
         await ctx.db.patch("cases", c._id, {
           ...(c.channel === "chat" ? { status: "resolved" } : {}),
           updatedAt: stamp(),

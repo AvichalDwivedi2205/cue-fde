@@ -32,6 +32,8 @@ import type * as knowledgeSchema from "../knowledgeSchema.js";
 import type * as prospectResearch from "../prospectResearch.js";
 import type * as prospectSchema from "../prospectSchema.js";
 import type * as prospects from "../prospects.js";
+import type * as rehearsalScope from "../rehearsalScope.js";
+import type * as rehearsals from "../rehearsals.js";
 import type * as releases from "../releases.js";
 import type * as serverState from "../serverState.js";
 import type * as triageQueue from "../triageQueue.js";
@@ -71,6 +73,8 @@ declare const fullApi: ApiFromModules<{
   prospectResearch: typeof prospectResearch;
   prospectSchema: typeof prospectSchema;
   prospects: typeof prospects;
+  rehearsalScope: typeof rehearsalScope;
+  rehearsals: typeof rehearsals;
   releases: typeof releases;
   serverState: typeof serverState;
   triageQueue: typeof triageQueue;
