@@ -193,8 +193,11 @@ test("actual Growth bridge renders unqualified sources and unsupported needs wit
   expect(unsupported).toContain("No feature or release is promised");
   expect(unsupported).toContain("Propose feature candidate");
   expect(vm.runInContext("gDraftHtml(S.growth.opps[2])", context)).toContain(
-    "Use verified reply",
+    "Growth is preparing a reply",
   );
+  expect(
+    vm.runInContext("gDraftHtml(S.growth.opps[2])", context),
+  ).not.toContain('data-act="gFixed"');
   vm.runInContext("gCur = () => S.growth.opps[2]", context);
   await vm.runInContext("GA.gFixed()", context);
   expect(writes).toHaveLength(1);
