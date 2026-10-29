@@ -99,6 +99,14 @@ const input = z.discriminatedUnion("action", [
     text: z.string().trim().min(1).max(12000),
     attachment: z.string().max(4_000_000).optional(),
   }),
+  z
+    .object({
+      action: z.literal("feedback"),
+      caseId: z.string().min(1).max(100),
+      messageId: z.string().min(1).max(100),
+      outcome: z.enum(["solved", "needs_help"]),
+    })
+    .strict(),
 ]);
 export async function POST(request: Request) {
   try {
@@ -192,6 +200,26 @@ export async function POST(request: Request) {
             page: process.env.BLOOM_PUBLIC_URL,
           }),
         );
+      case "feedback": {
+        const result = await cue("/api/widget", {
+          action: "feedback",
+          token: await supportToken(owner),
+          caseId: b.caseId,
+          messageId: b.messageId,
+          outcome: b.outcome,
+        });
+        const receipt = z
+          .object({
+            duplicate: z.boolean(),
+            outcome: z.enum(["solved", "needs_help"]),
+          })
+          .parse(result);
+        if (receipt.outcome !== b.outcome)
+          throw new Error("Support feedback receipt changed");
+        return Response.json(receipt, {
+          headers: { "cache-control": "no-store" },
+        });
+      }
     }
   } catch (e) {
     const message = e instanceof Error ? e.message : "Request failed";
