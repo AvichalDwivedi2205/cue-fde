@@ -2,6 +2,8 @@
 
 A working implementation of customer support turning into an engineering fix. Both applications use the supplied designs in `design/bloom.html` and `design/cue.html`; live adapters replace their browser-only story state.
 
+Company knowledge is available at [`/knowledge`](https://cue.latchgrid.in/knowledge): add FAQs, text, TXT/Markdown/PDF/DOCX files, public pages or GitHub documents, then review and publish them for a registered app. Typed and spoken widget answers retrieve published sources and show citations. Gemini is the default; the optional LiteLLM team key is available for an explicit later switch. See [setup, scope and verification](docs/company-knowledge.md).
+
 ## Run
 
 The current machine is configured for Convex, Vertex Gemini, the existing Codex ChatGPT login, WorkOS staging, and the private GitHub fixture repository. Cue requires Google sign-in with the configured demo operator. From this directory:
