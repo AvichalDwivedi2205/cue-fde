@@ -15,8 +15,9 @@ import { answerKnowledge, type KnowledgeAnswer } from "@/lib/knowledge-answer";
 import { KNOWLEDGE_WORKSPACE } from "@/lib/knowledge-policy";
 import { fallbackReply } from "@/lib/reply-policy";
 import { widgetOriginAllowed } from "@/lib/widget-preview";
+import type { Id } from "@/convex/_generated/dataModel";
 const input = z.object({
-  action: z.enum(["session", "read", "message"]),
+  action: z.enum(["session", "read", "message", "feedback"]),
   app: z.string().max(100),
   origin: z.string().url(),
   token: z.string().max(2000).optional(),
@@ -26,6 +27,9 @@ const input = z.object({
   attachment: z.string().max(6000000).optional(),
   preview: z.boolean().optional(),
   handoff: z.boolean().optional(),
+  caseId: z.string().max(100).optional(),
+  messageId: z.string().max(100).optional(),
+  outcome: z.enum(["solved", "needs_help"]).optional(),
 });
 export async function POST(request: Request) {
   try {
@@ -63,6 +67,22 @@ export async function POST(request: Request) {
     widgetRateLimit(owner + ":" + b.action, b.action === "message" ? 12 : 60);
     const store = db(),
       auth = secret();
+    if (b.action === "feedback") {
+      if (!b.caseId || !b.messageId || !b.outcome)
+        throw new Error("Choose an answer outcome");
+      return Response.json(
+        await store.mutation(api.feedbackGaps.submitOutcome, {
+          secret: auth,
+          workspaceId: KNOWLEDGE_WORKSPACE,
+          appId: app.id,
+          owner,
+          caseId: b.caseId as Id<"cases">,
+          messageId: b.messageId as Id<"messages">,
+          outcome: b.outcome,
+        }),
+        { headers: { "cache-control": "no-store" } },
+      );
+    }
     if (b.action === "read") {
       const previous = await store.query(api.bloom.conversation, {
         secret: auth,
@@ -70,6 +90,15 @@ export async function POST(request: Request) {
       });
       const evidence = previous?.case
         ? await store.query(api.knowledge.widgetEvidence, {
+            secret: auth,
+            workspaceId: KNOWLEDGE_WORKSPACE,
+            appId: app.id,
+            owner,
+            caseId: previous.case._id,
+          })
+        : [];
+      const outcomes = previous?.case
+        ? await store.query(api.feedbackGaps.outcomes, {
             secret: auth,
             workspaceId: KNOWLEDGE_WORKSPACE,
             appId: app.id,
@@ -98,6 +127,8 @@ export async function POST(request: Request) {
                 body: m.body,
                 author: m.author,
                 role: m.role,
+                outcome:
+                  outcomes.find((o) => o.messageId === m._id)?.outcome || null,
                 citations:
                   evidence.find((e) => e.messageId === m._id)?.citations || [],
               })) || [],

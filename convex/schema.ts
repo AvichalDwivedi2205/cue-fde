@@ -5,8 +5,10 @@ import { growthTables } from "./growthSchema";
 import { prospectTables } from "./prospectSchema";
 import { knowledgeTables } from "./knowledgeSchema";
 import { companyContextTables } from "./companyContextSchema";
+import { feedbackTables } from "./feedbackSchema";
 
 export default defineSchema({
+  ...feedbackTables,
   ...companyContextTables,
   ...knowledgeTables,
   ...growthTables,

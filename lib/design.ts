@@ -10,11 +10,16 @@ export async function design(name: "bloom" | "cue") {
     "utf8",
   );
   if (name === "cue") {
-    // These prototype handlers change fixtures in browser memory. Their product
-    // equivalents are authenticated React screens; keep them out of live HTML.
+    // The reference combines its new layout with browser-only account, publish
+    // and feedback mutations. Product layouts are supplied by product-shell.js;
+    // Knowledge and Settings use their authenticated React screens.
     html = html.replace(
       /\/\* -+ workspace screens: knowledge, setup, widget, research, settings \*\/[\s\S]*?(?=\/\* -+ overlays \*\/)/,
       "const XA = {};\n",
+    );
+    html = html.replace(
+      /\/\* -+ demo controls \*\/[\s\S]*?(?=\/\* -+ actions \*\/)/,
+      "let demoOpen = false;\nfunction renderDemo() {}\nfunction resetAll() {}\n",
     );
     html = html.replace(
       /<style>[\s\S]*?<\/style>/,
@@ -35,12 +40,12 @@ export async function design(name: "bloom" | "cue") {
       )) +
       "\n" +
       (await fs.readFile(
-        path.join(process.cwd(), "lib/browser/prospects.js"),
+        path.join(process.cwd(), "lib/browser/navigation.js"),
         "utf8",
       )) +
       "\n" +
       (await fs.readFile(
-        path.join(process.cwd(), "lib/browser/navigation.js"),
+        path.join(process.cwd(), "lib/browser/product-shell.js"),
         "utf8",
       ));
   html = html.replace(
@@ -59,20 +64,6 @@ export async function design(name: "bloom" | "cue") {
         'href="#/${k}"',
         "href=\"${k === 'knowledge' ? '/knowledge' : k === 'settings' ? '/settings' : k === 'setup' ? '/setup' : k === 'prospects' ? '/customers' : '#/' + k}\"",
       )
-      .replace(
-        "['integrations', 'Integrations', 'plug', '']",
-        "['setup', 'App setup', 'widget', ''], ['prospects', 'Cue customers', 'search', ''], ['integrations', 'Integrations', 'plug', '']",
-      )
-      .replace("['Grow', ['growth']]", "['Grow', ['growth', 'prospects']]")
-      .replace(
-        "['knowledge', 'integrations', 'settings']",
-        "['knowledge', 'integrations', 'setup', 'settings']",
-      )
-      .replace(
-        "const nav = [['home'",
-        "const navActive = k => k === 'prospects' ? S.sec === 'growth' && S.growth?.tab === 'prospects' : S.sec === k && !(k === 'growth' && S.growth?.tab === 'prospects'); const nav = [['home'",
-      )
-      .replaceAll("S.sec === k ?", "navActive(k) ?")
       .replace("const gLink = o => ", "let gLink = o => ")
       .replace("const clock = t =>", "let clock = t =>")
       .replace("const hm = t =>", "let hm = t =>")

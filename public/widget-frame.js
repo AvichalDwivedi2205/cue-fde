@@ -17,7 +17,14 @@
     const response = await fetch("/api/widget", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action, app, origin, token: session, preview, ...extra }),
+      body: JSON.stringify({
+        action,
+        app,
+        origin,
+        token: session,
+        preview,
+        ...extra,
+      }),
     });
     const data = await response.json();
     if (!response.ok) {
@@ -36,6 +43,9 @@
     const nearBottom =
       messages.scrollHeight - messages.scrollTop - messages.clientHeight < 80;
     messages.replaceChildren();
+    const latestAnswer = data.messages
+      .filter((m) => m.role !== "customer")
+      .at(-1)?.id;
     for (const m of data.messages) {
       const box = document.createElement("div"),
         author = document.createElement("small"),
@@ -45,11 +55,73 @@
       body.textContent = m.body;
       box.append(author, body);
       for (const source of m.citations || []) {
-        const detail = document.createElement("details"), label = document.createElement("summary"), excerpt = document.createElement("p");
+        const detail = document.createElement("details"),
+          label = document.createElement("summary"),
+          excerpt = document.createElement("p");
         detail.className = "source-card";
-        label.textContent = source.title + (source.page ? " · page " + source.page : " · " + source.heading);
+        label.textContent =
+          source.title +
+          (source.page ? " · page " + source.page : " · " + source.heading);
         excerpt.textContent = source.excerpt;
-        detail.append(label, excerpt); box.append(detail);
+        detail.append(label, excerpt);
+        box.append(detail);
+      }
+      if (
+        m.role !== "customer" &&
+        data.case &&
+        (m.outcome || m.id === latestAnswer)
+      ) {
+        const feedback = document.createElement("div");
+        feedback.className = "answer-feedback";
+        if (m.outcome) {
+          feedback.textContent =
+            m.outcome === "solved"
+              ? "You marked this answer solved"
+              : "The team has your request for help";
+        } else {
+          const label = document.createElement("small");
+          label.textContent = "Did this solve your problem?";
+          feedback.append(label);
+          for (const [outcome, title] of [
+            ["solved", "Solved"],
+            ["needs_help", "Still need help"],
+          ]) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.textContent = title;
+            button.onclick = async () => {
+              if (busy || !session) return;
+              busy = true;
+              submit.disabled = true;
+              feedback
+                .querySelectorAll("button")
+                .forEach((b) => (b.disabled = true));
+              try {
+                await call("feedback", {
+                  caseId: data.case.id,
+                  messageId: m.id,
+                  outcome,
+                });
+                busy = false;
+                await read();
+                status.textContent =
+                  outcome === "solved"
+                    ? "Thanks. Your answer feedback is saved."
+                    : "The team can review your original question and reply here.";
+              } catch (e) {
+                status.textContent = e.message;
+                feedback
+                  .querySelectorAll("button")
+                  .forEach((b) => (b.disabled = false));
+              } finally {
+                busy = false;
+                submit.disabled = !session;
+              }
+            };
+            feedback.append(button);
+          }
+        }
+        box.append(feedback);
       }
       messages.append(box);
     }
@@ -113,10 +185,24 @@
   };
   document.getElementById("handoff").onclick = async () => {
     if (busy || !session) return;
-    busy = true; submit.disabled = true;
-    try { await call("message", { text:"I’d like to talk to a person.", name:context.name, page:context.page, handoff:true }); busy = false; await read(); messages.scrollTop = messages.scrollHeight; }
-    catch (e) { status.textContent = e.message; }
-    finally { busy = false; submit.disabled = !session; }
+    busy = true;
+    submit.disabled = true;
+    try {
+      await call("message", {
+        text: "I’d like to talk to a person.",
+        name: context.name,
+        page: context.page,
+        handoff: true,
+      });
+      busy = false;
+      await read();
+      messages.scrollTop = messages.scrollHeight;
+    } catch (e) {
+      status.textContent = e.message;
+    } finally {
+      busy = false;
+      submit.disabled = !session;
+    }
   };
   form.onsubmit = async (e) => {
     e.preventDefault();

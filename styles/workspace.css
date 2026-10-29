@@ -5,6 +5,38 @@
   .att-i p, .att-i .mono {
     overflow-wrap: anywhere;
   }
+  .app-menu {
+    position: absolute;
+    z-index: 90;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--sh-pop);
+  }
+  .app-menu > a {
+    display: block;
+    padding: 8px 10px;
+    color: var(--ink-2);
+    font-size: 12px;
+  }
+  .app-menu button svg {
+    margin-left: auto;
+  }
+  .product-growth-settings {
+    margin-top: 24px;
+  }
+  .product-growth-settings > summary {
+    padding: 12px 0;
+    color: var(--ink-2);
+    cursor: pointer;
+  }
+  .gc-reply p {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .fr3 > .features {
+    margin-top: 16px;
+  }
   @media (max-width: 1240px) {
     .home-grid {
       grid-template-columns: minmax(0, 1fr);

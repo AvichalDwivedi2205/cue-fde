@@ -59,7 +59,10 @@ export function CompanyContextPanel({
       if (!id && !appId) {
         let preferred = "";
         try {
-          preferred = sessionStorage.getItem("cue-agent-app") || "";
+          preferred =
+            new URLSearchParams(location.search).get("app") ||
+            sessionStorage.getItem("cue-agent-app") ||
+            "";
         } catch {}
         if (
           d.apps.some((a: { id: string }) => a.id === preferred) &&
@@ -140,7 +143,7 @@ export function CompanyContextPanel({
       await load(data.appId);
       setNotice(
         kind === "brand"
-          ? "Brand voice saved. Future widget replies and Growth drafts use this version."
+          ? "Brand voice published. Future generated replies and Growth drafts use this version."
           : "Required context saved. Coverage reflects the latest published revisions.",
       );
     } catch (e) {
@@ -175,7 +178,7 @@ export function CompanyContextPanel({
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold">
-            {kind === "brand" ? "Brand voice" : "Context coverage"}
+            {kind === "brand" ? "How Cue sounds" : "Context coverage"}
           </h2>
           <p className="mt-1 text-xs text-cue-muted">
             {kind === "brand"
@@ -269,7 +272,7 @@ export function CompanyContextPanel({
               </label>
               <Badge tone={data.brand.enabled ? "green" : "neutral"}>
                 {data.brand.version
-                  ? `Version ${data.brand.version}`
+                  ? `Published v${data.brand.version}`
                   : "Default voice"}
               </Badge>
             </div>
@@ -343,11 +346,11 @@ export function CompanyContextPanel({
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
               <span className="text-[11px] text-cue-muted">
                 {dirty
-                  ? "Unsaved changes"
+                  ? "Draft changes · the published voice stays active"
                   : "Approved FAQs are returned verbatim. Write their answers in your brand voice."}
               </span>
               <Button variant="primary" disabled={!allowed || !dirty}>
-                {busy ? "Saving…" : "Save brand voice"}
+                {busy ? "Publishing…" : "Publish voice"}
               </Button>
             </div>
           </form>
@@ -401,179 +404,237 @@ export function CompanyContextPanel({
             both widget answers and Growth. Imported pages require manual
             refresh.
           </Notice>
-          <div className="ui-card mt-4 p-5">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <h3 className="text-xs font-semibold">
-                Required company context
-              </h3>
-              <Button
-                disabled={!allowed || requirements.length >= 20}
-                onClick={() => {
-                  setRequirements((rows) => [
-                    ...rows,
-                    {
-                      id: crypto.randomUUID(),
-                      label: "",
-                      audience: "customer",
-                      sourceIds: [],
-                    },
-                  ]);
-                  setDirty(true);
-                }}
-              >
-                <Icon name="plus" size={12} />
-                Add requirement
-              </Button>
+          {!!data.requirements.length && (
+            <div
+              className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+              aria-label="Published context coverage"
+            >
+              {data.requirements.map((requirement) => {
+                const state = requirementCoverage(
+                  requirement,
+                  data.sources,
+                  data.checkedAt,
+                );
+                return (
+                  <article key={requirement.id} className="ui-card p-4">
+                    <div className="mb-2 flex items-start justify-between gap-2">
+                      <h3 className="text-xs font-semibold">
+                        {requirement.label}
+                      </h3>
+                      <Badge
+                        tone={state.status === "ready" ? "green" : "amber"}
+                      >
+                        {state.status}
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-cue-muted">{state.reason}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {requirement.sourceIds.map((id) => {
+                        const source = data.sources.find((s) => s._id === id);
+                        return source ? (
+                          <a
+                            key={id}
+                            className="text-[11px] text-cue-green underline"
+                            href={`/knowledge?app=${encodeURIComponent(data.appId)}#source/${id}`}
+                          >
+                            {source.title}
+                          </a>
+                        ) : null;
+                      })}
+                    </div>
+                    <p className="mt-3 text-[10px] text-cue-subtle">
+                      {requirement.audience === "customer"
+                        ? "Customers + Growth"
+                        : "Team only"}
+                    </p>
+                  </article>
+                );
+              })}
             </div>
-            {!requirements.length && (
-              <EmptyState title="Define what complete means">
-                Add requirements such as product capabilities, pricing or
-                support policies, and choose the sources that cover each one.
-              </EmptyState>
-            )}
-            {requirements.map((r) => {
-              const state = requirementCoverage(
-                r,
-                data.sources,
-                data.checkedAt,
-              );
-              return (
-                <fieldset
-                  key={r.id}
-                  className="mb-4 rounded-lg border border-cue-line p-4"
+          )}
+          <details
+            className="ui-card mt-4 p-5"
+            open={data.requirements.length === 0 ? true : undefined}
+          >
+            <summary className="cursor-pointer text-xs font-semibold">
+              Manage coverage requirements
+            </summary>
+            <div className="mt-4">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <h3 className="text-xs font-semibold">
+                  Required company context
+                </h3>
+                <Button
+                  disabled={!allowed || requirements.length >= 20}
+                  onClick={() => {
+                    setRequirements((rows) => [
+                      ...rows,
+                      {
+                        id: crypto.randomUUID(),
+                        label: "",
+                        audience: "customer",
+                        sourceIds: [],
+                      },
+                    ]);
+                    setDirty(true);
+                  }}
                 >
-                  <div className="mb-3 flex items-center justify-between">
-                    <Badge tone={state.status === "ready" ? "green" : "amber"}>
-                      {state.status}
-                    </Badge>
-                    <Button
-                      disabled={!allowed}
-                      aria-label={`Remove ${r.label || "requirement"}`}
-                      onClick={() => {
-                        setRequirements((rows) =>
-                          rows.filter((row) => row.id !== r.id),
-                        );
-                        setDirty(true);
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                  <div className="grid gap-3 md:grid-cols-[2fr_1fr_1fr]">
-                    <label className="ui-field">
-                      Requirement
-                      <input
-                        className="ui-input"
-                        value={r.label}
-                        maxLength={100}
-                        disabled={!allowed}
-                        placeholder="Product capabilities"
-                        onChange={(e) =>
-                          editRequirement(r.id, { label: e.target.value })
-                        }
-                      />
-                    </label>
-                    <label className="ui-field">
-                      Audience
-                      <select
-                        className="ui-input"
-                        value={r.audience}
-                        disabled={!allowed}
-                        onChange={(e) =>
-                          editRequirement(r.id, {
-                            audience: e.target
-                              .value as ContextRequirement["audience"],
-                          })
-                        }
+                  <Icon name="plus" size={12} />
+                  Add requirement
+                </Button>
+              </div>
+              {!requirements.length && (
+                <EmptyState title="Define what complete means">
+                  Add requirements such as product capabilities, pricing or
+                  support policies, and choose the sources that cover each one.
+                </EmptyState>
+              )}
+              {requirements.map((r) => {
+                const state = requirementCoverage(
+                  r,
+                  data.sources,
+                  data.checkedAt,
+                );
+                return (
+                  <fieldset
+                    key={r.id}
+                    className="mb-4 rounded-lg border border-cue-line p-4"
+                  >
+                    <div className="mb-3 flex items-center justify-between">
+                      <Badge
+                        tone={state.status === "ready" ? "green" : "amber"}
                       >
-                        <option value="customer">Customers + Growth</option>
-                        <option value="staff">Staff</option>
-                      </select>
-                    </label>
-                    <label className="ui-field">
-                      Review after (days)
-                      <input
-                        className="ui-input"
-                        type="number"
-                        min={1}
-                        max={3650}
-                        placeholder="Optional"
-                        value={r.maxAgeDays || ""}
+                        {state.status}
+                      </Badge>
+                      <Button
                         disabled={!allowed}
-                        onChange={(e) =>
-                          editRequirement(r.id, {
-                            maxAgeDays: e.target.value
-                              ? Number(e.target.value)
-                              : undefined,
-                          })
-                        }
-                      />
-                    </label>
-                  </div>
-                  <p className="mt-3 text-[11px] text-cue-muted">
-                    {state.reason}
-                  </p>
-                  <div className="mt-3 grid gap-2 md:grid-cols-2">
-                    {data.sources.map((s) => (
-                      <label
-                        key={s._id}
-                        className="flex min-w-0 items-start gap-2 text-xs"
+                        aria-label={`Remove ${r.label || "requirement"}`}
+                        onClick={() => {
+                          setRequirements((rows) =>
+                            rows.filter((row) => row.id !== r.id),
+                          );
+                          setDirty(true);
+                        }}
                       >
+                        Remove
+                      </Button>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-[2fr_1fr_1fr]">
+                      <label className="ui-field">
+                        Requirement
                         <input
-                          type="checkbox"
-                          checked={r.sourceIds.includes(s._id)}
-                          disabled={
-                            !allowed ||
-                            (!r.sourceIds.includes(s._id) &&
-                              r.sourceIds.length >= 10)
+                          className="ui-input"
+                          value={r.label}
+                          maxLength={100}
+                          disabled={!allowed}
+                          placeholder="Product capabilities"
+                          onChange={(e) =>
+                            editRequirement(r.id, { label: e.target.value })
                           }
+                        />
+                      </label>
+                      <label className="ui-field">
+                        Audience
+                        <select
+                          className="ui-input"
+                          value={r.audience}
+                          disabled={!allowed}
                           onChange={(e) =>
                             editRequirement(r.id, {
-                              sourceIds: e.target.checked
-                                ? [...r.sourceIds, s._id]
-                                : r.sourceIds.filter((id) => id !== s._id),
+                              audience: e.target
+                                .value as ContextRequirement["audience"],
+                            })
+                          }
+                        >
+                          <option value="customer">Customers + Growth</option>
+                          <option value="staff">Staff</option>
+                        </select>
+                      </label>
+                      <label className="ui-field">
+                        Review after (days)
+                        <input
+                          className="ui-input"
+                          type="number"
+                          min={1}
+                          max={3650}
+                          placeholder="Optional"
+                          value={r.maxAgeDays || ""}
+                          disabled={!allowed}
+                          onChange={(e) =>
+                            editRequirement(r.id, {
+                              maxAgeDays: e.target.value
+                                ? Number(e.target.value)
+                                : undefined,
                             })
                           }
                         />
-                        <span className="min-w-0 break-words">
-                          {s.title}
-                          <small className="ml-1 text-cue-subtle">
-                            {s.visibility} · {s.status}
-                          </small>
-                        </span>
                       </label>
-                    ))}
-                  </div>
-                  {!data.sources.length && (
-                    <a
-                      className="mt-3 inline-block text-xs text-cue-green"
-                      href="#new/text"
-                    >
-                      Add a source first
-                    </a>
-                  )}
-                </fieldset>
-              );
-            })}
-            <div className="flex items-center justify-between gap-3">
-              <small className="text-cue-muted">
-                {dirty
-                  ? "Unsaved requirements"
-                  : `Coverage revision ${data.revision}`}
-              </small>
-              <Button
-                variant="primary"
-                disabled={
-                  !allowed ||
-                  !dirty ||
-                  requirements.some((r) => !r.label.trim())
-                }
-                onClick={() => void save()}
-              >
-                {busy ? "Saving…" : "Save requirements"}
-              </Button>
+                    </div>
+                    <p className="mt-3 text-[11px] text-cue-muted">
+                      {state.reason}
+                    </p>
+                    <div className="mt-3 grid gap-2 md:grid-cols-2">
+                      {data.sources.map((s) => (
+                        <label
+                          key={s._id}
+                          className="flex min-w-0 items-start gap-2 text-xs"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={r.sourceIds.includes(s._id)}
+                            disabled={
+                              !allowed ||
+                              (!r.sourceIds.includes(s._id) &&
+                                r.sourceIds.length >= 10)
+                            }
+                            onChange={(e) =>
+                              editRequirement(r.id, {
+                                sourceIds: e.target.checked
+                                  ? [...r.sourceIds, s._id]
+                                  : r.sourceIds.filter((id) => id !== s._id),
+                              })
+                            }
+                          />
+                          <span className="min-w-0 break-words">
+                            {s.title}
+                            <small className="ml-1 text-cue-subtle">
+                              {s.visibility} · {s.status}
+                            </small>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                    {!data.sources.length && (
+                      <a
+                        className="mt-3 inline-block text-xs text-cue-green"
+                        href="#new/text"
+                      >
+                        Add a source first
+                      </a>
+                    )}
+                  </fieldset>
+                );
+              })}
+              <div className="flex items-center justify-between gap-3">
+                <small className="text-cue-muted">
+                  {dirty
+                    ? "Unsaved requirements"
+                    : `Coverage revision ${data.revision}`}
+                </small>
+                <Button
+                  variant="primary"
+                  disabled={
+                    !allowed ||
+                    !dirty ||
+                    requirements.some((r) => !r.label.trim())
+                  }
+                  onClick={() => void save()}
+                >
+                  {busy ? "Saving…" : "Save requirements"}
+                </Button>
+              </div>
             </div>
-          </div>
+          </details>
           <div className="ui-card mt-4 overflow-x-auto">
             <h3 className="border-b border-cue-line p-4 text-xs font-semibold">
               Source inventory

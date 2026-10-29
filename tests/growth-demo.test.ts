@@ -37,85 +37,98 @@ async function harness(storage = new Map<string, string>()) {
     S.ag.appId = 'bloom'; S.growth.opps = [];
     growthData = {opportunities: [], drafts: [], touches: [], browsers: []};
     gRerender = () => {}; toast = () => {};
-    window.demo = {render: () => gResults(), state: () => growthDemoState(),
-      app: (id) => {S.ag.appId = id;},
-      choose: (v) => A.gResultView({dataset: {v}}),
-      save: () => A.gDemoSave(), reset: () => A.gDemoReset(),
+    window.product = {render: () => gResults(), actions: A,
+      setRecords: (records) => {growthData = records;},
       live: () => growthData};
   })();`,
   );
   vm.runInContext(executable, context);
-  const demo = context.window.demo as {
-    render(): string;
-    state(): { show: boolean; counts: Record<string, number> };
-    app(id: string): void;
-    choose(v: string): void;
-    save(): void;
-    reset(): void;
-    live(): unknown;
+  return {
+    product: context.window.product as {
+      render(): string;
+      actions: Record<string, unknown>;
+      setRecords(records: unknown): void;
+      live(): unknown;
+    },
+    writes: () => writes,
+    html,
   };
-  const fill = (values: number[]) => {
-    [
-      "discovered",
-      "qualified",
-      "approved",
-      "published",
-      "visits",
-      "activated",
-    ].forEach((key, i) =>
-      elements.set("#growth-demo-" + key, { value: String(values[i]) }),
-    );
-    elements.set("#growth-demo-editor", { open: true });
-  };
-  return { demo, fill, storage, writes: () => writes };
 }
 
-test("demo numbers are opt-in, labeled, app-local and cannot enter live results or writes", async () => {
-  const h = await harness();
-  const before = JSON.stringify(h.demo.live());
-  expect(h.demo.render()).not.toContain('data-testid="growth-demo-scenario"');
-  h.demo.choose("demo");
-  expect(h.demo.render()).toContain("Sample numbers");
-  expect(h.demo.render()).toContain("not observed growth");
-  h.fill([60, 18, 10, 8, 40, 12]);
-  h.demo.save();
-  expect(h.demo.render()).toContain("30.0% sample");
-  expect(h.demo.state().counts.activated).toBe(12);
-  h.demo.app("another-app");
-  expect(h.demo.state().show).toBe(false);
-  expect(h.demo.state().counts.activated).toBe(7);
-  h.demo.app("bloom");
-  h.demo.choose("live");
-  expect(h.demo.render()).not.toContain("30.0% sample");
-  expect(JSON.stringify(h.demo.live())).toBe(before);
-  expect(h.writes()).toBe(0);
-  const reloaded = await harness(h.storage);
-  expect(reloaded.demo.state().counts.activated).toBe(12);
-  expect(reloaded.demo.state().show).toBe(false);
-});
-
-test("invalid funnel numbers and corrupt saved data cannot masquerade as valid demo figures", async () => {
+test("product results cannot restore browser-only scenarios or mutate records through demo controls", async () => {
   const h = await harness(
     new Map([["cue:growth-demo:bloom", '{"activated":900}']]),
   );
-  h.demo.choose("demo");
-  for (const values of [
-    [1, 2, 1, 1, 1, 1],
-    [10, 8, 9, 6, 8, 7],
-    [10, 8, 6, 7, 8, 7],
-    [10, 8, 6, 5, 7, 8],
-    [10, 8, 6, 0, 7, 1],
-    [10, 8, 6, 5, 7, -1],
-    [10, 8, 6, 5, 7, 1.5],
-  ]) {
-    h.fill(values);
-    h.demo.save();
-    expect(h.demo.state().counts.activated).toBe(7);
-  }
-  h.fill([60, 18, 10, 8, 40, 12]);
-  h.demo.save();
-  h.demo.reset();
-  expect(h.demo.state().counts.activated).toBe(7);
-  expect(h.storage.has("cue:growth-demo:bloom")).toBe(false);
+  const before = JSON.stringify(h.product.live());
+  expect(h.product.render()).not.toContain("Demo scenario");
+  expect(h.product.render()).not.toContain("Sample numbers");
+  expect(h.product.render()).not.toContain("900");
+  for (const action of [
+    "gResultView",
+    "gDemoSave",
+    "gDemoReset",
+    "reset",
+    "demoToggle",
+    "sampleX",
+    "failToggle",
+  ])
+    expect(h.product.actions[action]).toBeUndefined();
+  expect(h.html).not.toContain('aria-label="Demo controls"');
+  expect(JSON.stringify(h.product.live())).toBe(before);
+  expect(h.writes()).toBe(0);
+});
+
+test("controlled, returning, internal and unbound visits cannot inflate organic acquisition", async () => {
+  const h = await harness();
+  h.product.setRecords({
+    opportunities: [
+      { _id: "organic", eligible: true },
+      { _id: "controlled", controlled: true },
+    ],
+    drafts: [],
+    touches: [
+      { _id: "touch", opportunityId: "organic", status: "verified" },
+      {
+        _id: "controlled-touch",
+        opportunityId: "controlled",
+        status: "verified",
+      },
+      {
+        _id: "unknown-touch",
+        opportunityId: "outside-snapshot",
+        status: "verified",
+      },
+    ],
+    browsers: [
+      { touchId: "touch", confirmedAt: 1, savedAt: 2, activatedAt: 3 },
+      {
+        touchId: "controlled-touch",
+        confirmedAt: 1,
+        savedAt: 2,
+        activatedAt: 3,
+      },
+      {
+        touchId: "touch",
+        internal: true,
+        confirmedAt: 1,
+        savedAt: 2,
+        activatedAt: 3,
+      },
+      {
+        touchId: "touch",
+        returning: true,
+        confirmedAt: 1,
+        savedAt: 2,
+        activatedAt: 3,
+      },
+      { touchId: "unknown-touch", confirmedAt: 1, savedAt: 2, activatedAt: 3 },
+      { touchId: "touch", confirmedAt: 3, savedAt: 2, activatedAt: 1 },
+    ],
+  });
+  const html = h.product.render();
+  expect(html).toContain("<b>1</b><span>Published</span>");
+  expect(html).toContain("<b>2</b><span>Visits</span>");
+  expect(html).toContain("<b>1</b><span>Activated</span>");
+  expect(html).toContain("Controlled/internal traffic excluded");
   expect(h.writes()).toBe(0);
 });

@@ -60,8 +60,11 @@ test("assembled Cue bridge initializes against the supplied design bindings", as
   expect(context.window.agentUI.opportunities).not.toContain(
     "Run the campaign",
   );
+  expect(context.window.agentUI.opportunities).toContain(
+    '<details class="product-growth-settings">',
+  );
   expect(context.window.agentUI.opportunities).not.toContain(
-    'id="growth-source"',
+    '<details class="product-growth-settings" open',
   );
   expect(context.window.agentUI.results).not.toContain('id="growth-source"');
   expect(context.window.agentUI.campaigns).toContain(

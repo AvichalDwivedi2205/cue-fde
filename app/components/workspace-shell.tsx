@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Icon } from "./ui";
 import { readIntegrations } from "@/lib/integration-config";
 import { WorkspacePreferences } from "./workspace-preferences";
+import { WorkspaceApplication } from "./workspace-application";
 
 const groups = [
   {
@@ -12,32 +13,18 @@ const groups = [
     ],
   },
   {
-    label: "Resolve",
+    label: "",
     links: [
       ["issues", "Issues", "bug", "/cue#/issues"],
-      ["features", "Feature requests", "bulb", "/cue#/features"],
-    ],
-  },
-  {
-    label: "Grow",
-    links: [
+      ["features", "Requests", "bulb", "/cue#/features"],
       ["growth", "Growth", "trend", "/cue#/growth"],
-      ["prospects", "Cue customers", "search", "/customers"],
+      ["knowledge", "Knowledge", "book", "/knowledge"],
     ],
   },
   {
-    label: "Agents",
+    label: "",
     links: [
       ["agents", "Agents", "bot", "/cue#/agents"],
-      ["agent", "Agent activity", "activity", "/cue#/agent"],
-    ],
-  },
-  {
-    label: "Workspace",
-    links: [
-      ["knowledge", "Knowledge", "book", "/knowledge"],
-      ["integrations", "Integrations", "plug", "/cue#/integrations"],
-      ["setup", "App setup", "widget", "/setup"],
       ["settings", "Settings", "settings", "/settings"],
     ],
   },
@@ -54,7 +41,15 @@ export async function WorkspaceShell({
   user?: { name: string; role: string };
   children: ReactNode;
 }) {
-  const preferences = user ? (await readIntegrations()).workspace : undefined;
+  const integrations = user ? await readIntegrations() : undefined;
+  const preferences = integrations?.workspace;
+  const activeSection = ["integrations", "setup", "connections"].includes(
+    active,
+  )
+    ? "settings"
+    : active === "agent"
+      ? "agents"
+      : active;
   const workspaceName = preferences?.name || "Cue workspace";
   const initials = (user?.name || "Cue")
     .split(/\s+/)
@@ -87,7 +82,7 @@ export async function WorkspaceShell({
           </a>
           <nav aria-label="Workspace navigation">
             {groups.map((group) => (
-              <div className="mb-2" key={group.label}>
+              <div className="mb-2" key={group.links[0][0]}>
                 {group.label && (
                   <div className="hidden px-2.5 pt-3 pb-1.5 font-mono text-[10.5px] tracking-wider text-cue-nav-muted uppercase min-[961px]:block">
                     {group.label}
@@ -99,8 +94,8 @@ export async function WorkspaceShell({
                     href={href}
                     title={label}
                     aria-label={label}
-                    aria-current={active === key ? "page" : undefined}
-                    className={`relative my-0.5 flex min-h-9 items-center justify-center gap-2.5 rounded-[7px] px-2.5 text-xs font-medium hover:bg-cue-nav-active hover:text-white min-[961px]:min-h-8 min-[961px]:justify-start ${active === key ? "bg-cue-nav-active text-white before:absolute before:top-2 before:bottom-2 before:-left-2 before:w-0.5 before:bg-cue-green" : ""}`}
+                    aria-current={activeSection === key ? "page" : undefined}
+                    className={`relative my-0.5 flex min-h-9 items-center justify-center gap-2.5 rounded-[7px] px-2.5 text-xs font-medium hover:bg-cue-nav-active hover:text-white min-[961px]:min-h-8 min-[961px]:justify-start ${activeSection === key ? "bg-cue-nav-active text-white before:absolute before:top-2 before:bottom-2 before:-left-2 before:w-0.5 before:bg-cue-green" : ""}`}
                   >
                     <Icon name={symbol} />
                     <span className="hidden min-[961px]:inline">{label}</span>
@@ -117,17 +112,13 @@ export async function WorkspaceShell({
           </div>
         </aside>
         <header className="col-start-2 flex min-w-0 items-center gap-3 border-b border-cue-line bg-cue-panel px-3 md:px-[18px]">
-          <a
-            href="/cue#/home"
-            className="flex items-center gap-2 text-xs font-semibold"
-          >
-            <span className="grid size-5 place-items-center rounded-md bg-cue-green text-white">
-              <Icon name="leaf" size={12} />
-            </span>
-            <span className="max-w-32 truncate sm:max-w-48">
-              {workspaceName}
-            </span>
-          </a>
+          <WorkspaceApplication
+            apps={(integrations?.apps || []).map(({ id, name }) => ({
+              id,
+              name,
+            }))}
+            workspaceName={workspaceName}
+          />
           <span className="hidden text-cue-subtle sm:inline">/</span>
           <span className="hidden truncate text-cue-subtle sm:inline">
             {title}
@@ -139,7 +130,7 @@ export async function WorkspaceShell({
               title="Review pending decisions"
             >
               <Icon name="hourglass" size={15} />
-              <span className="hidden md:inline">Approvals</span>
+              <span className="hidden md:inline">Your turn</span>
             </a>
             <a
               href="/settings"

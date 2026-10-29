@@ -7,6 +7,7 @@ import { socialSource } from "../lib/social-source";
 import { knowledgeReply } from "./knowledgeSchema";
 import { currentHits } from "./knowledge";
 import { brandCurrent } from "./companyContext";
+import { recordGap } from "./feedbackGaps";
 
 export const widgetMessage = mutation({
   args: {
@@ -72,6 +73,8 @@ export const widgetMessage = mutation({
         outputTokens: knowledge.outputTokens,
         createdAt: Date.now(),
       });
+      if (["needs_review", "conflict"].includes(knowledge.status))
+        await recordGap(ctx, { workspaceId: knowledge.workspaceId, appId: a.appId, owner: a.owner, caseId, messageId, reason: "unanswered" });
     };
     if (
       !a.owner.startsWith(`widget:${a.appId}:`) ||

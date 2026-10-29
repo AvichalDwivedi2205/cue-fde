@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { recordGap, excludeVerificationGaps } from "./feedbackGaps";
 import { api, internal } from "./_generated/api";
 import { authorize } from "./cue";
 import schema from "./schema";
@@ -214,7 +215,7 @@ export const finish = mutation({
         )
         .order("desc")
         .first();
-      if (message)
+      if (message) {
         await ctx.db.insert("knowledgeEvidence", {
           messageId: message._id,
           caseId: id,
@@ -233,6 +234,9 @@ export const finish = mutation({
             ? { brandVersion: k.brandVersion }
             : {}),
         });
+        if (["needs_review", "conflict"].includes(k.status))
+          await recordGap(ctx, { workspaceId: k.workspaceId, appId: s.appId, owner: a.owner, caseId: id, messageId: message._id, reason: "unanswered" });
+      }
     }
     await ctx.db.patch("voiceSessions", s._id, {
       caseId: id,
@@ -337,6 +341,7 @@ export const markVerificationCase = mutation({
     await ctx.db.patch("cases", c._id, {
       provenance: "Synthetic voice verification",
     });
+    await excludeVerificationGaps(ctx, messages.map(m => m._id));
     await ctx.db.insert("messages", {
       caseId: c._id,
       author: "Verification harness",

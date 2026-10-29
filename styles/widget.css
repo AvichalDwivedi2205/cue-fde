@@ -134,3 +134,30 @@
     color: var(--ink-3);
   }
 }
+.answer-feedback {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--ink-2);
+}
+.answer-feedback small {
+  flex-basis: 100%;
+}
+.answer-feedback button {
+  border: 1px solid var(--line-2);
+  border-radius: 7px;
+  background: var(--panel);
+  color: var(--ink);
+  padding: 5px 8px;
+  font: inherit;
+  cursor: pointer;
+}
+.answer-feedback button:hover {
+  background: var(--accent-t);
+}
+.answer-feedback button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

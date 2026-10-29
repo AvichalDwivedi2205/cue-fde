@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge, Button, EmptyState, Icon, Notice } from "../components/ui";
 import { WidgetPreview } from "./widget-preview";
 import { CompanyContextPanel } from "./company-context-panel";
+import { KnowledgeGapsPanel } from "./knowledge-gaps-panel";
+import { TeachCue } from "./teach-cue";
 type Source = {
   _id: string;
   title: string;
@@ -280,7 +282,7 @@ export function KnowledgeClient() {
         setView("editor");
       } else
         setView(
-          ["test", "widget", "coverage", "brand"].includes(parts[0])
+          ["test", "widget", "coverage", "brand", "gaps"].includes(parts[0])
             ? parts[0]
             : "sources",
         );
@@ -480,8 +482,6 @@ export function KnowledgeClient() {
               )
                 return;
               setDirty(false);
-              if (dirty && !window.confirm("Switch apps without saving?"))
-                return;
               setSnapshot(null);
               setApp(e.target.value);
               try {
@@ -505,6 +505,7 @@ export function KnowledgeClient() {
       <nav className="ui-tabs" aria-label="Knowledge views">
         {[
           ["sources", "Sources", "book"],
+          ["gaps", "Knowledge gaps", "chat"],
           ["coverage", "Coverage", "gauge"],
           ["brand", "Brand voice", "sparkle"],
           ["test", "Test answers", "sparkle"],
@@ -528,6 +529,7 @@ export function KnowledgeClient() {
         ))}
       </nav>
       {notice && <Notice>{notice}</Notice>}
+      {snapshot && app && view === "gaps" && <KnowledgeGapsPanel key={app} appId={app} onDirty={setDirty} />}
       {snapshot && ["coverage", "brand"].includes(view) && (
         <CompanyContextPanel
           key={app + view}
@@ -569,6 +571,20 @@ export function KnowledgeClient() {
       )}
       {snapshot && app && view === "sources" && (
         <>
+          <TeachCue
+            key={app}
+            appId={app}
+            disabled={!canEdit}
+            onCreated={async (sourceId) => {
+              await load(app);
+              await select(sourceId);
+              history.replaceState(null, "", "#source/" + sourceId);
+              setView("editor");
+              setNotice(
+                "Draft saved. Review its audience and content, then publish.",
+              );
+            }}
+          />
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <label className="relative min-w-44 flex-1">
               <Icon
@@ -1132,85 +1148,94 @@ export function KnowledgeClient() {
                 ))}
               </div>
             </fieldset>
-            <label className="ui-field">
-              Model
-              <select
-                className="ui-input"
-                value={testModel}
-                disabled={busy}
-                onChange={(e) => setTestModel(e.target.value)}
-              >
-                <option value="">Widget model · {snapshot.model}</option>
-                <option value="gemini-2.5-flash">Gemini Flash</option>
-                {snapshot.litellm && (
-                  <>
-                    <option value="nova-lite">Nova Lite · LiteLLM</option>
-                    <option value="claude-haiku">Claude Haiku · LiteLLM</option>
-                    <option value="claude-sonnet-4.6">
-                      Claude Sonnet · LiteLLM
-                    </option>
-                  </>
+            <details className="rounded-lg border border-cue-line p-3">
+              <summary className="cursor-pointer text-xs font-medium text-cue-muted">
+                Advanced · models and retrieval
+              </summary>
+              <div className="mt-4 space-y-4">
+                <label className="ui-field">
+                  Model
+                  <select
+                    className="ui-input"
+                    value={testModel}
+                    disabled={busy}
+                    onChange={(e) => setTestModel(e.target.value)}
+                  >
+                    <option value="">Widget model · {snapshot.model}</option>
+                    <option value="gemini-2.5-flash">Gemini Flash</option>
+                    {snapshot.litellm && (
+                      <>
+                        <option value="nova-lite">Nova Lite · LiteLLM</option>
+                        <option value="claude-haiku">
+                          Claude Haiku · LiteLLM
+                        </option>
+                        <option value="claude-sonnet-4.6">
+                          Claude Sonnet · LiteLLM
+                        </option>
+                      </>
+                    )}
+                  </select>
+                </label>
+                <label className="ui-field">
+                  Retrieval
+                  <select
+                    className="ui-input"
+                    value={testMode}
+                    disabled={busy}
+                    onChange={(e) => setTestMode(e.target.value)}
+                  >
+                    <option value="hybrid">Keyword + semantic</option>
+                    <option value="keyword">Keyword baseline</option>
+                  </select>
+                </label>
+                <label className="flex items-center justify-between gap-3 text-xs">
+                  Compare retrieval and models
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    aria-label="Compare retrieval and models"
+                    checked={compare}
+                    disabled={busy}
+                    className="size-4 accent-cue-green"
+                    onChange={(e) => {
+                      setCompare(e.target.checked);
+                      setBaseline(null);
+                      setComparisonError("");
+                    }}
+                  />
+                </label>
+                {compare && (
+                  <label className="ui-field">
+                    Comparison model
+                    <select
+                      className="ui-input"
+                      value={comparisonModel}
+                      disabled={busy}
+                      onChange={(e) => setComparisonModel(e.target.value)}
+                    >
+                      <option value="">Same model</option>
+                      <option value="gemini-2.5-flash">Gemini Flash</option>
+                      {snapshot.litellm && (
+                        <>
+                          <option value="nova-lite">Nova Lite · LiteLLM</option>
+                          <option value="claude-haiku">
+                            Claude Haiku · LiteLLM
+                          </option>
+                          <option value="claude-sonnet-4.6">
+                            Claude Sonnet · LiteLLM
+                          </option>
+                        </>
+                      )}
+                    </select>
+                    <small>
+                      Same question and audience; the comparison uses{" "}
+                      {testMode === "hybrid" ? "keyword" : "hybrid"} retrieval.
+                      Runs two answer requests.
+                    </small>
+                  </label>
                 )}
-              </select>
-            </label>
-            <label className="ui-field">
-              Retrieval
-              <select
-                className="ui-input"
-                value={testMode}
-                disabled={busy}
-                onChange={(e) => setTestMode(e.target.value)}
-              >
-                <option value="hybrid">Keyword + semantic</option>
-                <option value="keyword">Keyword baseline</option>
-              </select>
-            </label>
-            <label className="flex items-center justify-between gap-3 text-xs">
-              Compare retrieval and models
-              <input
-                type="checkbox"
-                role="switch"
-                aria-label="Compare retrieval and models"
-                checked={compare}
-                disabled={busy}
-                className="size-4 accent-cue-green"
-                onChange={(e) => {
-                  setCompare(e.target.checked);
-                  setBaseline(null);
-                  setComparisonError("");
-                }}
-              />
-            </label>
-            {compare && (
-              <label className="ui-field">
-                Comparison model
-                <select
-                  className="ui-input"
-                  value={comparisonModel}
-                  disabled={busy}
-                  onChange={(e) => setComparisonModel(e.target.value)}
-                >
-                  <option value="">Same model</option>
-                  <option value="gemini-2.5-flash">Gemini Flash</option>
-                  {snapshot.litellm && (
-                    <>
-                      <option value="nova-lite">Nova Lite · LiteLLM</option>
-                      <option value="claude-haiku">
-                        Claude Haiku · LiteLLM
-                      </option>
-                      <option value="claude-sonnet-4.6">
-                        Claude Sonnet · LiteLLM
-                      </option>
-                    </>
-                  )}
-                </select>
-                <small>
-                  Same question and audience; the comparison uses{" "}
-                  {testMode === "hybrid" ? "keyword" : "hybrid"} retrieval. Runs
-                  two answer requests.
-                </small>
-              </label>
-            )}
+              </div>
+            </details>
             <p className="flex gap-2 text-[11px] text-cue-muted">
               <Icon name={audience === "customer" ? "eye" : "lock"} size={14} />
               {audience === "customer"
