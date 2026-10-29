@@ -2,6 +2,10 @@ import nextEnv from "@next/env";
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
 nextEnv.loadEnvConfig(process.cwd());
+const { initializeObservability, shutdownObservability } = await import(
+  "../lib/observability"
+);
+await initializeObservability();
 const { api, db, secret } = await import("../lib/server-store");
 const {
   ensureBloom,
@@ -103,6 +107,7 @@ const stop = async () => {
   await x.stop();
   await publishStatus();
   await shutdownBloom();
+  await shutdownObservability();
   process.exit(0);
 };
 process.on("SIGTERM", stop);

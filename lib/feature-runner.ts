@@ -13,8 +13,10 @@ import {
 } from "./coding-policy";
 import { sendSlackRunUpdate } from "./delivery";
 import type { Id } from "../convex/_generated/dataModel";
+import { observed, recordWorkflowFailure } from "./observability";
+import { runCodexSession } from "./codex-session";
 const exec = promisify(execFile);
-export async function implementFeature(runId: Id<"runs">, signal: AbortSignal) {
+async function implementFeatureImpl(runId: Id<"runs">, signal: AbortSignal) {
   const store = db(),
     auth = secret(),
     repo = path.join(process.cwd(), ".cue", "runs", runId);
@@ -154,29 +156,30 @@ export async function implementFeature(runId: Id<"runs">, signal: AbortSignal) {
       "Codex implementing approved feature",
       `Repository ${policy.repository}; base ${base}. Allowed paths: ${policy.allowedPaths.join(", ")}.`,
     );
-    const result = await thread.runStreamed(
-      featurePrompt(issue.title, run.approvedSpec, policy),
-      { signal },
-    );
     let summary = "";
-    for await (const e of result.events) {
-      if (e.type === "item.completed" && e.item.type === "command_execution")
-        await log(
-          "Codex repository check",
-          e.item.command + "\n" + e.item.aggregated_output.slice(-4500),
-        );
-      if (e.type === "item.completed" && e.item.type === "file_change")
-        await log(
-          "Codex proposed feature patch",
-          e.item.changes
-            .map((c) => `${c.kind}: ${path.basename(c.path)}`)
-            .join("\n"),
-        );
-      if (e.type === "item.completed" && e.item.type === "agent_message")
-        summary = e.item.text;
-      if (e.type === "turn.failed") throw new Error(e.error.message);
-      if (e.type === "error") throw new Error(e.message);
-    }
+    await runCodexSession(
+      thread,
+      featurePrompt(issue.title, run.approvedSpec, policy),
+      signal,
+      async (e) => {
+        if (e.type === "item.completed" && e.item.type === "command_execution")
+          await log(
+            "Codex repository check",
+            e.item.command + "\n" + e.item.aggregated_output.slice(-4500),
+          );
+        if (e.type === "item.completed" && e.item.type === "file_change")
+          await log(
+            "Codex proposed feature patch",
+            e.item.changes
+              .map((c) => `${c.kind}: ${path.basename(c.path)}`)
+              .join("\n"),
+          );
+        if (e.type === "item.completed" && e.item.type === "agent_message")
+          summary = e.item.text;
+        if (e.type === "turn.failed") throw new Error(e.error.message);
+        if (e.type === "error") throw new Error(e.message);
+      },
+    );
     if (signal.aborted) throw new Error("Feature run canceled");
     if ((await command("git", ["rev-parse", "HEAD"])) !== base)
       throw new Error("Agent changed Git history");
@@ -263,6 +266,7 @@ export async function implementFeature(runId: Id<"runs">, signal: AbortSignal) {
     );
     await sendSlackRunUpdate(runId);
   } catch (e) {
+    recordWorkflowFailure(e);
     const error = e instanceof Error ? e.message : String(e);
     await update({
       status: signal.aborted ? "canceled" : "failed",
@@ -272,3 +276,11 @@ export async function implementFeature(runId: Id<"runs">, signal: AbortSignal) {
     await log("Feature implementation needs attention", error, "failure");
   }
 }
+
+export const implementFeature = observed(
+  "Cue feature implementation",
+  implementFeatureImpl,
+  {
+    input: (runId) => ({ runId }),
+  },
+);

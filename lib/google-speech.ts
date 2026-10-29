@@ -1,5 +1,6 @@
 import { GoogleAuth } from "google-auth-library";
 import { z } from "zod";
+import { observed } from "./observability";
 
 const auth = new GoogleAuth({
   scopes: ["https://www.googleapis.com/auth/cloud-platform"],
@@ -14,7 +15,7 @@ const result = z.object({
 
 // Only called with a saved Cue reply. No public arbitrary-text synthesis API,
 // recordings, or persisted generated audio. ADC keeps credentials server-side.
-export async function synthesizeReply(text: string) {
+async function synthesizeReplyImpl(text: string) {
   if (!text.trim() || text.length > 1200)
     throw new Error("Invalid spoken reply");
   const project =
@@ -51,6 +52,14 @@ export async function synthesizeReply(text: string) {
     provider: "google-cloud",
   };
 }
+
+export const synthesizeReply = observed(
+  "Cue voice playback",
+  synthesizeReplyImpl,
+  {
+    input: (text) => ({ characters: text.length }),
+  },
+);
 
 export async function spokenReply(reply: string) {
   try {

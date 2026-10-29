@@ -1,6 +1,7 @@
 import { Type } from "@google/genai";
 import { z } from "zod";
 import { client } from "./gemini";
+import { observed } from "./observability";
 import { sourcePolicy, growthDraftSupported } from "../convex/growthPolicy";
 export const growthQualification = z.object({
   need: z.string().max(500),
@@ -34,7 +35,7 @@ export function growthPolicy(
       : result.reasons,
   };
 }
-export async function qualifyGrowth(text: string, capability: unknown) {
+async function qualifyGrowthImpl(text: string, capability: unknown) {
   const response = await client().models.generateContent({
     model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
     contents: JSON.stringify({ source: text, capability }),
@@ -67,7 +68,7 @@ export async function qualifyGrowth(text: string, capability: unknown) {
     growthQualification.parse(JSON.parse(response.text || "{}")),
   );
 }
-export async function draftGrowth(
+async function draftGrowthImpl(
   source: string,
   claims: string[],
   link: string,
@@ -92,3 +93,9 @@ export async function draftGrowth(
     throw new Error("Generated draft failed supported-claim policy");
   return text;
 }
+
+export const qualifyGrowth = observed(
+  "Cue growth qualification",
+  qualifyGrowthImpl,
+);
+export const draftGrowth = observed("Cue growth draft", draftGrowthImpl);

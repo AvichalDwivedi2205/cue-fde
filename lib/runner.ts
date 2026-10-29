@@ -8,11 +8,13 @@ import { api, db, secret } from "./server-store";
 import type { Id } from "../convex/_generated/dataModel";
 import { photo } from "../demo/bloom/fixture.mjs";
 import { sendSlackRunUpdate } from "./delivery";
+import { observed, recordWorkflowFailure } from "./observability";
+import { runCodexSession } from "./codex-session";
 const exec = promisify(execFile),
   root = () => path.join(process.cwd(), ".cue"),
   live = () => path.join(root(), "bloom-live");
 let bloom: ChildProcess | undefined;
-async function command(
+async function commandImpl(
   file: string,
   args: string[],
   cwd: string,
@@ -33,6 +35,10 @@ async function command(
     };
   }
 }
+const command = observed("Repository command", commandImpl, {
+  kind: "TOOL",
+  input: (file, args) => ({ file, args }),
+});
 async function checked(
   file: string,
   args: string[],
@@ -143,7 +149,7 @@ export async function resetBloom() {
 export async function shutdownBloom() {
   await stopBloom();
 }
-export async function investigate(
+async function investigateImpl(
   runId: Id<"runs">,
   issueId: Id<"issues">,
   signal: AbortSignal,
@@ -268,29 +274,30 @@ export async function investigate(
       "Codex implementing fix",
       "Using the operator’s existing Codex login. Independent tests and deployment remain outside the agent.",
     );
-    const result = await thread.runStreamed(
-      "Fix Bloom: UI promises up to 5 MB photos but 3 MB returns 413. Inspect the repository and run node test.mjs. Change ONLY limits.mjs. Preserve every other file including test.mjs and fixture.mjs. Preserve rejection above 5 MB. Do not read outside this directory, access credentials, publish, modify Git history, or leave servers running. Give a brief cause and test summary.",
-      { signal },
-    );
     let summary = "";
-    for await (const e of result.events) {
-      if (e.type === "item.completed" && e.item.type === "command_execution")
-        await log(
-          "Codex repository check",
-          e.item.command + "\n" + e.item.aggregated_output.slice(-4500),
-        );
-      if (e.type === "item.completed" && e.item.type === "file_change")
-        await log(
-          "Codex proposed a patch",
-          e.item.changes
-            .map((c) => `${c.kind}: ${path.basename(c.path)}`)
-            .join("\n"),
-        );
-      if (e.type === "item.completed" && e.item.type === "agent_message")
-        summary = e.item.text;
-      if (e.type === "turn.failed") throw new Error(e.error.message);
-      if (e.type === "error") throw new Error(e.message);
-    }
+    await runCodexSession(
+      thread,
+      "Fix Bloom: UI promises up to 5 MB photos but 3 MB returns 413. Inspect the repository and run node test.mjs. Change ONLY limits.mjs. Preserve every other file including test.mjs and fixture.mjs. Preserve rejection above 5 MB. Do not read outside this directory, access credentials, publish, modify Git history, or leave servers running. Give a brief cause and test summary.",
+      signal,
+      async (e) => {
+        if (e.type === "item.completed" && e.item.type === "command_execution")
+          await log(
+            "Codex repository check",
+            e.item.command + "\n" + e.item.aggregated_output.slice(-4500),
+          );
+        if (e.type === "item.completed" && e.item.type === "file_change")
+          await log(
+            "Codex proposed a patch",
+            e.item.changes
+              .map((c) => `${c.kind}: ${path.basename(c.path)}`)
+              .join("\n"),
+          );
+        if (e.type === "item.completed" && e.item.type === "agent_message")
+          summary = e.item.text;
+        if (e.type === "turn.failed") throw new Error(e.error.message);
+        if (e.type === "error") throw new Error(e.message);
+      },
+    );
     if (signal.aborted) throw new Error("Run canceled");
     const changed = await checked("git", ["diff", "HEAD", "--name-only"], repo);
     const untracked = await checked(
@@ -371,6 +378,7 @@ export async function investigate(
       "approval",
     );
   } catch (e) {
+    recordWorkflowFailure(e);
     const message = e instanceof Error ? e.message : String(e);
     try {
       await update({
@@ -386,7 +394,7 @@ export async function investigate(
     );
   }
 }
-export async function approveAndDeploy(runId: Id<"runs">) {
+async function approveAndDeployImpl(runId: Id<"runs">) {
   const store = db(),
     auth = secret(),
     state = await store.query(api.cue.snapshot, { secret: auth }),
@@ -485,6 +493,7 @@ export async function approveAndDeploy(runId: Id<"runs">) {
       kind: "success",
     });
   } catch (e) {
+    recordWorkflowFailure(e);
     await stopBloom();
     try {
       await fs.rm(live(), { recursive: true, force: true });
@@ -504,3 +513,11 @@ export async function approveAndDeploy(runId: Id<"runs">) {
     });
   }
 }
+
+export const investigate = observed("Cue bug investigation", investigateImpl, {
+  input: (runId, issueId) => ({ runId, issueId }),
+});
+export const approveAndDeploy = observed(
+  "Cue approved deployment",
+  approveAndDeployImpl,
+);

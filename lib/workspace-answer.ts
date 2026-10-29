@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { client } from "./gemini";
+import { observed } from "./observability";
 import { api, db, secret } from "./server-store";
 import type { Id } from "../convex/_generated/dataModel";
 export function supportedAnswerLinks(answer: string, context: string) {
@@ -24,7 +25,7 @@ export function contextualAnswer(explanation: string, facts: string) {
   const focused = explanation.split(/\n\s*Recorded state:\s*\n/i)[0].trim();
   return (focused + "\n\nRecorded state:\n" + facts).slice(0, 4000);
 }
-export async function answerWorkspace(commandId: Id<"agentCommands">) {
+async function answerWorkspaceImpl(commandId: Id<"agentCommands">) {
   const token = randomUUID();
   const job = await db().mutation(api.workspaceAnswers.begin, {
     secret: secret(),
@@ -56,3 +57,8 @@ export async function answerWorkspace(commandId: Id<"agentCommands">) {
     answer: contextualAnswer(explanation, facts),
   });
 }
+
+export const answerWorkspace = observed(
+  "Cue workspace answer",
+  answerWorkspaceImpl,
+);

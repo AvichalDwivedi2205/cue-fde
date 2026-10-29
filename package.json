@@ -30,6 +30,7 @@
     "@workos-inc/widgets": "^1.20.0",
     "convex": "^1.44.0",
     "google-auth-library": "10.9.1",
+    "neatlogs": "1.1.28",
     "next": "^16.3.0",
     "npm-run-all2": "^5.0.0",
     "parse5": "^8.0.1",
@@ -51,5 +52,11 @@
     "typescript": "^6.0.3",
     "vitest": "^4.1.11"
   },
-  "type": "module"
+  "type": "module",
+  "overrides": {
+    "@opentelemetry/exporter-logs-otlp-proto": {
+      "protobufjs": "8.6.6"
+    },
+    "@opentelemetry/propagator-jaeger": "2.9.0"
+  }
 }

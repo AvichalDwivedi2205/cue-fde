@@ -6,6 +6,7 @@ import { growthX } from "./growth-x";
 import { qualifyGrowth, draftGrowth } from "./growth-model";
 import { hash, issueGrowthToken } from "./growth-links";
 import type { Id } from "../convex/_generated/dataModel";
+import { observed } from "./observability";
 export async function observedRelease(appId: string) {
   const { app } = await workspaceApp(appId);
   const destination = app.origins.find(
@@ -54,7 +55,7 @@ export async function prepareGrowthLink(
     expiresAt: Date.now() + 7 * 86400000,
   });
 }
-export async function processGrowth(receiptId: Id<"growthReceipts">) {
+async function processGrowthImpl(receiptId: Id<"growthReceipts">) {
   const token = randomUUID();
   if (
     !(await db().mutation(api.growthExecution.begin, {
@@ -198,3 +199,8 @@ export async function processGrowth(receiptId: Id<"growthReceipts">) {
     throw new Error("Growth work unavailable; source and attempt retained");
   }
 }
+
+export const processGrowth = observed(
+  "Cue growth execution",
+  processGrowthImpl,
+);

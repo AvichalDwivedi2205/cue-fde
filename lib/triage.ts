@@ -1,6 +1,7 @@
 import { api, db, secret } from "./server-store";
 import { classifyReport, geminiReady } from "./gemini";
 import type { Id } from "../convex/_generated/dataModel";
+import { observed } from "./observability";
 function provisionalIssue(issue: { fingerprint: string; appId?: string }) {
   return issue.fingerprint.startsWith(
     issue.appId ? `${issue.appId}:report:` : "report:",
@@ -25,7 +26,7 @@ export async function triage(caseId: Id<"cases">) {
   }
 }
 
-export async function classifySavedReport(
+async function classifySavedReportImpl(
   caseId: Id<"cases">,
   receiptId?: Id<"triageReceipts">,
 ) {
@@ -84,3 +85,8 @@ export async function classifySavedReport(
     kind: result.kind,
   });
 }
+
+export const classifySavedReport = observed(
+  "Cue saved report triage",
+  classifySavedReportImpl,
+);
