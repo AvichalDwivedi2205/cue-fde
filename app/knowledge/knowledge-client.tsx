@@ -254,7 +254,11 @@ export function KnowledgeClient() {
     [visibilityFilter, setVisibilityFilter] = useState("all"),
     [menu, setMenu] = useState(false),
     [withdrawConfirm, setWithdrawConfirm] = useState(false),
-    [audience, setAudience] = useState("customer");
+    [audience, setAudience] = useState("customer"),
+    [compare, setCompare] = useState(false),
+    [comparisonModel, setComparisonModel] = useState(""),
+    [baseline, setBaseline] = useState<TestResult | null>(null),
+    [comparisonError, setComparisonError] = useState("");
   useEffect(() => {
     const sync = () => {
       const parts = location.hash.slice(1).split("/");
@@ -364,6 +368,80 @@ export function KnowledgeClient() {
               .map((text) => ({ heading: form.title || "Content", text }))
           : []
       : passages;
+  const renderAnswer = (answer: TestResult, label: string) => (
+    <div className="p-5">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-sm font-semibold">{label}</h2>
+        <Badge tone={answer.status === "answered" ? "green" : "amber"}>
+          {answer.status.replaceAll("_", " ")}
+        </Badge>
+      </div>
+      <p className="whitespace-pre-wrap leading-relaxed">{answer.text}</p>
+      <div className="mt-4 border-t border-cue-line pt-3 font-mono text-[10px] text-cue-subtle">
+        {answer.provider === "approved-faq"
+          ? "Approved FAQ"
+          : answer.model === "none"
+            ? "Rule-based reply"
+            : answer.model}{" "}
+        · {answer.retrieval} · {answer.inputTokens + answer.outputTokens} tokens
+      </div>
+      {answer.status !== "answered" && (
+        <Button
+          className="mt-4"
+          onClick={() => {
+            questionSeed.current = question;
+            navigate("new/faq");
+          }}
+          disabled={!canEdit}
+        >
+          <Icon name="plus" size={14} />
+          Add an FAQ for this question
+        </Button>
+      )}
+      <h3 className="mt-6 mb-3 flex items-center gap-2 text-xs font-semibold">
+        <Icon name="book" size={14} />
+        Retrieved passages <Badge>{answer.passages.length}</Badge>
+      </h3>
+      {answer.passages.length ? (
+        answer.passages.map((p, i) => (
+          <article
+            key={i}
+            className={`mb-3 rounded-lg border p-3 ${answer.citations.some((c) => c.excerpt === p.excerpt && c.title === p.title) ? "border-cue-green/30 bg-cue-green-soft/20" : "border-cue-line"}`}
+          >
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <b className="text-xs font-medium">{p.title}</b>
+              <span className="text-[10px] text-cue-subtle">
+                {p.heading}
+                {p.page ? ` · page ${p.page}` : ""}
+              </span>
+              <Badge
+                tone={
+                  answer.citations.some(
+                    (c) => c.excerpt === p.excerpt && c.title === p.title,
+                  )
+                    ? "green"
+                    : "neutral"
+                }
+              >
+                {answer.citations.some(
+                  (c) => c.excerpt === p.excerpt && c.title === p.title,
+                )
+                  ? "Cited"
+                  : "Retrieved"}
+              </Badge>
+            </div>
+            <p className="whitespace-pre-wrap text-xs leading-relaxed text-cue-muted">
+              {p.excerpt}
+            </p>
+          </article>
+        ))
+      ) : (
+        <p className="text-xs text-cue-subtle">
+          No supporting published passages were found.
+        </p>
+      )}
+    </div>
+  );
   return (
     <main className="ui-page">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
@@ -393,6 +471,8 @@ export function KnowledgeClient() {
               } catch {}
               add("faq");
               setAnswer(null);
+              setBaseline(null);
+              setComparisonError("");
               location.hash = "sources";
             }}
           >
@@ -994,6 +1074,7 @@ export function KnowledgeClient() {
               <textarea
                 className="ui-input resize-y font-normal"
                 value={question}
+                disabled={busy}
                 onChange={(e) => setQuestion(e.target.value)}
                 rows={4}
                 maxLength={2000}
@@ -1009,11 +1090,13 @@ export function KnowledgeClient() {
                 ].map(([k, l]) => (
                   <Button
                     key={k}
+                    disabled={busy}
                     variant="ghost"
                     className={`flex-1 ${audience === k ? "bg-cue-sunken" : ""}`}
                     onClick={() => {
                       setAudience(k);
                       setAnswer(null);
+                      setBaseline(null);
                     }}
                   >
                     {l}
@@ -1026,6 +1109,7 @@ export function KnowledgeClient() {
               <select
                 className="ui-input"
                 value={testModel}
+                disabled={busy}
                 onChange={(e) => setTestModel(e.target.value)}
               >
                 <option value="">Widget model · {snapshot.model}</option>
@@ -1046,12 +1130,59 @@ export function KnowledgeClient() {
               <select
                 className="ui-input"
                 value={testMode}
+                disabled={busy}
                 onChange={(e) => setTestMode(e.target.value)}
               >
                 <option value="hybrid">Keyword + semantic</option>
                 <option value="keyword">Keyword baseline</option>
               </select>
             </label>
+            <label className="flex items-center justify-between gap-3 text-xs">
+              Compare retrieval and models
+              <input
+                type="checkbox"
+                role="switch"
+                aria-label="Compare retrieval and models"
+                checked={compare}
+                disabled={busy}
+                className="size-4 accent-cue-green"
+                onChange={(e) => {
+                  setCompare(e.target.checked);
+                  setBaseline(null);
+                  setComparisonError("");
+                }}
+              />
+            </label>
+            {compare && (
+              <label className="ui-field">
+                Comparison model
+                <select
+                  className="ui-input"
+                  value={comparisonModel}
+                  disabled={busy}
+                  onChange={(e) => setComparisonModel(e.target.value)}
+                >
+                  <option value="">Same model</option>
+                  <option value="gemini-2.5-flash">Gemini Flash</option>
+                  {snapshot.litellm && (
+                    <>
+                      <option value="nova-lite">Nova Lite · LiteLLM</option>
+                      <option value="claude-haiku">
+                        Claude Haiku · LiteLLM
+                      </option>
+                      <option value="claude-sonnet-4.6">
+                        Claude Sonnet · LiteLLM
+                      </option>
+                    </>
+                  )}
+                </select>
+                <small>
+                  Same question and audience; the comparison uses{" "}
+                  {testMode === "hybrid" ? "keyword" : "hybrid"} retrieval. Runs
+                  two answer requests.
+                </small>
+              </label>
+            )}
             <p className="flex gap-2 text-[11px] text-cue-muted">
               <Icon name={audience === "customer" ? "eye" : "lock"} size={14} />
               {audience === "customer"
@@ -1064,16 +1195,43 @@ export function KnowledgeClient() {
               disabled={busy || !question.trim() || !snapshot.canEdit}
               onClick={() =>
                 void run(async () => {
-                  setAnswer(
-                    await call({
-                      action: "test",
-                      appId: app,
-                      question,
-                      audience,
+                  setAnswer(null);
+                  setBaseline(null);
+                  setComparisonError("");
+                  const input = {
+                    action: "test",
+                    appId: app,
+                    question,
+                    audience,
+                  };
+                  const tasks = [
+                    call({
+                      ...input,
                       ...(testModel ? { model: testModel } : {}),
                       mode: testMode,
                     }),
-                  );
+                  ];
+                  if (compare)
+                    tasks.push(
+                      call({
+                        ...input,
+                        ...(comparisonModel || testModel
+                          ? { model: comparisonModel || testModel }
+                          : {}),
+                        mode: testMode === "hybrid" ? "keyword" : "hybrid",
+                      }),
+                    );
+                  const [current, other] = await Promise.allSettled(tasks);
+                  if (current.status === "fulfilled") setAnswer(current.value);
+                  if (other?.status === "fulfilled") setBaseline(other.value);
+                  if (other?.status === "rejected")
+                    setComparisonError(
+                      "Comparison failed: " +
+                        (other.reason instanceof Error
+                          ? other.reason.message
+                          : "Try again"),
+                    );
+                  if (current.status === "rejected") throw current.reason;
                 })
               }
             >
@@ -1085,104 +1243,41 @@ export function KnowledgeClient() {
               other models use LiteLLM only when selected.
             </p>
           </section>
-          <section className="ui-card">
-            {busy ? (
-              <EmptyState
-                icon="sparkle"
-                title="Retrieving passages and checking the answer…"
-              >
-                Published sources are searched within this app and audience.
-              </EmptyState>
-            ) : !answer ? (
-              <EmptyState
-                icon="sparkle"
-                title="Ask a question to see Cue’s answer"
-              >
-                Inspect its citations and retrieved passages, or try the keyword
-                baseline.
-              </EmptyState>
-            ) : (
-              <div className="p-5">
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-sm font-semibold">Cue’s answer</h2>
-                  <Badge
-                    tone={answer.status === "answered" ? "green" : "amber"}
-                  >
-                    {answer.status.replaceAll("_", " ")}
-                  </Badge>
-                </div>
-                <p className="whitespace-pre-wrap leading-relaxed">
-                  {answer.text}
-                </p>
-                <div className="mt-4 border-t border-cue-line pt-3 font-mono text-[10px] text-cue-subtle">
-                  {answer.provider === "approved-faq"
-                    ? "Approved FAQ"
-                    : answer.model === "none"
-                      ? "Rule-based reply"
-                      : answer.model}{" "}
-                  · {answer.retrieval} ·{" "}
-                  {answer.inputTokens + answer.outputTokens} tokens
-                </div>
-                {answer.status !== "answered" && (
-                  <Button
-                    className="mt-4"
-                    onClick={() => {
-                      questionSeed.current = question;
-                      navigate("new/faq");
-                    }}
-                    disabled={!canEdit}
-                  >
-                    <Icon name="plus" size={14} />
-                    Add an FAQ for this question
-                  </Button>
-                )}
-                <h3 className="mt-6 mb-3 flex items-center gap-2 text-xs font-semibold">
-                  <Icon name="book" size={14} />
-                  Retrieved passages <Badge>{answer.passages.length}</Badge>
-                </h3>
-                {answer.passages.length ? (
-                  answer.passages.map((p, i) => (
-                    <article
-                      key={i}
-                      className={`mb-3 rounded-lg border p-3 ${answer.citations.some((c) => c.excerpt === p.excerpt && c.title === p.title) ? "border-cue-green/30 bg-cue-green-soft/20" : "border-cue-line"}`}
-                    >
-                      <div className="mb-2 flex flex-wrap items-center gap-2">
-                        <b className="text-xs font-medium">{p.title}</b>
-                        <span className="text-[10px] text-cue-subtle">
-                          {p.heading}
-                          {p.page ? ` · page ${p.page}` : ""}
-                        </span>
-                        <Badge
-                          tone={
-                            answer.citations.some(
-                              (c) =>
-                                c.excerpt === p.excerpt && c.title === p.title,
-                            )
-                              ? "green"
-                              : "neutral"
-                          }
-                        >
-                          {answer.citations.some(
-                            (c) =>
-                              c.excerpt === p.excerpt && c.title === p.title,
-                          )
-                            ? "Cited"
-                            : "Retrieved"}
-                        </Badge>
-                      </div>
-                      <p className="whitespace-pre-wrap text-xs leading-relaxed text-cue-muted">
-                        {p.excerpt}
-                      </p>
-                    </article>
-                  ))
-                ) : (
-                  <p className="text-xs text-cue-subtle">
-                    No supporting published passages were found.
-                  </p>
-                )}
-              </div>
+          <div
+            className={`grid min-w-0 items-start gap-4 ${compare && baseline && !busy ? "xl:grid-cols-2" : ""}`}
+          >
+            <section className="ui-card">
+              {busy ? (
+                <EmptyState
+                  icon="sparkle"
+                  title="Retrieving passages and checking the answer…"
+                >
+                  Published sources are searched within this app and audience.
+                </EmptyState>
+              ) : !answer ? (
+                <EmptyState
+                  icon="sparkle"
+                  title="Ask a question to see Cue’s answer"
+                >
+                  Inspect its citations and retrieved passages, or try the
+                  keyword baseline.
+                </EmptyState>
+              ) : (
+                renderAnswer(
+                  answer,
+                  compare ? "Current settings" : "Cue’s answer",
+                )
+              )}
+            </section>
+            {compare && !busy && comparisonError && (
+              <Notice error>{comparisonError}</Notice>
             )}
-          </section>
+            {compare && !busy && baseline && (
+              <section className="ui-card">
+                {renderAnswer(baseline, "Comparison settings")}
+              </section>
+            )}
+          </div>
         </div>
       )}
       {snapshot && app && view === "widget" && (
