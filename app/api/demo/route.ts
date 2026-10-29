@@ -23,6 +23,7 @@ import {
   xRuntimeStatus,
 } from "@/lib/integration-checks";
 import { socialSource } from "@/lib/social-source";
+import type { Id } from "@/convex/_generated/dataModel";
 export const runtime = "nodejs";
 const report = z.object({
   title: z.string().min(1).max(200),
@@ -35,6 +36,17 @@ const report = z.object({
 export async function GET(request: NextRequest) {
   try {
     const actor = await operator(request);
+    const params = request.nextUrl.searchParams;
+    if (params.has("caseId")) {
+      const caseId = z.string().min(1).max(100).parse(params.get("caseId"));
+      const appId = z.string().min(1).max(200).parse(params.get("appId"));
+      const messages = await db().query(api.cue.caseMessages, {
+        secret: secret(),
+        caseId: caseId as Id<"cases">,
+        appId,
+      });
+      return NextResponse.json({ messages });
+    }
     const snapshot = await db().query(api.cue.snapshot, { secret: secret() });
     const slack = await slackConfig(),
       email = await emailConfig(),

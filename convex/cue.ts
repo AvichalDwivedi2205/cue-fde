@@ -13,6 +13,28 @@ export function authorize(secret: string) {
 }
 const stamp = () => Date.now();
 
+export const caseMessages = query({
+  args: {
+    secret: v.string(),
+    caseId: v.id("cases"),
+    appId: v.string(),
+  },
+  returns: v.array(schema.doc("messages")),
+  handler: async (ctx, args) => {
+    authorize(args.secret);
+    const report = await ctx.db.get("cases", args.caseId);
+    if (!report || (report.appId || "bloom") !== args.appId)
+      throw new ConvexError("Case not found");
+    return (
+      await ctx.db
+        .query("messages")
+        .withIndex("by_caseId_and_createdAt", (q) => q.eq("caseId", report._id))
+        .order("desc")
+        .take(100)
+    ).reverse();
+  },
+});
+
 export const snapshot = query({
   args: { secret: v.string() },
   returns: v.object({
