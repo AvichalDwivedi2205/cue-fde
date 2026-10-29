@@ -71,7 +71,14 @@ export async function GET(request: Request) {
     const user = await operator(request),
       u = new URL(request.url),
       apps = (await readIntegrations()).apps;
-    const appId = u.searchParams.get("app") || apps[0]?.id;
+    const defaultAppId =
+      apps.find((app) =>
+        app.origins.includes(
+          process.env.CUE_BLOOM_PUBLIC_URL ||
+            "https://bloom-with-cue.vercel.app",
+        ),
+      )?.id || apps[0]?.id;
+    const appId = u.searchParams.get("app") || defaultAppId;
     const permissions = {
       canEdit: ["owner", "product", "support"].includes(user.role),
       canPublish: ["owner", "product"].includes(user.role),
@@ -130,6 +137,8 @@ export async function GET(request: Request) {
     return Response.json(
       {
         apps: apps.map((a) => ({ id: a.id, name: a.name })),
+        appId,
+        defaultAppId,
         sources: await db().query(api.knowledge.snapshot, args),
         ...permissions,
         model,

@@ -2,23 +2,31 @@
 
 import { useSyncExternalStore } from "react";
 import { Icon } from "./ui";
+import {
+  rememberApplication,
+  selectedApplicationId,
+} from "@/lib/application-selection";
 
 // One registered app selects context. The browser shell additionally offers an
 // All apps report view; retrieval and model work always name an actual app.
 export function WorkspaceApplication({
   apps,
   workspaceName,
+  defaultAppId,
 }: {
   apps: { id: string; name: string }[];
   workspaceName: string;
+  defaultAppId?: string;
 }) {
   const selected = useSyncExternalStore(
     (notify) => {
       window.addEventListener("popstate", notify);
       window.addEventListener("storage", notify);
+      window.addEventListener("cue-application-changed", notify);
       return () => {
         window.removeEventListener("popstate", notify);
         window.removeEventListener("storage", notify);
+        window.removeEventListener("cue-application-changed", notify);
       };
     },
     () => {
@@ -27,19 +35,13 @@ export function WorkspaceApplication({
       try {
         saved = sessionStorage.getItem("cue-agent-app");
       } catch {}
-      const app =
-        apps.find((a) => a.id === requested) ||
-        apps.find((a) => a.id === saved);
-      return app?.id || "";
+      return selectedApplicationId(apps, requested, saved, defaultAppId);
     },
-    () => "",
+    () => defaultAppId || "",
   );
   function change(appId: string) {
     if (!apps.some((app) => app.id === appId)) return;
-    try {
-      sessionStorage.setItem("cue-agent-app", appId);
-      sessionStorage.setItem("cue-workspace-scope", appId);
-    } catch {}
+    rememberApplication(appId);
     const url = new URL(window.location.href);
     url.searchParams.set("app", appId);
     window.location.assign(url.toString());
@@ -57,7 +59,6 @@ export function WorkspaceApplication({
           value={selected}
           onChange={(event) => change(event.target.value)}
         >
-          <option value="">{workspaceName}</option>
           {apps.map((app) => (
             <option value={app.id} key={app.id}>
               {app.name}

@@ -39,6 +39,8 @@ async function workspaceBrowser(selected: string) {
        sidebar: () => { const el = {innerHTML: ''}; document.querySelector = () => el; renderSidebar(); return el.innerHTML; },
        top: () => { const el = {innerHTML: ''}; document.querySelector = () => el; renderTop(); return el.innerHTML; },
        issues: () => issuesList(), requests: () => {S.id = null; return featuresPage();},
+       issueDetail: (id) => issueDetail(id), primary: (id) => primary(caseById(id)), sync: syncCue,
+       list: () => {const el = {innerHTML: ''}; document.querySelector = () => el; renderList(); return el.innerHTML;},
        setSnapshot: (snapshot) => {liveSnapshot = snapshot;},
        loop: () => loopStrip(), actions: A
      }; })();`,
@@ -308,6 +310,130 @@ test("Home counts independent deployed verification and verified replies separat
   expect(loop.map(text)).toContain("Fixed1deployed and verified");
   expect(loop.map(text)).toContain("Replies published1verified public replies");
   expect(loop.map(text).join(" ")).not.toContain("Grown");
+});
+
+test("Inbox header, sidebar and tabs count the same scoped conversations after a live refresh", async () => {
+  const { controls } = await workspaceBrowser("customer-app");
+  controls.state.ag.role = "owner";
+  const report = (
+    id: string,
+    appId: string,
+    status: string,
+    title: string,
+  ) => ({
+    _id: id,
+    appId,
+    customer: "Customer",
+    initials: "CU",
+    channel: "chat",
+    title,
+    body: title,
+    priority: "P1",
+    status,
+    tags: [],
+    provenance: "Widget report",
+    updatedAt: 1,
+  });
+  controls.sync({
+    cases: [
+      report("open", "customer-app", "open", "Scoped open report"),
+      report("resolved", "customer-app", "resolved", "Scoped resolved report"),
+      report("other", "another-app", "open", "Other app report"),
+    ],
+    issues: [],
+    messages: [],
+    attachments: [],
+    events: [],
+    runs: [],
+    integration: { actor: "Owner", role: "owner" },
+  });
+  const text = (node: DefaultTreeAdapterTypes.Node): string =>
+    "value" in node
+      ? node.value
+      : "childNodes" in node
+        ? node.childNodes.map(text).join("")
+        : "";
+  const inbox = elements(parse(controls.sidebar())).find(
+    (node) =>
+      node.tagName === "a" &&
+      node.attrs.some((a) => a.name === "href" && a.value === "#/inbox"),
+  )!;
+  expect(text(inbox)).toBe("Inbox2");
+  expect(controls.list()).toContain('Inbox <span class="cnt">2</span>');
+  expect(controls.list()).toContain('All<span class="n">2</span>');
+  expect(controls.list()).toContain('Open<span class="n">1</span>');
+  expect(controls.list()).toContain('Resolved<span class="n">1</span>');
+  expect(controls.list()).not.toContain("Other app report");
+  controls.state.filter = "open";
+  expect(controls.list()).toContain("Scoped open report");
+  expect(controls.list()).not.toContain("Scoped resolved report");
+  expect(controls.state.scopeApp).toBe("customer-app");
+});
+
+test("a registered rehearsal issue uses its own run, exact review and backend deep link", async () => {
+  const { controls } = await workspaceBrowser("cue_app_customer");
+  controls.state.ag.role = "owner";
+  controls.sync({
+    cases: [
+      {
+        _id: "controlled-report",
+        appId: "cue_app_customer",
+        issueId: "bound-issue",
+        customer: "Scenario visitor",
+        initials: "SV",
+        channel: "chat",
+        title: "Controlled upload failure",
+        body: "3 MB upload rejected",
+        priority: "P1",
+        status: "investigating",
+        tags: [],
+        provenance: "Controlled engineering scenario",
+        updatedAt: 1,
+      },
+    ],
+    issues: [
+      {
+        _id: "bound-issue",
+        appId: "cue_app_customer",
+        kind: "bug",
+        fingerprint: "cue_app_customer:rehearsal:upload-run:upload:413",
+        title: "Controlled upload failure",
+        description: "Known isolated regression",
+        priority: "P1",
+        status: "awaiting_approval",
+        createdAt: 1,
+      },
+    ],
+    runs: [
+      {
+        _id: "bound-run",
+        issueId: "bound-issue",
+        targetId: "cue_app_customer",
+        deploymentMode: "rehearsal",
+        status: "awaiting_approval",
+        phase: "review",
+        commit: "exact-controlled-commit",
+        before: "413",
+        after: "Protected tests passed",
+        diff: "Actual patch",
+        createdAt: 1,
+        updatedAt: 2,
+      },
+    ],
+    messages: [],
+    attachments: [],
+    events: [],
+    integration: { actor: "Owner", role: "owner" },
+  });
+  expect(controls.primary("controlled-report").label).toBe("Review fix");
+  expect(controls.state.liveRun._id).toBe("bound-run");
+  expect(controls.issueDetail("bound-issue")).toContain(
+    "exact-controlled-commit",
+  );
+  expect(controls.issueDetail("bound-issue")).toContain(
+    "Controlled engineering scenario",
+  );
+  expect(controls.issueDetail("bound-issue")).not.toContain("ISS-14");
 });
 
 test("persisted negative feedback reaches Your turn without counting closed, synthetic or other-app conversations", async () => {

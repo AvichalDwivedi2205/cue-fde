@@ -10,6 +10,7 @@ import { geminiReady } from "./gemini";
 import type { Role } from "./roles";
 import type { Id } from "../convex/_generated/dataModel";
 import { ConvexError } from "convex/values";
+import { configuredGrowthModel } from "./model-config";
 
 export const workspaceInput = z
   .object({
@@ -156,20 +157,29 @@ export async function postWorkspace(
 }
 export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
   const { app } = await workspaceApp(appId);
-  const [workspace, domain, jobs, x, notifications, companion, growth] =
-    await Promise.all([
-      db().query(api.workspace.snapshot, {
-        secret: secret(),
-        appId,
-        participant: actor.id,
-      }),
-      db().query(api.cue.snapshot, { secret: secret() }),
-      db().query(api.jobs.status, { secret: secret() }),
-      xRuntimeStatus(),
-      notificationRuntimeStatus(),
-      sharedWorkerStatus().catch(() => null),
-      db().query(api.growth.snapshot, { secret: secret(), appId }),
-    ]);
+  const [
+    workspace,
+    domain,
+    jobs,
+    x,
+    notifications,
+    companion,
+    growth,
+    growthModel,
+  ] = await Promise.all([
+    db().query(api.workspace.snapshot, {
+      secret: secret(),
+      appId,
+      participant: actor.id,
+    }),
+    db().query(api.cue.snapshot, { secret: secret() }),
+    db().query(api.jobs.status, { secret: secret() }),
+    xRuntimeStatus(),
+    notificationRuntimeStatus(),
+    sharedWorkerStatus().catch(() => null),
+    db().query(api.growth.snapshot, { secret: secret(), appId }),
+    configuredGrowthModel(),
+  ]);
   const health = (ok: boolean, label: string, detail: string) => ({
     st: ok ? "ok" : "unknown",
     label,
@@ -229,10 +239,24 @@ export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
       ],
       limits: "Shares two reasoning slots",
       health: health(
-        geminiReady(),
-        geminiReady() ? "Gemini configured" : "Gemini unavailable",
-        "Publication requires exact review and Owner action",
+        geminiReady() &&
+          (growthModel !== "claude-sonnet-4.6" ||
+            !!process.env.LITELLM_API_KEY),
+        !geminiReady()
+          ? "Gemini qualification unavailable"
+          : growthModel === "claude-sonnet-4.6"
+            ? process.env.LITELLM_API_KEY
+              ? "Gemini qualification · Claude Sonnet via LiteLLM"
+              : "Gemini qualification · LiteLLM writer unavailable"
+            : "Gemini qualification and reply writing",
+        `Qualification: ${process.env.GEMINI_MODEL || "gemini-2.5-flash"} via Gemini API. Replies: ${growthModel} via ${growthModel === "claude-sonnet-4.6" ? "LiteLLM" : "Gemini API"}. Publication requires exact review and Owner action.`,
       ),
+      models: {
+        qualification: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+        writer: growthModel,
+        writerProvider:
+          growthModel === "claude-sonnet-4.6" ? "litellm" : "google",
+      },
       sugg: ["What is blocked?"],
     },
     {

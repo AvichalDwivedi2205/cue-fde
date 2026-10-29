@@ -5,6 +5,10 @@ import { WidgetPreview } from "./widget-preview";
 import { CompanyContextPanel } from "./company-context-panel";
 import { KnowledgeGapsPanel } from "./knowledge-gaps-panel";
 import { TeachCue } from "./teach-cue";
+import {
+  rememberApplication,
+  selectedApplicationId,
+} from "@/lib/application-selection";
 type Source = {
   _id: string;
   title: string;
@@ -30,6 +34,8 @@ type Version = {
 type Passage = { text: string; heading: string; page?: number };
 type Snapshot = {
   apps: { id: string; name: string }[];
+  appId?: string;
+  defaultAppId?: string;
   sources: Source[];
   canEdit: boolean;
   canPublish: boolean;
@@ -98,19 +104,26 @@ export function KnowledgeClient() {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error);
     if (current === serial.current) {
-      setSnapshot(data);
       if (!id && data.apps[0]) {
-        let preferred = "";
+        let requested: string | null = null;
+        let saved: string | null = null;
         try {
-          preferred =
-            new URLSearchParams(location.search).get("app") ||
-            sessionStorage.getItem("cue-agent-app") ||
-            "";
+          requested = new URLSearchParams(location.search).get("app");
+          saved = sessionStorage.getItem("cue-agent-app");
         } catch {}
-        setApp(
-          data.apps.find((a: { id: string }) => a.id === preferred)?.id ||
-            data.apps[0].id,
+        const preferred = selectedApplicationId(
+          data.apps,
+          requested,
+          saved,
+          data.defaultAppId,
         );
+        rememberApplication(preferred);
+        setApp(preferred);
+        // A restored app may differ from the API's default. Never display or
+        // edit default-app sources while that app's scoped request is pending.
+        if (preferred === data.appId) setSnapshot(data);
+      } else {
+        setSnapshot(data);
       }
     }
   }, []);
@@ -468,39 +481,6 @@ export function KnowledgeClient() {
             your customers and team.
           </p>
         </div>
-        <label className="ui-field">
-          Application
-          <select
-            aria-label="Application"
-            value={app}
-            className="ui-input min-w-40"
-            disabled={busy}
-            onChange={(e) => {
-              if (
-                dirty &&
-                !window.confirm("Leave without saving your changes?")
-              )
-                return;
-              setDirty(false);
-              setSnapshot(null);
-              setApp(e.target.value);
-              try {
-                sessionStorage.setItem("cue-agent-app", e.target.value);
-              } catch {}
-              add("faq");
-              setAnswer(null);
-              setBaseline(null);
-              setComparisonError("");
-              location.hash = "sources";
-            }}
-          >
-            {snapshot?.apps.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-        </label>
       </div>
       <nav className="ui-tabs" aria-label="Knowledge views">
         {[
@@ -529,7 +509,9 @@ export function KnowledgeClient() {
         ))}
       </nav>
       {notice && <Notice>{notice}</Notice>}
-      {snapshot && app && view === "gaps" && <KnowledgeGapsPanel key={app} appId={app} onDirty={setDirty} />}
+      {snapshot && app && view === "gaps" && (
+        <KnowledgeGapsPanel key={app} appId={app} onDirty={setDirty} />
+      )}
       {snapshot && ["coverage", "brand"].includes(view) && (
         <CompanyContextPanel
           key={app + view}

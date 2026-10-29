@@ -118,6 +118,14 @@ export async function WorkspaceShell({
               name,
             }))}
             workspaceName={workspaceName}
+            defaultAppId={
+              integrations?.apps.find((app) =>
+                app.origins.includes(
+                  process.env.CUE_BLOOM_PUBLIC_URL ||
+                    "https://bloom-with-cue.vercel.app",
+                ),
+              )?.id || integrations?.apps[0]?.id
+            }
           />
           <span className="hidden text-cue-subtle sm:inline">/</span>
           <span className="hidden truncate text-cue-subtle sm:inline">
