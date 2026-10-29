@@ -53,6 +53,12 @@ test("assembled Cue bridge initializes against the supplied design bindings", as
   );
   expect(context.window.agentUI.opportunities).toContain("Daily limit reached");
   expect(context.window.agentUI.opportunities).toContain("Pause agent");
+  expect(context.window.agentUI.opportunities).toContain(
+    "Growth checks for matching requests automatically",
+  );
+  expect(context.window.agentUI.opportunities).not.toContain(
+    "Run the campaign",
+  );
   expect(context.window.agentUI.opportunities).not.toContain(
     'id="growth-source"',
   );
@@ -158,6 +164,7 @@ test("actual Growth bridge renders unqualified sources and unsupported needs wit
     },
     gDraftHtml: empty,
     gOpportunities: empty,
+    gListHtml: empty,
     gFootHtml: empty,
     gCampaigns: empty,
     growthPage: empty,
