@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
 @import "./tokens.css";
 @source "../app/widget/route.ts";
 @source "../public/widget-frame.js";
