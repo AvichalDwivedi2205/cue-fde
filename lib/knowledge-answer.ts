@@ -251,9 +251,7 @@ async function answerImpl(
     };
   }
   const model =
-    options.model ||
-    process.env.CUE_SUPPORT_MODEL ||
-    (process.env.LITELLM_API_KEY ? "claude-haiku" : "gemini-2.5-flash");
+    options.model || process.env.CUE_SUPPORT_MODEL || "gemini-2.5-flash";
   let usage: { inputTokens: number; outputTokens: number } | undefined;
   let stage = "provider";
   try {

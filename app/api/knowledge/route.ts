@@ -74,9 +74,7 @@ export async function GET(request: Request) {
       canEdit: ["owner", "product", "support"].includes(user.role),
       canPublish: ["owner", "product"].includes(user.role),
     };
-    const model =
-      process.env.CUE_SUPPORT_MODEL ||
-      (process.env.LITELLM_API_KEY ? "claude-haiku" : "gemini-2.5-flash");
+    const model = process.env.CUE_SUPPORT_MODEL || "gemini-2.5-flash";
     if (!appId)
       return Response.json(
         {
