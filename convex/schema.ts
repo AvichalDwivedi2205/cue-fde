@@ -8,6 +8,11 @@ import { companyContextTables } from "./companyContextSchema";
 import { feedbackTables } from "./feedbackSchema";
 
 export default defineSchema({
+  waitlist: defineTable({
+    email: v.string(),
+    joinedAt: v.number(),
+    source: v.literal("cue-waitlist"),
+  }).index("by_email", ["email"]),
   ...feedbackTables,
   ...companyContextTables,
   ...knowledgeTables,

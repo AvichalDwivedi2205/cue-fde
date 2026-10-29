@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@convex-dev/agent": "^0.7.7",
+    "@convex-dev/rate-limiter": "^0.4.2",
     "@convex-dev/workpool": "^0.4.14",
     "@google/genai": "^2.28.0",
     "@openai/codex-sdk": "^0.162.1",
@@ -48,6 +49,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@edge-runtime/vm": "^5.0.0",
     "@tailwindcss/cli": "4.3.3",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "^20",

@@ -30,13 +30,8 @@ export function renderCueLanding(source: string) {
   for (const node of publicNodes) {
     const href = attr(node, "href");
     if (href?.value.startsWith("#/"))
-      href.value = href.value === "#/" ? "/" : "/cue" + href.value;
-    // A static example issue ID cannot identify a live team's issue.
-    if (href?.value === "/cue#/issues/ISS-14") href.value = "/cue#/issues";
-    if (href?.value === "bloom.html")
-      href.value = process.env.CUE_BLOOM_PUBLIC_URL
-        ? new URL(process.env.CUE_BLOOM_PUBLIC_URL).origin + "/"
-        : "/bloom";
+      href.value = href.value === "#/" ? "/" : "#waitlist";
+    if (href?.value === "bloom.html") href.value = "#waitlist";
   }
   const story = publicNodes.find((n) => attr(n, "id")?.value === "story");
   if (story)
@@ -46,6 +41,22 @@ export function renderCueLanding(source: string) {
     });
 
   let content = serializeOuter(landing);
+  // Keep the original landing design; early access is its only product entry.
+  content = content
+    .replace(/Open (?:the )?workspace/g, "Join the waitlist")
+    .replace("Bloom demo app ↗", "Join the waitlist ↗")
+    .replace(
+      /<div class="hero-ctas reveal"[^>]*>\s*<a class="btn primary lg"[^>]*>.*?<\/a>/,
+      `<div class="cue-signup reveal" id="waitlist" style="animation-delay:.24s">
+<form id="waitlist-form" action="/api/waitlist" method="post">
+<label for="waitlist-email">Get early access to Cue</label>
+<div class="cue-signup-row"><input class="inp" id="waitlist-email" name="email" type="email" placeholder="you@company.com" autocomplete="email" inputmode="email" maxlength="254" required aria-describedby="signup-note signup-status"><button class="btn primary lg" type="submit">Join the waitlist ↗</button></div>
+<div class="cue-bot-field" aria-hidden="true"><label for="waitlist-website">Website</label><input id="waitlist-website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+<p class="signup-note" id="signup-note">Leave your email for early access updates.</p>
+</form><p class="signup-status" id="signup-status" role="status" aria-live="polite"></p>
+<noscript><p>Please enable JavaScript to join the waitlist.</p></noscript></div>
+<div class="hero-ctas reveal" style="animation-delay:.24s">`,
+    );
   const ticker = publicNodes.find((n) => attr(n, "id")?.value === "ticker");
   const marquee = publicNodes.find((n) => attr(n, "id")?.value === "marquee");
   if (!ticker || !marquee)
@@ -74,7 +85,7 @@ export function renderCueLanding(source: string) {
   content = content
     .replace(
       "Sample workspace · no sign-up · every sample is labeled",
-      "Illustrative workflow · workspace sign-in required",
+      "Join the waitlist for early access",
     )
     .replace(
       serializeOuter(ticker),
@@ -128,5 +139,5 @@ export function renderCueLanding(source: string) {
     "Cue — Bloom workspace",
     "Cue — customer problems to verified fixes",
   );
-  return `<!doctype html><html lang="en"><head>${publicHead}<link rel="stylesheet" href="/cue-workspace.css"><style>html{scroll-behavior:smooth;scroll-padding-top:80px} .ticker-list{height:auto;min-height:270px} .ticker-list::after{display:none} .t-item .t-text{white-space:normal} .t-tag{white-space:nowrap} .lnav{border-bottom-color:var(--line)} #marquee>span[aria-hidden]{display:contents} @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}</style><noscript><style>.chapter{opacity:1}.stage-label + .scene{opacity:1;transform:none}</style></noscript></head><body>${content}<script src="/cue-landing.js" defer></script></body></html>`;
+  return `<!doctype html><html lang="en"><head>${publicHead}<link rel="icon" href="/cue-favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/cue-workspace.css"><link rel="stylesheet" href="/cue-waitlist.css"><style>html{scroll-behavior:smooth;scroll-padding-top:80px} .ticker-list{height:auto;min-height:270px} .ticker-list::after{display:none} .t-item .t-text{white-space:normal} .t-tag{white-space:nowrap} .lnav{border-bottom-color:var(--line)} #marquee>span[aria-hidden]{display:contents} @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}</style><noscript><style>.chapter{opacity:1}.stage-label + .scene{opacity:1;transform:none}</style></noscript></head><body>${content}<script src="/cue-landing.js" defer></script><script src="/cue-waitlist.js" defer></script></body></html>`;
 }

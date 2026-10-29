@@ -12,8 +12,11 @@ assert.equal(
 );
 assert.match(root.headers.get("content-type") || "", /text\/html/);
 const html = await root.text();
-assert(html.includes("Your customers already told you."));
-console.log("PASS · Anonymous root serves the supplied Cue landing");
+assert(
+  html.includes("Your customers already told you.") &&
+    html.includes("Join the waitlist"),
+);
+console.log("PASS · Anonymous root serves the Cue email waitlist");
 
 function elements(
   node: DefaultTreeAdapterTypes.Node,
@@ -27,21 +30,34 @@ const nodes = elements(parse(html));
 const attr = (node: DefaultTreeAdapterTypes.Element, name: string) =>
   node.attrs.find((a) => a.name === name)?.value;
 const links = nodes.filter((n) => n.tagName === "a");
-assert.equal(links.filter((n) => attr(n, "href") === "/cue#/home").length, 4);
-for (const id of ["how", "principles", "faq", "act-grow", "act-agents"]) {
-  assert(nodes.some((n) => attr(n, "id") === id));
-  assert(links.some((n) => attr(n, "href") === "#" + id));
-}
+assert.equal(
+  links.filter((n) => attr(n, "href")?.startsWith("/cue")).length,
+  0,
+);
+assert(
+  nodes.some(
+    (n) => n.tagName === "form" && attr(n, "action") === "/api/waitlist",
+  ),
+);
+assert(nodes.some((n) => n.tagName === "input" && attr(n, "type") === "email"));
 assert(!nodes.some((n) => attr(n, "id") === "app"));
 assert(!html.includes("loadCue") && !html.includes("S.cases"));
-assert.match(html, /Illustrative reports/);
 const scripts = nodes.filter((n) => n.tagName === "script");
-assert.equal(scripts.length, 1);
-assert.equal(attr(scripts[0], "src"), "/cue-landing.js");
-assert.equal(scripts[0].childNodes.length, 0);
-assert.equal((await get("/cue-landing.js")).status, 200);
+assert.deepEqual(
+  scripts.map((n) => attr(n, "src")),
+  ["/cue-landing.js", "/cue-waitlist.js"],
+);
+assert(scripts.every((n) => n.childNodes.length === 0));
+for (const asset of [
+  "/cue-landing.js",
+  "/cue-workspace.css",
+  "/cue-waitlist.js",
+  "/cue-waitlist.css",
+  "/cue-favicon.svg",
+])
+  assert.equal((await get(asset)).status, 200);
 console.log(
-  "PASS · Workspace actions, section links and labeled examples are present; private app omitted",
+  "PASS · Email signup and waitlist assets are present; private app omitted",
 );
 
 const workspace = await get("/cue");

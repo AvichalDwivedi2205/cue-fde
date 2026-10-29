@@ -1,0 +1,60 @@
+.cue-signup {
+  max-width: 520px;
+  margin: 24px 0 16px;
+  scroll-margin-top: 90px;
+}
+.cue-signup label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+.cue-signup-row {
+  display: flex;
+  gap: 8px;
+}
+.cue-signup-row .inp {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  font-size: 14px;
+}
+.cue-signup-row .btn {
+  height: 40px;
+  justify-content: center;
+}
+.cue-signup .signup-note,
+.cue-signup .signup-status {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-3);
+  margin: 8px 0 0;
+}
+.cue-signup .signup-status:empty {
+  display: none;
+}
+.cue-signup .signup-status.success {
+  color: var(--accent);
+}
+.cue-signup .signup-status.error {
+  color: var(--fail);
+}
+.cue-bot-field {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .cue-signup-row {
+    flex-direction: column;
+  }
+  .cue-signup-row .inp {
+    flex: auto;
+  }
+  .cue-signup-row .btn {
+    width: 100%;
+  }
+}

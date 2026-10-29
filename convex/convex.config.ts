@@ -2,6 +2,7 @@ import { defineApp } from "convex/server";
 import { v } from "convex/values";
 import workpool from "@convex-dev/workpool/convex.config";
 import agent from "@convex-dev/agent/convex.config";
+import rateLimiter from "@convex-dev/rate-limiter/convex.config";
 const app = defineApp({
   env: {
     CUE_DEMO_SECRET: v.optional(v.string()),
@@ -13,4 +14,5 @@ const app = defineApp({
 app.use(workpool, { name: "triagePool" });
 app.use(workpool, { name: "knowledgePool" });
 app.use(agent);
+app.use(rateLimiter);
 export default app;
