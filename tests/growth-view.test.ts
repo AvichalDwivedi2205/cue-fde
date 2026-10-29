@@ -12,6 +12,7 @@ test("assembled Cue bridge initializes against the supplied design bindings", as
     window: {},
     document: { addEventListener: () => {} },
     addEventListener: () => {},
+    removeEventListener: () => {},
     matchMedia: () => ({ matches: false }),
     fetch: () => new Promise(() => {}),
     setInterval: () => 1,

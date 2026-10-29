@@ -96,3 +96,23 @@ test("authentication and request origin are checked before reads, writes or mode
   expect(mocks.query).not.toHaveBeenCalled();
   expect(mocks.mutation).not.toHaveBeenCalled();
 });
+test("answer testing passes the selected audience and retrieval mode to the server", async () => {
+  mocks.answer.mockResolvedValue({ text: "Approved answer", hits: [] });
+  const body = {
+    action: "test",
+    appId: "app-a",
+    question: "How do refunds work?",
+  };
+  expect(
+    (await POST(request({ ...body, audience: "staff", mode: "keyword" })))
+      .status,
+  ).toBe(200);
+  expect(mocks.answer.mock.calls[0][2]).toMatchObject({
+    audience: "staff",
+    mode: "keyword",
+  });
+  expect((await POST(request({ ...body, audience: "internal" }))).status).toBe(
+    400,
+  );
+  expect(mocks.answer).toHaveBeenCalledTimes(1);
+});

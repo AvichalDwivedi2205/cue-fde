@@ -1098,6 +1098,312 @@ textarea.inp{height:auto;min-height:84px;padding:8px 10px;resize:vertical;line-h
 .ctx-toggle{display:none}
 .back-btn{display:none}
 
+/* workspace screens: knowledge, setup, widget, research, settings */
+.x-page .page-h{align-items:flex-start}
+.x-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+.x-card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.x-card-h{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);font-size:13px}
+.x-card-h .r{margin-left:auto;color:var(--ink-3);font-size:12px}
+.x-skrow{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--sunken)}
+.x-empty{height:auto;padding:52px 24px}
+.x-empty p{max-width:380px}
+.x-lock{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--warn);margin-left:auto}
+.x-note{font-size:12px;color:var(--ink-3)}
+.x-note.warn{color:var(--warn)}
+.x-back{display:inline-flex;align-items:center;gap:6px;color:var(--ink-2);text-decoration:none;font-weight:500;margin-bottom:12px}
+.x-back:hover{color:var(--ink)}
+.x-menu-wrap{position:relative}
+.x-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:30;width:320px;background:#fff;border-radius:12px;box-shadow:var(--sh-pop);padding:6px;animation:popIn .16s var(--ease)}
+.x-menu a{display:flex;gap:10px;padding:9px 10px;border-radius:8px;text-decoration:none;align-items:flex-start}
+.x-menu a:hover,.x-menu a:focus-visible{background:var(--sunken)}
+.x-menu b{display:block;font-weight:600}.x-menu small{color:var(--ink-3);font-size:12px}
+.x-mi-ic,.x-kind{width:30px;height:30px;border-radius:8px;background:var(--sunken);display:grid;place-items:center;color:var(--ink-2);flex:none}
+.x-kind.lg{width:40px;height:40px;border-radius:11px;background:var(--accent-t);color:var(--accent)}
+.x-vis{background:transparent;border:1px solid var(--line-2);color:var(--ink-2);font-weight:500}
+.x-vis.cust{border-color:#cfe5d8;color:var(--accent);background:#F4FAF6}
+.x-idx{display:inline-flex;align-items:center;gap:5px;font:500 11.5px var(--mono);color:var(--ink-3);white-space:nowrap}
+.x-idx.ok{color:var(--accent)}.x-idx.run{color:var(--run)}.x-idx.fail{color:var(--fail)}.x-idx.mute{color:var(--ink-3)}
+.x-idx .spin{width:10px;height:10px;border:1.5px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
+.x-sum{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid var(--line);border-radius:12px;background:#fff;margin-bottom:14px;overflow:hidden}
+.x-sum div{padding:12px 16px;display:flex;flex-direction:column}
+.x-sum div+div{border-left:1px solid var(--line)}
+.x-sum b{font:400 26px/1.1 var(--serif)}.x-sum span{font-size:11.5px;color:var(--ink-3)}
+.x-sum .run b{color:var(--run)}.x-sum .fail b{color:var(--fail)}
+.x-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.x-search{display:flex;align-items:center;gap:8px;height:32px;padding:0 10px;border:1px solid var(--line-2);border-radius:7px;background:#fff;color:var(--ink-3);flex:1;min-width:200px;max-width:320px}
+.x-search:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-t)}
+.x-search input{border:0;outline:0;background:none;flex:1;min-width:0;color:var(--ink)}
+.x-search.lg{height:40px;max-width:none;font-size:14px}
+.x-seg{flex:none}.x-seg button{padding:0 10px;white-space:nowrap}
+.x-sel{width:auto;height:30px}
+.x-grp+.x-grp{border-top:1px solid var(--line)}
+.x-grp-h{display:flex;gap:10px;align-items:baseline;padding:10px 16px;background:var(--bg);border-bottom:1px solid var(--line);font-size:12px;color:var(--ink-3)}
+.x-grp-h b{color:var(--ink);font-size:12.5px}.x-grp-h .r{margin-left:auto}
+.x-row{display:grid;grid-template-columns:30px minmax(0,1fr) auto auto 120px;gap:12px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--sunken);text-decoration:none;transition:background var(--t1)}
+.x-row:last-child{border-bottom:0}
+.x-row:hover{background:var(--hover)}
+.x-main{min-width:0}.x-main b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.x-main small{display:block;color:var(--ink-3);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* editor */
+.x-ed-h{display:flex;gap:12px;align-items:center;margin-bottom:16px}
+.x-ed-h h1{margin:0;font-size:20px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.x-ed-m{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:4px;color:var(--ink-3);font-size:12px}
+.x-ed{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.9fr);gap:16px;align-items:start;padding-bottom:80px}
+.x-form{padding:6px 18px 18px}
+.x-f{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+.x-f>span{font-weight:600;font-size:12.5px}
+.x-f small{color:var(--ink-3);font-size:12px}
+.x-f.sm{margin-top:0}.x-f.sm>span{font-weight:500;color:var(--ink-3);font-size:11.5px}
+.x-ta{height:auto;padding:8px 10px;line-height:1.5;resize:vertical;font:inherit}
+.x-ta.mono,.mono.inp{font:12px/1.6 var(--mono)}
+.x-inline{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.x-drop{border:1.5px dashed var(--line-2);border-radius:12px;padding:22px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;color:var(--ink-3);background:var(--bg)}
+.x-drop b{color:var(--ink)}
+.x-drop.busy{border-style:solid;color:var(--run)}
+.x-drop.err{border-color:#efc7bc;background:var(--fail-t);color:var(--fail)}
+.x-drop.err small{color:#8a3a26;max-width:360px}
+.x-drop .spin{width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
+.x-row-btns{display:flex;gap:6px;margin-top:6px}
+.x-prog{width:220px;height:4px;border-radius:4px;background:var(--line);overflow:hidden}.x-prog i{display:block;height:100%;background:var(--run);border-radius:4px}
+.x-file{display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:10px}
+.x-file span{flex:1}.x-file b{display:block}.x-file small{color:var(--ink-3)}
+.x-error{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--fail-t);color:var(--fail);margin-top:10px}
+.x-error>div{flex:1;min-width:0}
+.x-error b{display:block}.x-error span{display:block;color:#8a3a26;font-size:12.5px}
+.x-error code{display:inline-block;margin-top:6px;font:11.5px var(--mono);background:#fff;padding:2px 6px;border-radius:4px;color:#8a3a26}
+.x-ferr{display:flex;gap:6px;align-items:center;color:var(--fail);font-size:12px;margin-top:6px}
+.x-vcs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.x-vc{text-align:left;padding:10px 12px;border:1px solid var(--line-2);border-radius:10px;display:flex;flex-direction:column;gap:4px;transition:border-color var(--t1),box-shadow var(--t1)}
+.x-vc span{display:flex;gap:6px;align-items:center}.x-vc small{color:var(--ink-3);font-size:12px;line-height:1.45}
+.x-vc.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-t)}
+.x-vc.on svg{color:var(--accent)}
+.x-vc[disabled]{opacity:.6;cursor:not-allowed}
+.x-prev{position:sticky;top:12px}
+.x-chunk{padding:12px 16px;border-bottom:1px solid var(--sunken)}
+.x-ch-h{display:flex;gap:8px;align-items:center;font-size:12.5px}
+.x-ch-h .n,.at-p-h .n{width:18px;height:18px;border-radius:5px;background:var(--sunken);display:grid;place-items:center;font:600 10.5px var(--mono);color:var(--ink-2);flex:none}
+.x-ch-h .pg{margin-left:auto;font:11px var(--mono);color:var(--ink-3)}
+.x-chunk p{margin:6px 0 0 26px;color:var(--ink-2);line-height:1.55}
+.x-prev-f{display:flex;gap:6px;align-items:center;padding:10px 16px;font-size:12px;color:var(--ink-3);border-top:1px solid var(--line);background:var(--bg)}
+.x-foot{position:sticky;bottom:0;z-index:5;display:flex;gap:10px;align-items:center;margin:0 -28px -60px;padding:12px 28px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-top:1px solid var(--line)}
+.x-foot>span:first-child{display:flex;gap:6px;align-items:center}
+.x-foot.warn{background:var(--warn-t);color:#7a5212}
+.x-foot-r{margin-left:auto;display:flex;gap:8px}
+.x-foot.warn .btn:first-of-type{margin-left:auto}
+/* answer testing */
+.at{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:16px;align-items:start}
+.at-ask{padding:4px 18px 18px;display:flex;flex-direction:column;gap:14px;position:sticky;top:12px}
+.at-samples{display:flex;flex-wrap:wrap;gap:6px}
+.at-samples .chip{cursor:pointer;height:24px}
+.at-samples .chip:hover{background:var(--sunken)}
+.at-ctl{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.at-ctl .seg-ctl button{height:28px}
+.at-go{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.at-out{display:flex;flex-direction:column;gap:12px;min-width:0}
+.at-cmp{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.at-res{padding:16px}
+.at-lbl{font:500 10.5px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);margin-bottom:8px}
+.at-st{display:inline-flex;gap:6px;align-items:center;font-weight:600;font-size:12.5px;padding:4px 10px;border-radius:999px}
+.at-st.ok{background:var(--accent-t);color:var(--accent)}.at-st.warn{background:var(--warn-t);color:var(--warn)}.at-st.fail{background:var(--fail-t);color:var(--fail)}
+.at-body{font-size:14.5px;line-height:1.65;margin:12px 0 14px}
+.cite{display:inline-grid;place-items:center;min-width:17px;height:17px;padding:0 4px;margin:0 1px;border-radius:5px;background:var(--accent-t);color:var(--accent);font:600 10.5px var(--mono);text-decoration:none;vertical-align:2px}
+.cite:hover{background:var(--accent);color:#fff}
+.at-ps{display:flex;flex-direction:column;gap:8px}
+.at-p{border:1px solid var(--line);border-radius:10px;padding:10px 12px;opacity:.75}
+.at-p.cited{opacity:1;border-color:#cfe5d8}
+.at-p.flash{animation:flash 1.2s var(--ease)}
+@keyframes flash{0%{box-shadow:0 0 0 4px var(--accent-t);border-color:var(--accent)}100%{box-shadow:none}}
+.at-p-h{display:flex;gap:8px;align-items:center;font-size:12.5px;flex-wrap:wrap}
+.at-p-h>span:not(.n){color:var(--ink-3)}.at-p-h .r{margin-left:auto;font:11px var(--mono)}
+.at-p p{margin:6px 0 8px;color:var(--ink-2);line-height:1.55}
+.at-p mark{background:#FFF1BF;color:inherit;border-radius:2px;padding:0 1px}
+.at-p-f{display:flex;justify-content:space-between;align-items:center;font-size:12px}
+.at-p-f a{color:var(--ink-2);text-decoration:none}.at-p-f a:hover{color:var(--ink)}
+.at-skip{display:flex;gap:8px;margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--sunken);font-size:12px;color:var(--ink-2)}
+.at-skip>div{display:flex;flex-direction:column;gap:3px}
+.at-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.at-meta span{font:11px var(--mono);color:var(--ink-3);padding:2px 6px;border-radius:4px;background:var(--bg)}
+.at-f{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.at-cust{margin:12px 0;padding:14px;border-radius:12px;background:#FBF8F3;border:1px solid #ece4d6}
+.at-cust small{display:block;font:500 10.5px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:#8a7d66;margin-bottom:8px}
+.at-steps{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink-3);margin-bottom:6px}
+.at-steps span{display:flex;gap:5px;align-items:center}.at-steps .on{color:var(--run)}
+/* widget */
+.w-stage{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+.w-site{position:relative;height:720px;border:1px solid var(--line);border-radius:14px;background:#FBF8F3;overflow:hidden}
+.w-site-bar{display:flex;gap:6px;align-items:center;padding:10px 14px;border-bottom:1px solid #ece4d6;background:#F4EFE6;font:11px var(--mono);color:#8a7d66}
+.w-site-bar i{width:9px;height:9px;border-radius:50%;background:#e2d8c6}.w-site-bar span{margin-left:8px}
+.w-site-b{padding:28px;filter:saturate(.8);opacity:.55}
+.w-site-h{font:400 30px var(--serif);color:#1E2A22;margin-bottom:18px}
+.w-site-g{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.w-site-g span{height:120px;border-radius:16px}
+.w-fab{position:absolute;right:22px;bottom:18px;width:48px;height:48px;border-radius:50%;background:#2F5D46;display:grid;place-items:center;box-shadow:0 10px 24px -8px rgba(47,93,70,.6)}
+.w-panel{position:absolute;right:22px;bottom:78px;width:min(380px,calc(100% - 28px));height:min(600px,calc(100% - 120px));background:#fff;border-radius:22px;box-shadow:0 1px 2px rgba(30,42,34,.06),0 24px 60px -16px rgba(30,42,34,.35);display:flex;flex-direction:column;overflow:hidden;font-size:13.5px;color:#1E2A22}
+.w-h{display:flex;gap:10px;align-items:center;padding:14px 16px;background:#2F5D46;color:#fff}
+.w-h b{display:block;font:400 18px/1.1 var(--serif)}
+.w-h small{display:flex;gap:6px;align-items:center;font-size:11.5px;opacity:.85}
+.w-h small i{width:6px;height:6px;border-radius:50%;background:#8fe0b0}.w-h small i.off{background:#c9cfcb}.w-h small i.wait{background:#f2c46d}
+.w-logo{width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.16);display:grid;place-items:center}
+.w-x{margin-left:auto;color:#fff;opacity:.8;width:28px;height:28px;border-radius:8px;display:grid;place-items:center}
+.w-banner{display:flex;gap:8px;align-items:center;padding:8px 14px;background:#F1EADF;color:#5B6A60;font-size:12px}
+.w-body{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:#FBF8F3}
+.w-row{display:flex;flex-direction:column;gap:6px;max-width:88%}
+.w-row.me{align-self:flex-end;align-items:flex-end}
+.w-bub{padding:9px 12px;border-radius:16px;line-height:1.5;animation:wIn .3s var(--ease)}
+@keyframes wIn{from{opacity:0;transform:translateY(6px)}}
+.w-bub.bot{background:#fff;border:1px solid #ece4d6;border-bottom-left-radius:6px}
+.w-bub.me{background:#2F5D46;color:#fff;border-bottom-right-radius:6px}
+.w-bub.faded{opacity:.55}
+.w-bub sup{font:600 9.5px var(--mono);color:#2F5D46;margin-left:1px}
+.w-voice{display:inline-flex;gap:4px;align-items:center;font:500 10.5px var(--mono);opacity:.75;margin-right:6px}
+.w-typing{display:flex;gap:4px;padding:12px 14px}
+.w-typing i{width:6px;height:6px;border-radius:50%;background:#b9ab93;animation:wDot 1.2s infinite}
+.w-typing i:nth-child(2){animation-delay:.15s}.w-typing i:nth-child(3){animation-delay:.3s}
+@keyframes wDot{0%,60%,100%{transform:none;opacity:.5}30%{transform:translateY(-3px);opacity:1}}
+.w-srcs{font-size:12px;color:#5B6A60}
+.w-srcs summary{display:inline-flex;gap:5px;align-items:center;cursor:pointer;list-style:none;padding:3px 8px;border-radius:999px;background:#F1EADF;font-weight:500}
+.w-srcs summary::-webkit-details-marker{display:none}
+.w-src{display:flex;gap:8px;padding:8px 10px;margin-top:6px;border-radius:10px;background:#fff;border:1px solid #ece4d6}
+.w-src sup{font:600 10px var(--mono);color:#2F5D46}.w-src b{display:block;color:#1E2A22;font-weight:600}.w-src small{color:#8a7d66}
+.w-qr{display:flex;flex-wrap:wrap;gap:6px}
+.w-qr button,.w-qr span{padding:6px 12px;border-radius:999px;border:1px solid #2F5D46;color:#2F5D46;font-size:12.5px;font-weight:500;background:#fff}
+.w-qr button:hover{background:#E4EEE6}
+.w-st{display:flex;gap:4px;align-items:center;font-size:11px;color:#8a7d66}
+.w-st.err{color:#B65A3C}.w-st button{color:#B65A3C;font-weight:600;text-decoration:underline}
+.w-shot{display:flex;gap:10px;align-items:center;padding:8px;border-radius:12px;background:#fff;border:1px solid #ece4d6;font-size:12px}
+.w-shot-img{width:64px;height:44px;border-radius:8px;background:linear-gradient(#F1EADF,#FBEDE7);display:grid;place-items:end center;padding:4px;flex:none}
+.w-shot-img span{font-size:6.5px;color:#B65A3C;background:#fff;border-radius:3px;padding:1px 3px}
+.w-shot b{display:block}.w-shot small{color:#8a7d66}
+.w-hand{align-self:stretch;padding:14px;border-radius:14px;background:#fff;border:1px solid #cfe0d4;box-shadow:0 10px 24px -16px rgba(47,93,70,.5);animation:wIn .3s var(--ease)}
+.w-hand-h{display:flex;gap:8px;align-items:center;color:#2F5D46}
+.w-hand-h b{font:400 17px var(--serif);color:#1E2A22}
+.w-hand p{margin:6px 0 10px;color:#5B6A60;line-height:1.5}
+.w-hand-r{display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid #F1EADF;font-size:12.5px}
+.w-hand-r span{color:#8a7d66}
+.w-comp{border-top:1px solid #ece4d6;padding:10px 12px 8px;background:#fff}
+.w-att{display:flex;gap:6px;align-items:center;padding:5px 8px;margin-bottom:8px;border-radius:8px;background:#F1EADF;font-size:12px}
+.w-att small{margin-left:auto;color:#8a7d66}
+.w-in{display:flex;gap:4px;align-items:flex-end}
+.w-in textarea{flex:1;border:1px solid #ece4d6;border-radius:14px;padding:8px 12px;resize:none;outline:0;min-height:38px;max-height:96px;line-height:1.45;background:#FBF8F3}
+.w-in textarea:focus{border-color:#2F5D46;box-shadow:0 0 0 3px #E4EEE6}
+.w-ib{width:34px;height:38px;border-radius:10px;display:grid;place-items:center;color:#5B6A60}
+.w-ib:hover{background:#F1EADF}
+.w-send{width:38px;height:38px;border-radius:12px;background:#2F5D46;display:grid;place-items:center}
+.w-foot{text-align:center;font-size:11px;color:#8a7d66;margin-top:6px}
+.w-foot button{color:#2F5D46;font-weight:600;text-decoration:underline}
+.w-vp{border-top:1px solid #ece4d6;padding:18px 16px 14px;background:#fff;text-align:center}
+.w-vp p{margin:10px 0 12px;font-weight:600}.w-vp p span{display:block;font-weight:400;color:#5B6A60;font-size:12.5px;margin-top:4px}
+.w-vp.blocked{color:#B65A3C}.w-vp.blocked p b{color:#1E2A22;display:block}
+.w-wave{display:flex;gap:3px;justify-content:center;align-items:center;height:36px}
+.w-wave i{width:4px;height:30%;border-radius:3px;background:#2F5D46;animation:wave .9s ease-in-out infinite}
+.w-wave.speak i{background:#B7791F}
+@keyframes wave{50%{height:100%}}
+.w-vp-b{display:flex;gap:8px;justify-content:center}
+.w-btn{display:inline-flex;gap:6px;align-items:center;height:34px;padding:0 16px;border-radius:999px;background:#2F5D46;color:#fff;font-weight:600}
+.w-btn.ghost{background:#F1EADF;color:#1E2A22}
+.w-side{display:flex;flex-direction:column;gap:12px}
+.w-presets{display:flex;flex-direction:column;padding:6px}
+.w-presets button{display:flex;gap:9px;align-items:center;padding:8px 10px;border-radius:8px;text-align:left;color:var(--ink-2)}
+.w-presets button:hover{background:var(--sunken)}
+.w-presets button.on{background:var(--accent-t);color:var(--accent);font-weight:600}
+.w-rules ul{margin:0;padding:10px 16px 14px 32px;color:var(--ink-2);font-size:12.5px;line-height:1.8}
+/* setup + settings shell */
+.su{display:grid;grid-template-columns:210px minmax(0,1fr);gap:20px;align-items:start}
+.su-nav{position:sticky;top:12px;display:flex;flex-direction:column;gap:2px}
+.su-nav a{display:flex;gap:9px;align-items:center;height:32px;padding:0 10px;border-radius:7px;color:var(--ink-2);text-decoration:none;font-weight:500}
+.su-nav a:hover{background:var(--hover);color:var(--ink)}
+.su-nav a.on{background:#fff;color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+.su-nav span{flex:1}
+.sd{width:7px;height:7px;border-radius:50%;background:var(--line-2)}
+.sd.ok{background:var(--accent)}.sd.fail{background:var(--fail)}.sd.warn{background:var(--warn)}.sd.run{background:var(--run)}
+.su-main{display:flex;flex-direction:column;gap:14px;min-width:0}
+.su-card.fail{border-color:#efc7bc;box-shadow:inset 3px 0 0 var(--fail)}
+.su-h{display:flex;gap:12px;align-items:flex-start;padding:16px 18px 12px}
+.su-h>div{flex:1}.su-h h3{margin:0;font-size:14.5px}.su-h p{margin:3px 0 0;color:var(--ink-3);font-size:12.5px}
+.su-b{padding:0 18px 16px;display:flex;flex-direction:column;gap:12px}
+.su-f{display:flex;gap:8px;align-items:center;padding:10px 18px;border-top:1px solid var(--line);background:var(--bg);font-size:12px;color:var(--ink-3)}
+.su-f span{margin-right:auto}
+.su-row{display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;align-items:start}
+.su-row>label{font-weight:600;padding-top:7px}.su-row>label small{display:block;font-weight:400;color:var(--ink-3);font-size:12px;margin-top:2px}
+.su-chips{display:flex;flex-wrap:wrap;gap:6px}
+.su-chip{display:inline-flex;gap:6px;align-items:center;height:28px;padding:0 6px 0 10px;border-radius:999px;border:1px solid var(--line-2);font:12px var(--mono)}
+.su-chip button{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;color:var(--ink-3)}
+.su-chip button:hover{background:var(--fail-t);color:var(--fail)}
+.su-code{border-radius:10px;background:#0f1311;color:#cfd8d2;overflow:hidden}
+.su-code-h{display:flex;justify-content:space-between;align-items:center;padding:6px 8px 6px 12px;border-bottom:1px solid #1f2622;font-size:12px;color:#8a958f}
+.su-code-h span{display:flex;gap:6px;align-items:center}.su-code-h .btn{color:#cfd8d2}.su-code-h .btn:hover{background:#1f2622}
+.su-code pre{margin:0;padding:12px 14px;font:12px/1.7 var(--mono);white-space:pre-wrap;word-break:break-all}
+.su-seen{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--accent)}
+.su-tog{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--sunken)}
+.su-tog b{display:block}.su-tog small{color:var(--ink-3);font-size:12px}
+.su-new{margin:0 18px 14px;padding:14px;border:1px dashed var(--line-2);border-radius:10px;display:flex;flex-direction:column;gap:10px}
+.su-apps{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.su-app{display:flex;gap:12px;align-items:center;padding:12px 18px;text-align:left;border-bottom:1px solid var(--sunken)}
+.su-app:last-child{border-bottom:0}.su-app:hover{background:var(--hover)}
+.su-app.on{background:var(--accent-t)}
+.su-app>span:nth-child(2){flex:1}.su-app b{display:block}.su-app small{color:var(--ink-3);font-size:12px}
+/* research */
+.cr-top{display:grid;grid-template-columns:280px minmax(0,1fr);gap:12px;margin-bottom:10px}
+.cr-meter{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.cr-m-t{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--ink-3)}
+.cr-m-t span:first-child{display:flex;gap:6px;align-items:center;color:var(--ink)}
+.cr-meter small{color:var(--ink-3);font-size:11.5px}
+.cr-meter.hi .g-meter i{background:var(--warn)}.cr-meter.out .g-meter i{background:var(--fail)}
+.cr-search{padding:12px;display:flex;flex-direction:column;gap:10px}
+.cr-f{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.cr-f .x-f{flex:1;min-width:120px}
+.cr-note{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--ink-3);margin:4px 0 10px}
+.cr-tabs{margin-bottom:10px}
+.cr-row{display:grid;grid-template-columns:40px minmax(0,1fr) 190px auto;gap:14px;align-items:start;padding:14px 16px;border-bottom:1px solid var(--sunken);cursor:pointer;transition:background var(--t1)}
+.cr-row:last-child{border-bottom:0}.cr-row:hover,.cr-row.sel{background:var(--hover)}
+.cr-logo{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;color:#fff;font:600 16px var(--sans)}
+.cr-logo.lg{width:48px;height:48px;font-size:19px}
+.cr-t{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.cr-t b{font-size:14px}.cr-t>span:nth-child(2){color:var(--ink-3);font:12px var(--mono)}
+.cr-main p{margin:3px 0 8px;color:var(--ink-2)}
+.cr-why{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px}
+.cr-why span{display:flex;gap:4px;align-items:center}.cr-why .y{color:var(--accent)}.cr-why .n{color:var(--ink-3)}
+.cr-facts{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--ink-2)}
+.cr-facts span{display:flex;gap:6px;align-items:center}.cr-facts em{font-style:normal;color:var(--accent);font-family:var(--mono);font-size:11px}
+.cr-act{display:flex;gap:4px}
+.btn.on{background:var(--warn-t);border-color:#ecd9a8;color:#7a5212}
+.cr-d p{color:var(--ink-2);line-height:1.6}
+.cr-d-h{display:flex;gap:12px;align-items:center}
+.cr-d-h h4{margin:0;font-size:16px}.cr-d-h a{font:12px var(--mono);color:var(--ink-3);text-decoration:none}
+.cr-kv{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--sunken);font-size:13px}.cr-kv span{color:var(--ink-3)}.cr-kv b{font-weight:500;text-align:right}
+.cr-d h5{margin:18px 0 8px;font:500 10.5px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3)}
+.cr-y,.cr-n,.cr-s{display:flex;gap:8px;align-items:flex-start;padding:4px 0;font-size:13px}
+.cr-y svg{color:var(--accent);margin-top:2px}.cr-n{color:var(--ink-3)}.cr-s svg{color:var(--run);margin-top:2px}
+/* settings */
+.set-card-h{display:flex;gap:10px;align-items:baseline;padding:12px 18px;border-bottom:1px solid var(--line)}
+.set-card-h span{color:var(--ink-3);font-size:12px}
+.tm-row{display:grid;grid-template-columns:22px minmax(0,1fr) 150px 70px 70px;gap:12px;align-items:center;padding:10px 18px;border-bottom:1px solid var(--sunken)}
+.tm-n{min-width:0}.tm-n b{display:flex;gap:6px;align-items:center;font-weight:600;min-width:0}.tm-n small{display:block;color:var(--ink-3);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tm-role{height:30px}.tm-sp{width:1px}
+.tm-inv{display:grid;grid-template-columns:minmax(0,1fr) 150px auto;gap:8px;padding:14px 18px}
+.rm{padding:6px 0;overflow-x:auto}
+.rm-r{display:grid;grid-template-columns:minmax(180px,1.6fr) repeat(4,minmax(70px,1fr));gap:8px;align-items:center;padding:7px 18px;font-size:12.5px;min-width:520px}
+.rm-r+.rm-r{border-top:1px solid var(--sunken)}
+.rm-hd b{font:500 10.5px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);text-align:center}
+.rm-r i{text-align:center;font-style:normal;color:var(--line-2)}.rm-r i.y{color:var(--accent)}
+.us-top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;padding:18px 18px 12px}
+.us-top small{display:block;color:var(--ink-3);font-size:12px}
+.us-top b{display:block;font:400 36px/1.1 var(--serif)}.us-top span{color:var(--ink-3);font-size:12px}
+.us-spark{display:flex;gap:3px;align-items:flex-end;height:48px;width:200px}
+.us-spark i{flex:1;background:var(--line-2);border-radius:2px 2px 0 0;min-height:3px}.us-spark i.on{background:var(--accent)}
+.us-bar{position:relative;height:8px;margin:0 18px 18px;border-radius:5px;background:var(--sunken)}
+.us-bar i{display:block;height:100%;border-radius:5px;background:var(--accent)}
+.us-bar.hi i{background:var(--warn)}.us-bar.out i{background:var(--fail)}
+.us-bar span{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink-3);border-radius:1px}
+.us-t{overflow-x:auto}
+.us-r{display:grid;grid-template-columns:minmax(160px,1.6fr) minmax(120px,1.2fr) repeat(3,minmax(70px,.7fr)) minmax(70px,.7fr);gap:10px;padding:9px 18px;font-size:12.5px;min-width:620px;align-items:center}
+.us-r+.us-r{border-top:1px solid var(--sunken)}
+.us-r small{display:block;color:var(--ink-3);font-size:11px}
+.us-r span:nth-child(n+3){text-align:right;font-family:var(--mono);font-size:12px}
+.us-r.hd span{font:500 10.5px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3)}
+.x-money{display:flex;align-items:center;gap:4px;font-weight:600}.x-money .inp{width:100px}
+@media (max-width:1100px){.at,.w-stage{grid-template-columns:1fr}.at-ask{position:static}.w-side{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}.cr-top{grid-template-columns:1fr}}
+@media (max-width:900px){.x-ed{grid-template-columns:1fr}.x-prev{position:static}.su{grid-template-columns:1fr}.su-nav{position:static;flex-direction:row;overflow-x:auto;padding-bottom:4px}.su-nav a{flex:none}.su-nav span{flex:none}.x-row{grid-template-columns:30px minmax(0,1fr) auto}.x-row .x-vis,.x-row .x-idx{display:none}.cr-row{grid-template-columns:40px minmax(0,1fr)}.cr-facts,.cr-act{grid-column:2}.cr-facts{flex-direction:row;flex-wrap:wrap;gap:4px 12px}.at-cmp{grid-template-columns:1fr}}
+@media (max-width:720px){.x-sum{grid-template-columns:repeat(3,1fr)}.x-sum div:nth-child(4){border-left:0}.x-sum div:nth-child(n+4){border-top:1px solid var(--line)}.x-actions{margin-left:0;flex-wrap:wrap}.x-page .page-h{flex-direction:column;gap:10px}.x-bar .x-seg{overflow-x:auto;max-width:100%}.x-search{max-width:none}.x-vcs,.at-ctl{grid-template-columns:1fr}.x-foot{margin:0 -16px -16px;padding:10px 16px;flex-wrap:wrap}.x-foot-r{margin-left:0;width:100%}.x-foot-r .btn{flex:1;justify-content:center}.su-row{grid-template-columns:1fr;gap:6px}.tm-row{grid-template-columns:22px minmax(0,1fr) 120px}.tm-row>.btn,.tm-row>.tm-sp{display:none}.tm-inv{grid-template-columns:1fr}.w-site{height:640px}.w-site-b{display:none}.w-panel{right:8px;left:8px;width:auto;bottom:12px;height:calc(100% - 52px)}.w-fab{display:none}.x-menu{right:auto;left:0;width:min(320px,calc(100vw - 32px))}.us-top{flex-direction:column;align-items:flex-start}.us-spark{width:100%}}
+
 /* revamp: shell + home */
 .sb-grp{display:flex;flex-direction:column;gap:2px}
 .sb-grp+.sb-grp{margin-top:6px}
@@ -1500,6 +1806,20 @@ const P = {
   zap: '<path d="M13 2 3 14h9l-1 8 10-12h-9z"/>',
   trend: '<path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/>',
   home: '<path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z"/>',
+  book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+  upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5M12 3v12"/>',
+  globe: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+  mic: '<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/>',
+  micOff: '<path d="m2 2 20 20M18.89 13.23A7 7 0 0 0 19 12v-2M5 10v2a7 7 0 0 0 12 5M15 9.34V5a3 3 0 0 0-5.68-1.33M9 9v3a3 3 0 0 0 5.12 2.12M12 19v3"/>',
+  code: '<path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/>',
+  cpu: '<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"/>',
+  gauge: '<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>',
+  building: '<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/>',
+  star: '<path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>',
+  userPlus: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>',
+  help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/>',
+  wifiOff: '<path d="m2 2 20 20M8.5 16.5a5 5 0 0 1 7 0M2 8.82a15 15 0 0 1 4.17-2.65M10.66 5c4.01-.36 8.14.9 11.34 3.76M16.85 11.25a10 10 0 0 1 2.22 1.68M5 13a10 10 0 0 1 5.24-2.76M12 20h.01"/>',
+  headset: '<path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/>',
   reddit: '<circle cx="12" cy="14" r="7"/><path d="M9.5 16.5c1.5 1 3.5 1 5 0"/><circle cx="9.5" cy="13" r=".6" fill="currentColor"/><circle cx="14.5" cy="13" r=".6" fill="currentColor"/><path d="m12 7 1.2-4 3.8 1"/><circle cx="18.3" cy="4.3" r="1.3"/>',
 };
 const ic = (n, s = 16, c) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${c || 'currentColor'}" stroke-width="${n === 'cue' ? 3.2 : 1.8}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n] || ''}</svg>`;
@@ -1792,7 +2112,7 @@ function route() {
     renderSidebar(); renderTop();
     renderMain(changed && (secChanged || sec !== 'inbox'));
     if (sec === 'inbox') { const c = curCase(); document.title = (c ? c.subject + ' · ' : '') + 'Inbox · Cue'; }
-    else document.title = ({ issues: 'Issues', features: 'Feature requests', growth: 'Growth', home: 'Home', agents: 'Agents', agent: 'Agent activity', integrations: 'Integrations', settings: 'Settings' }[sec] || 'Cue') + ' · Cue';
+    else document.title = ({ issues: 'Issues', features: 'Feature requests', growth: 'Growth', home: 'Home', agents: 'Agents', agent: 'Agent activity', knowledge: 'Knowledge', integrations: 'Integrations', settings: 'Settings' }[sec] || 'Cue') + ' · Cue';
   };
   withVT(doIt, secChanged);
   renderDemo();
@@ -1801,13 +2121,13 @@ addEventListener('hashchange', route);
 
 /* ------------------------------------------------------------------ shell */
 const NAV_GROUPS = [['', ['home', 'inbox']], ['Resolve', ['issues', 'features']], ['Grow', ['growth']], ['Agents', ['agents', 'agent']], ['Workspace', ['knowledge', 'integrations', 'settings']]];
-const GO_KEYS = { h: 'home', i: 'inbox', s: 'issues', f: 'features', g: 'growth', a: 'agents', v: 'agent', n: 'integrations', ',': 'settings' };
+const GO_KEYS = { h: 'home', i: 'inbox', s: 'issues', f: 'features', g: 'growth', a: 'agents', v: 'agent', k: 'knowledge', n: 'integrations', ',': 'settings' };
 const KEY_OF = Object.fromEntries(Object.entries(GO_KEYS).map(([k, v]) => [v, k]));
 function renderSidebar() {
   const open = S.cases.filter(c => caseStatus(c) !== 'resolved').length;
   const issuesOpen = Object.values(S.issues).filter(i => i.status !== 'resolved').length;
   const decide = S.ag ? allTasks().filter(t => { const v = tv(t); return v.state === 'awaiting' || (v.state === 'blocked' && v.person); }).length : 0;
-  const nav = [['home', 'Home', 'home', decide || ''], ['inbox', 'Inbox', 'inbox', open], ['issues', 'Issues', 'bug', issuesOpen], ['features', 'Feature requests', 'bulb', S.features.length], ['growth', 'Growth', 'trend', S.growth ? gTodo().length || '' : ''], ['agents', 'Agents', 'bot', ''], ['agent', 'Agent activity', 'activity', ''], ['integrations', 'Integrations', 'plug', ''], ['settings', 'Settings', 'settings', '']];
+  const nav = [['home', 'Home', 'home', decide || ''], ['inbox', 'Inbox', 'inbox', open], ['issues', 'Issues', 'bug', issuesOpen], ['features', 'Feature requests', 'bulb', S.features.length], ['growth', 'Growth', 'trend', S.growth ? gTodo().length || '' : ''], ['agents', 'Agents', 'bot', ''], ['agent', 'Agent activity', 'activity', ''], ['knowledge', 'Knowledge', 'book', ''], ['integrations', 'Integrations', 'plug', ''], ['settings', 'Settings', 'settings', '']];
   const r = S.run;
   let chip = '';
   if (r.status !== 'idle') {
@@ -1852,7 +2172,8 @@ function renderMain(anim) {
     : sec === 'home' ? homePage()
     : sec === 'agents' ? agentsPage()
     : sec === 'agent' ? agentPage()
-    : sec === 'integrations' ? integrationsPage()
+    : sec === 'knowledge' ? kbPage()
+    : sec === 'integrations' ? (S.id === 'setup' ? setupPage() : integrationsPage())
     : sec === 'settings' ? settingsPage()
     : `<div class="empty"><div class="e-ic">${ic('alert', 22)}</div><h3>Page not found</h3><p>That address doesn’t match anything in this workspace.</p><a class="btn" href="#/inbox">Back to Inbox</a></div>`;
   m.innerHTML = `<div class="view">${html}</div>`;
@@ -2359,7 +2680,7 @@ function integrationsPage() {
     { k: 'mail', n: 'Email', s: 'support@bloom.app', st: 'ok', stl: 'Connected', d: 'Inbound support email becomes cases; replies go out from the same address.', f: 'Last email 41m ago', a: 'Configure' },
     { k: 'xlogo', n: 'X', s: '@bloomapp', st: 'op', stl: 'Operator-assisted capture', d: 'Customers tag @bloomapp. An operator captures the post here, Cue drafts the reply, the operator posts it from the brand account.', f: '<span class="op-flow">tag <i>→</i> capture <i>→</i> draft <i>→</i> post</span>', a: 'Capture post', act: 'capture', primary: true },
   ];
-  return `<div class="page enter"><div class="page-h"><div><h1>Integrations</h1><p>Where customer problems come from, and where fixes go.</p></div></div>
+  return `<div class="page enter"><div class="page-h"><div><h1>Integrations</h1><p>Where customer problems come from, and where fixes go.</p></div><a class="btn" style="margin-left:auto" href="#/integrations/setup">${ic('settings', 13)}App setup</a></div>
     <div class="int-grid stagger">${cards.map(c => `<div class="int"><div class="int-h"><span class="int-logo">${ic(c.k, 18)}</span><div><h3>${c.n}</h3><p>${esc(c.s)}</p></div></div>
       <div class="int-st"><span class="dot ${c.st === 'ok' ? 'resolved' : c.st === 'op' ? 'waiting' : ''}" ${c.busy ? 'style="background:var(--run)"' : ''}></span>${c.stl}</div>
       <div class="int-d">${c.d}</div>
@@ -2579,6 +2900,7 @@ function growthPage() {
   if (g.state === 'loading') body = `<div class="g-layout"><div class="g-col">${[0, 1, 2].map(() => '<div class="g-row"><div class="sk" style="height:12px;width:50%"></div><div class="sk" style="height:11px;width:92%;margin-top:10px"></div><div class="sk" style="height:11px;width:70%;margin-top:6px"></div></div>').join('')}</div><div class="g-detail" style="padding:22px"><div class="sk" style="height:16px;width:40%"></div><div class="sk" style="height:60px;margin-top:16px"></div><div class="sk" style="height:60px;margin-top:12px"></div><div class="sk" style="height:100px;margin-top:12px"></div></div></div>`;
   else if (g.state === 'error') body = `<div class="feed"><div class="empty" style="height:auto;padding:56px 24px"><div class="e-ic" style="background:var(--fail-t);color:var(--fail)">${ic('alert', 22)}</div><h3>Couldn’t load growth data</h3><p>The request to the workspace failed. Nothing was changed.</p><button class="btn" data-act="gRetry">${ic('refresh', 13)}Try again</button></div></div>`;
   else if (g.state === 'empty' || (!g.opps.length && !g.campaigns.length)) body = `<div class="feed"><div class="empty" style="height:auto;padding:56px 24px"><div class="e-ic">${ic('trend', 22)}</div><h3>No growth opportunities yet</h3><p>Growth starts when a feature has a passing check on the deployed release and a discovery source is connected. Nothing is posted automatically.</p><a class="btn" href="#/features">${ic('bulb', 13)}View feature requests</a></div></div>`;
+  else if (g.tab === 'prospects') body = gProspects();
   else body = g.tab === 'campaigns' ? gCampaigns() : g.tab === 'results' ? gResults() : gOpportunities();
   return `<div class="page g-page enter" style="max-width:1240px">${head}${tabBar}${body}</div>`;
 }
@@ -2997,12 +3319,719 @@ const AGA = {
   actAgent: el => { S.ag.af.agent = el.dataset.v; renderMain(false); },
 };
 
+/* ------------------------------------------------------------------ workspace screens: knowledge, setup, widget, research, settings */
+const ROLES = { owner: 'Owner', product: 'Product', engineering: 'Engineering', support: 'Support' };
+const CAN = {
+  kbEdit: ['owner', 'product', 'support'], kbPublish: ['owner', 'product'], setup: ['owner', 'engineering'],
+  research: ['owner', 'product'], team: ['owner'], models: ['owner'], usage: ['owner', 'product', 'engineering'], limits: ['owner'],
+};
+const can = k => CAN[k].includes(S.x.role);
+const canNames = k => CAN[k].map(r => ROLES[r]).join(', ').replace(/, ([^,]*)$/, ' or $1');
+const KIND = {
+  faq: { l: 'FAQ', i: 'help', d: 'A question and the answer your team would give.' },
+  text: { l: 'Write or paste', i: 'note', d: 'Policies, docs or product context as plain text.' },
+  file: { l: 'Upload document', i: 'upload', d: 'PDF, DOCX, Markdown or TXT, up to 10 MB.' },
+  url: { l: 'Website page', i: 'globe', d: 'A public help-center or docs page.' },
+  github: { l: 'GitHub file', i: 'github', d: 'A public Markdown file from a repository.' },
+};
+const MODELS = [['gemini-flash', 'Gemini Flash', 'Gemini API'], ['claude-haiku', 'Claude Haiku', 'LiteLLM'], ['claude-sonnet', 'Claude Sonnet', 'LiteLLM'], ['nova-lite', 'Nova Lite', 'LiteLLM']];
+const modelName = id => (MODELS.find(m => m[0] === id) || MODELS[0])[1];
+const modelVia = id => (MODELS.find(m => m[0] === id) || MODELS[0])[2];
+
+function xSeed(now) {
+  const H = 3600e3, D = 24 * H;
+  const src = (o) => ({ rev: 1, idx: 'idle', updated: now - 2 * D, by: 'Holly', app: 'web', vis: 'customer', status: 'published', chunks: [], ...o });
+  return {
+    x: { state: 'populated', role: 'owner' },
+    kb: {
+      apps: [{ id: 'web', name: 'Bloom web', domain: 'app.bloom.example' }, { id: 'ios', name: 'Bloom iOS', domain: 'iOS bundle com.bloom.journal' }],
+      f: { q: '', app: 'all', vis: 'all', status: 'all' }, menu: false, ed: null, confirm: null,
+      sources: [
+        src({ id: 'K-1', kind: 'faq', title: 'How do I upload a photo?', rev: 2, updated: now - 3 * H, by: 'Aria', q: 'How do I upload a photo?', a: 'Tap Add a memory, choose a JPG, PNG or WebP photo up to 5 MB, add a title and save. Larger photos are resized on your phone first.', alts: 'photo won’t upload\nwhat size photos can I add', chunks: [{ h: 'How do I upload a photo?', t: 'Tap Add a memory, choose a JPG, PNG or WebP photo up to 5 MB, add a title and save. Larger photos are resized on your phone first.', k: 'upload add photo memory jpg png webp size 5 mb save' }] }),
+        src({ id: 'K-2', kind: 'url', title: 'Help center · Uploading photos', rev: 3, updated: now - 20 * H, url: 'https://help.bloom.example/uploading-photos', chunks: [
+          { h: 'Supported formats', t: 'Bloom accepts JPG, PNG and WebP photos. HEIC photos from iPhone are converted to JPG when you pick them.', k: 'format jpg png webp heic iphone convert' },
+          { h: 'Size limit', t: 'Each photo can be up to 5 MB. If a photo is larger, export it at a smaller size or let the app resize it.', k: 'size limit 5 mb large big too fail rejected' },
+          { h: 'If an upload fails', t: 'Check your connection and try again. If a photo between 2 and 5 MB still fails, update to Bloom 1.4.3, which fixes that problem.', k: 'upload fail fails failed error rejected won’t try again 2 mb 3 mb update 1.4.3' },
+          { h: 'Uploading from iPhone', t: 'Allow Bloom to access Photos in iOS Settings → Bloom → Photos, then choose Full Access or Selected Photos.', k: 'iphone ios access photos permission settings' }] }),
+        src({ id: 'K-3', kind: 'file', title: 'Refund and billing policy', fileName: 'refund-policy-2026.pdf', rev: 1, updated: now - 9 * D, by: 'Avi', chunks: [
+          { h: 'Refunds', p: 1, t: 'Annual plans can be refunded in full within 30 days of purchase. After 30 days we refund the unused months on request.', k: 'refund money back annual plan 30 days cancel' },
+          { h: 'Monthly plans', p: 1, t: 'Monthly plans aren’t refunded, but you can cancel any time and keep access until the end of the period.', k: 'monthly plan cancel refund' },
+          { h: 'Payment methods', p: 2, t: 'We accept cards and Apple Pay. Invoices are emailed after every payment.', k: 'payment card apple pay invoice billing' }] }),
+        src({ id: 'K-4', kind: 'text', title: 'Search and captions', status: 'draft', rev: 1, updated: now - 40 * 60e3, by: 'Aria', text: 'Search looks through titles and captions.\n\nType any word you wrote in a caption, even years ago, and matching memories appear instantly.', chunks: [{ h: 'Search and captions', t: 'Search looks through titles and captions. Type any word you wrote in a caption, even years ago, and matching memories appear instantly.', k: 'search caption find old memory word' }] }),
+        src({ id: 'K-5', kind: 'github', title: 'docs/architecture/uploads.md', vis: 'internal', rev: 5, pending: 6, idx: 'indexing', updated: now - 6 * 60e3, by: 'Ganesh', url: 'https://github.com/bloom/bloom-app/blob/main/docs/architecture/uploads.md', chunks: [
+          { h: 'Storage', t: 'Uploads go to object storage through a signed URL. The server checks MAX_UPLOAD_BYTES before issuing the URL.', k: 'storage store files upload server signed url max_upload_bytes' },
+          { h: 'Limits', t: 'MAX_UPLOAD_BYTES lives in demo/bloom/limits.mjs and must match the limit shown in the UI.', k: 'limit max_upload_bytes limits.mjs ui' }] }),
+        src({ id: 'K-6', kind: 'faq', title: 'Can I export my journal as a PDF?', status: 'withdrawn', rev: 2, updated: now - 4 * D, by: 'Holly', q: 'Can I export my journal as a PDF?', a: 'Yes, from Settings → Export.', alts: '', note: 'Withdrawn: PDF export hasn’t shipped yet (FR-3).', chunks: [{ h: 'Can I export my journal as a PDF?', t: 'Yes, from Settings → Export.', k: 'export pdf journal' }] }),
+        src({ id: 'K-7', kind: 'url', title: 'Release notes · 1.4', app: 'ios', status: 'draft', idx: 'failed', rev: 1, updated: now - 2 * H, by: 'Aria', url: 'https://bloom.example/releases/1.4', error: 'The page returned 403 Forbidden. Make sure it’s public, then import it again.' }),
+        src({ id: 'K-8', kind: 'text', title: 'Escalation runbook', app: 'ios', vis: 'internal', rev: 2, updated: now - 6 * D, by: 'Avi', text: 'P1 problems page the engineering owner.\n\nBilling disputes go to Avi.', chunks: [{ h: 'Escalation runbook', t: 'P1 problems page the engineering owner. Billing disputes go to Avi.', k: 'escalation p1 page billing dispute' }] }),
+      ],
+    },
+    at: { q: '', app: 'web', scope: 'customer', model: 'gemini-flash', ret: 'hybrid', compare: false, phase: 'idle', res: null, res2: null },
+    w: { msgs: [], phase: 'idle', voice: null, shot: null, offline: false, preset: 'conversation', draft: '' },
+    setup: {
+      sec: 'app', ver: { app: 'ok', domains: 'ok', widget: 'ok', repo: 'ok', email: 'ok', slack: 'fail', x: 'wait', reddit: 'off' },
+      apps: [{ id: 'bloom-web', name: 'Bloom web', platform: 'Web', domains: ['app.bloom.example', 'bloom.example'] }, { id: 'bloom-ios', name: 'Bloom iOS', platform: 'iOS', domains: [] }],
+      app: 'bloom-web', domainErr: '', widgetOpts: { answers: true, voice: true, shots: true, human: true }, cmdErr: '', busy: null, newApp: false,
+      cmds: '[{"program":"npm","args":["test"]},{"program":"npm","args":["run","lint"]}]',
+    },
+    cr: {
+      q: 'Consumer journaling and photo apps with 10–200 people', f: { ind: 'Mobile apps', size: '11–200', country: 'Any', fund: 'Any' },
+      tab: 'results', used: 38.5, limit: 100, phase: 'done', sel: null, shortlist: ['C-2'], dismissed: [],
+      rows: [
+        { id: 'C-1', name: 'Driftnote', domain: 'driftnote.app', color: '#0F766E', line: 'Private journaling app with photo and voice entries.', emp: 34, growth: '+21%', country: 'United States', fund: 'Seed · $4.2M', fit: 'strong', why: ['Consumer app with in-app support chat', 'Ships weekly to iOS and web', '34 people, inside the 10–200 target'], miss: [], tools: ['Intercom', 'GitHub', 'Slack'], signals: ['Hiring a support lead', 'App Store reviews mention upload bugs'] },
+        { id: 'C-2', name: 'Framewise', domain: 'framewise.io', color: '#6D4FC2', line: 'Shared photo albums for families.', emp: 88, growth: '+9%', country: 'United Kingdom', fund: 'Series A · $14M', fit: 'strong', why: ['Photo uploads are the core flow', 'Support handled by 3 people', 'Public changelog and docs'], miss: [], tools: ['Zendesk', 'GitHub', 'Linear'], signals: ['Changelog shows frequent upload fixes'] },
+        { id: 'C-3', name: 'Moodline', domain: 'moodline.co', color: '#B7791F', line: 'Mood tracker with daily prompts.', emp: 12, growth: '+40%', country: 'Canada', fund: 'Bootstrapped', fit: 'potential', why: ['Consumer mobile app', 'Fast-growing team'], miss: ['No public support channel found'], tools: ['Email'], signals: ['Founder posts customer feedback on X'] },
+        { id: 'C-4', name: 'Albumly', domain: 'albumly.com', color: '#C2552F', line: 'Photo book printing marketplace.', emp: 640, growth: '+3%', country: 'Germany', fund: 'Series C · $90M', fit: 'low', why: ['Photo-heavy product'], miss: ['640 people, above the 200 target', 'Uses an in-house helpdesk'], tools: ['In-house'], signals: [] },
+      ],
+    },
+    cfg: {
+      sec: 'general', exhausted: false, limit: 50, alert: 80, spent: 24.43, route: 'litellm', widgetModel: 'gemini-flash', agentModel: 'claude-sonnet', invite: '', inviteRole: 'support',
+      team: [
+        { id: 'u1', name: 'Avi Dwivedi', email: 'avi@bloom.example', role: 'owner', you: true, color: '#1E7A53', ini: 'AV', seen: now - 60e3 },
+        { id: 'u2', name: 'Holly Grant', email: 'holly@bloom.example', role: 'product', color: '#6D4FC2', ini: 'HG', seen: now - 2 * H },
+        { id: 'u3', name: 'Ganesh Rao', email: 'ganesh@bloom.example', role: 'engineering', color: '#3563C9', ini: 'GR', seen: now - 20 * H },
+        { id: 'u4', name: 'Aria Chen', email: 'aria@bloom.example', role: 'support', color: '#C2552F', ini: 'AC', seen: now - 30 * 60e3 },
+        { id: 'u5', name: 'sam@bloom.example', email: 'sam@bloom.example', role: 'support', invited: true, color: '#8C9390', ini: 'S', seen: now - 2 * D },
+      ],
+      usage: [['Widget answers', 'gemini-flash', 1240, '2.1M', '310k', 4.82], ['Embeddings', 'embed', 3880, '1.4M', '—', 0.31], ['Agents', 'claude-sonnet', 214, '1.9M', '120k', 18.40], ['Answer tests', 'nova-lite', 96, '410k', '38k', 0.90]],
+      daily: [0.6, 1.1, 0.9, 1.4, 2.2, 1.8, 1.2, 0.8, 1.6, 2.4, 3.1, 2.2, 2.6, 2.5],
+    },
+  };
+}
+const seedBaseX = seed;
+seed = () => Object.assign(seedBaseX(), xSeed(Date.now()));
+Object.assign(S, xSeed(Date.now()));
+
+/* ---------- shared states ---------- */
+function xSk(rows = 4) { return `<div class="x-card">${Array.from({ length: rows }, () => `<div class="x-skrow"><div class="sk" style="width:28px;height:28px;border-radius:8px"></div><div style="flex:1"><div class="sk" style="height:12px;width:42%"></div><div class="sk" style="height:10px;width:68%;margin-top:8px"></div></div><div class="sk" style="height:18px;width:72px;border-radius:9px"></div></div>`).join('')}</div>`; }
+function xEmpty(icon, h, p, btn = '') { return `<div class="x-card"><div class="empty x-empty"><div class="e-ic">${ic(icon, 22)}</div><h3>${h}</h3><p>${p}</p>${btn}</div></div>`; }
+function xErr(h, p) { return `<div class="x-card"><div class="empty x-empty"><div class="e-ic" style="background:var(--fail-t);color:var(--fail)">${ic('alert', 22)}</div><h3>${h}</h3><p>${p}</p><button class="btn" data-act="xRetry">${ic('refresh', 13)}Try again</button></div></div>`; }
+function xDenied(what, perm) { return `<div class="x-card"><div class="empty x-empty"><div class="e-ic" style="background:var(--warn-t);color:var(--warn)">${ic('lock', 22)}</div><h3>You don’t have access to ${what}</h3><p>${canNames(perm)} can open this. You’re signed in as ${ROLES[S.x.role]}.</p><button class="btn" data-act="xAsk" data-v="${esc(what)}">Ask an owner for access</button></div></div>`; }
+function xState(o) { // o: {icon, what, perm, empty:[h,p,btn], err:[h,p], rows}
+  if (o.perm && !can(o.perm)) return xDenied(o.what, o.perm);
+  const st = S.x.state;
+  if (st === 'loading') return xSk(o.rows);
+  if (st === 'error') return xErr(...o.err);
+  if (st === 'empty') return xEmpty(o.icon, ...o.empty);
+  return null;
+}
+const xLockNote = (perm, txt) => `<span class="x-lock">${ic('lock', 12)}${txt || canNames(perm) + ' only'}</span>`;
+function xRerender(sel) { if (sel && $(sel)) keepScroll(sel, () => renderMain(false)); else keepScroll('.view', () => renderMain(false)); }
+
+/* ---------- knowledge: library ---------- */
+const kbSrc = id => S.kb.sources.find(s => s.id === id);
+const kbApp = id => S.kb.apps.find(a => a.id === id);
+const visChip = v => v === 'customer' ? `<span class="chip x-vis cust">${ic('eye', 11)}Customer-facing</span>` : `<span class="chip x-vis">${ic('lock', 11)}Internal</span>`;
+function stChip(s) {
+  if (s.idx === 'failed') return '<span class="chip fail">Import failed</span>';
+  if (s.pending) return `<span class="chip run">Publishing r${s.pending}</span>`;
+  if (s.status === 'published' && s.draftRev) return '<span class="chip warn">Unpublished changes</span>';
+  return { published: '<span class="chip ok">Published</span>', draft: '<span class="chip outline">Draft</span>', withdrawn: '<span class="chip p3">Withdrawn</span>' }[s.status];
+}
+function idxCell(s) {
+  if (s.idx === 'failed') return `<span class="x-idx fail">${ic('alert', 12)}Failed</span>`;
+  if (s.idx === 'queued') return `<span class="x-idx">${ic('clock', 12)}Queued</span>`;
+  if (s.idx === 'indexing') return `<span class="x-idx run"><span class="spin"></span>Indexing</span>`;
+  if (s.status === 'withdrawn') return '<span class="x-idx mute">Not searchable</span>';
+  if (s.status === 'draft') return '<span class="x-idx mute">Not indexed</span>';
+  return `<span class="x-idx ok">${ic('check', 12)}${s.chunks.length} ${s.chunks.length === 1 ? 'passage' : 'passages'}</span>`;
+}
+function kbTabs(on) {
+  const t = [['sources', 'Sources', S.kb.sources.length, '#/knowledge'], ['test', 'Test answers', '', '#/knowledge/test'], ['widget', 'Customer widget', '', '#/knowledge/widget']];
+  return `<nav class="g-tabs" aria-label="Knowledge">${t.map(([k, l, c, h]) => `<a href="${h}" class="${on === k ? 'on' : ''}" ${on === k ? 'aria-current="page"' : ''}>${l}${c ? `<span class="n">${c}</span>` : ''}</a>`).join('')}</nav>`;
+}
+function kbHead(sub) {
+  return `<div class="page-h"><div><h1 style="display:flex;gap:8px;align-items:center"><span style="color:var(--accent)">${ic('book', 20)}</span>Knowledge</h1><p>${sub}</p></div>
+    <div class="x-actions"><a class="btn" href="#/knowledge/test">${ic('sparkle', 13)}Test an answer</a>${can('kbEdit') ? `<div class="x-menu-wrap"><button class="btn primary" data-act="kbMenu" aria-expanded="${S.kb.menu}" aria-haspopup="menu">${ic('plus', 13)}Add source</button>${S.kb.menu ? `<div class="x-menu" role="menu">${Object.entries(KIND).map(([k, v]) => `<a role="menuitem" href="#/knowledge/new/${k}"><span class="x-mi-ic">${ic(v.i, 15)}</span><span><b>${v.l}</b><small>${v.d}</small></span></a>`).join('')}</div>` : ''}</div>` : ''}</div></div>`;
+}
+function kbRows() {
+  const f = S.kb.f, q = f.q.trim().toLowerCase();
+  const list = S.kb.sources.filter(s => (f.app === 'all' || s.app === f.app) && (f.vis === 'all' || s.vis === f.vis) && (f.status === 'all' || (f.status === 'failed' ? s.idx === 'failed' : s.status === f.status)) && (!q || (s.title + ' ' + (s.url || '') + ' ' + (s.fileName || '')).toLowerCase().includes(q)));
+  if (!list.length) return `<div class="empty x-empty"><div class="e-ic">${ic('search', 22)}</div><h3>No sources match</h3><p>Try another app, visibility or status, or clear the search.</p><button class="btn" data-act="kbClear">Clear filters</button></div>`;
+  return S.kb.apps.map(a => {
+    const rows = list.filter(s => s.app === a.id); if (!rows.length) return '';
+    return `<div class="x-grp"><div class="x-grp-h"><b>${esc(a.name)}</b><span>${esc(a.domain)}</span><span class="r">${rows.length} ${rows.length === 1 ? 'source' : 'sources'}</span></div>
+      ${rows.map(s => `<a class="x-row" href="#/knowledge/${s.id}"><span class="x-kind">${ic(KIND[s.kind].i, 15)}</span><span class="x-main"><b>${esc(s.title)}</b><small>${KIND[s.kind].l} · r${s.rev}${s.pending ? ` → r${s.pending}` : ''} · ${esc(s.by)} · ${rel(s.updated)} ago${s.error ? ` · <span style="color:var(--fail)">${esc(s.error.split('.')[0])}</span>` : ''}</small></span>${visChip(s.vis)}${stChip(s)}${idxCell(s)}</a>`).join('')}</div>`;
+  }).join('');
+}
+function kbLibrary() {
+  const ss = S.kb.sources, f = S.kb.f;
+  const n = { live: ss.filter(s => s.status === 'published' && s.vis === 'customer').length, int: ss.filter(s => s.status === 'published' && s.vis === 'internal').length, draft: ss.filter(s => s.status === 'draft').length, idx: ss.filter(s => ['queued', 'indexing'].includes(s.idx)).length, fail: ss.filter(s => s.idx === 'failed').length };
+  const seg = (key, opts) => `<div class="seg-ctl x-seg" role="group">${opts.map(([v, l]) => `<button class="${f[key] === v ? 'on' : ''}" data-act="kbF" data-k="${key}" data-v="${v}" aria-pressed="${f[key] === v}">${l}</button>`).join('')}</div>`;
+  const st = xState({ icon: 'book', what: 'Knowledge', empty: ['No company knowledge yet', 'Add an FAQ, paste a policy or import your help center. Cue only answers customers from sources you publish.', can('kbEdit') ? '<a class="btn primary" href="#/knowledge/new/faq">Add your first FAQ</a>' : ''], err: ['Couldn’t load knowledge sources', 'The knowledge service didn’t respond. Your published sources are still being used for answers.'] });
+  return `<div class="page enter x-page" style="max-width:1240px">${kbHead('What Cue can use to answer customers and brief your team. Only published, customer-facing sources reach the widget.')}${kbTabs('sources')}
+    ${st || `<div class="x-sum"><div><b>${n.live}</b><span>customer-facing, live</span></div><div><b>${n.int}</b><span>internal, live</span></div><div><b>${n.draft}</b><span>${n.draft === 1 ? 'draft' : 'drafts'}</span></div><div class="${n.idx ? 'run' : ''}"><b>${n.idx}</b><span>indexing</span></div><div class="${n.fail ? 'fail' : ''}"><b>${n.fail}</b><span>failed</span></div></div>
+    <div class="x-bar"><label class="x-search">${ic('search', 14)}<input id="kb-q" placeholder="Search sources" value="${esc(f.q)}" aria-label="Search sources"></label>
+      ${seg('app', [['all', 'All apps'], ...S.kb.apps.map(a => [a.id, a.name])])}${seg('vis', [['all', 'Any visibility'], ['customer', 'Customer-facing'], ['internal', 'Internal']])}
+      <select class="inp x-sel" id="kb-status" aria-label="Status">${[['all', 'All statuses'], ['published', 'Published'], ['draft', 'Drafts'], ['withdrawn', 'Withdrawn'], ['failed', 'Failed imports']].map(([v, l]) => `<option value="${v}" ${f.status === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+    <div class="x-card" id="kb-list">${kbRows()}</div>
+    ${!can('kbPublish') ? `<div class="callout" style="margin-top:12px;background:var(--sunken);color:var(--ink-2)">${ic('lock', 14)}As ${ROLES[S.x.role]} you can draft and edit sources. ${canNames('kbPublish')} publish them.</div>` : ''}`}</div>`;
+}
+
+/* ---------- knowledge: editor ---------- */
+function kbChunksFrom(e) {
+  if (e.kind === 'faq') return e.q.trim() && e.a.trim() ? [{ h: e.q.trim(), t: e.a.trim() }] : [];
+  if (e.kind === 'text') return e.text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean).map((p, i) => ({ h: i ? (e.title || 'Untitled') + ' · ' + (i + 1) : (e.title || 'Untitled'), t: p }));
+  return e.chunks || [];
+}
+function kbInitEd(id, kind) {
+  const s = id ? kbSrc(id) : null;
+  if (S.kb.ed && S.kb.ed.key === (id || 'new-' + kind)) return S.kb.ed;
+  S.kb.ed = s ? { key: id, id, kind: s.kind, title: s.title, q: s.q || '', a: s.a || '', alts: s.alts || '', text: s.text || '', url: s.url || '', fileName: s.fileName || '', app: s.app, vis: s.vis, chunks: s.chunks, phase: s.idx === 'failed' ? 'failed' : 'ready', dirty: false, err: s.error || '' }
+    : { key: 'new-' + kind, id: null, kind, title: '', q: '', a: '', alts: '', text: '', url: '', fileName: '', app: S.kb.f.app === 'all' ? 'web' : S.kb.f.app, vis: 'customer', chunks: [], phase: 'idle', dirty: false, err: '' };
+  S.kb.confirm = null;
+  return S.kb.ed;
+}
+function kbVersionLine(s) {
+  if (!s) return 'Not saved yet';
+  if (s.pending) return s.status === 'published' ? `Publishing r${s.pending}. r${s.rev} stays live until indexing finishes.` : `Publishing r${s.pending}. It goes live when indexing finishes.`;
+  if (s.idx === 'failed') return 'Import failed. Nothing from this source is used.';
+  if (s.status === 'published' && s.draftRev) return `r${s.rev} is live. Draft r${s.draftRev} is saved but not published.`;
+  if (s.status === 'published') return `r${s.rev} is live${s.vis === 'customer' ? ' in customer answers' : ' for staff answers'}.`;
+  if (s.status === 'withdrawn') return `Withdrawn. r${s.rev} is excluded from new answers.`;
+  return `Draft r${s.rev}. Not used in answers until published.`;
+}
+function kbFields(e) {
+  const dis = can('kbEdit') ? '' : 'disabled';
+  const ta = (id, label, val, ph, rows = 5, hint = '') => `<label class="x-f"><span>${label}</span><textarea class="inp x-ta" id="${id}" rows="${rows}" placeholder="${esc(ph)}" ${dis}>${esc(val)}</textarea>${hint ? `<small>${hint}</small>` : ''}</label>`;
+  const inp = (id, label, val, ph, hint = '') => `<label class="x-f"><span>${label}</span><input class="inp" id="${id}" value="${esc(val)}" placeholder="${esc(ph)}" ${dis}>${hint ? `<small>${hint}</small>` : ''}</label>`;
+  if (e.kind === 'faq') return inp('ed-q', 'Question', e.q, 'How do I upload a photo?') + ta('ed-a', 'Answer', e.a, 'Write the answer your support team would give.', 5) + ta('ed-alts', 'Other ways customers ask', e.alts, 'One per line, optional', 3, 'Helps Cue match questions that use different words.');
+  if (e.kind === 'text') return inp('ed-title', 'Title', e.title, 'Title (optional)', 'Uses the first line if left blank') + ta('ed-text', 'Content', e.text, 'Paste your documentation, policies or product context…', 10, 'Blank lines split content into passages.');
+  if (e.kind === 'file') {
+    const p = e.phase;
+    const body = p === 'uploading' ? `<div class="x-drop busy"><span class="spin"></span><b>Uploading ${esc(e.fileName)}</b><div class="x-prog"><i style="width:62%"></i></div></div>`
+      : p === 'extracting' ? `<div class="x-drop busy"><span class="spin"></span><b>Extracting text from ${esc(e.fileName)}</b><small>Reading pages and headings…</small></div>`
+      : p === 'failed' ? `<div class="x-drop err">${ic('alert', 20)}<b>Couldn’t extract text</b><small>${esc(e.err)}</small><span class="x-row-btns"><button class="btn sm" data-act="edFile" data-v="ok">Choose another file</button></span></div>`
+      : e.fileName ? `<div class="x-file">${ic('file', 16)}<span><b>${esc(e.fileName)}</b><small>${e.chunks.length} passages extracted · ${new Set(e.chunks.map(c => c.p)).size} pages</small></span><button class="btn sm ghost" data-act="edFile" data-v="ok" ${dis}>Replace</button></div>`
+      : `<div class="x-drop">${ic('upload', 22)}<b>Drop a document or browse</b><small>PDF, DOCX, Markdown or TXT · up to 10 MB</small><span class="x-row-btns"><button class="btn sm" data-act="edFile" data-v="ok" ${dis}>Use sample PDF</button><button class="btn sm ghost" data-act="edFile" data-v="bad" ${dis}>Try a scanned PDF</button></span></div>`;
+    return inp('ed-title', 'Title', e.title, 'Title (optional)', 'Uses the file name if left blank') + `<div class="x-f"><span>Document</span>${body}</div>`;
+  }
+  const gh = e.kind === 'github';
+  const busy = e.phase === 'importing';
+  return inp('ed-url', gh ? 'Public GitHub file URL' : 'Public document URL', e.url, gh ? 'https://github.com/org/repo/blob/main/docs/page.md' : 'https://help.example.com/article') +
+    `<div class="x-inline"><button class="btn" data-act="edImport" ${busy || !can('kbEdit') ? 'disabled' : ''}>${busy ? '<span class="spin"></span>Importing…' : ic('refresh', 13) + (e.chunks.length ? 'Import a fresh copy' : 'Import and save draft')}</button><small>${gh ? 'Only public repositories. Private files need the GitHub connection.' : 'Cue reads the page once. Import again to pick up changes.'}</small></div>` +
+    (e.phase === 'failed' ? `<div class="x-error">${ic('alert', 14)}<div><b>Import failed</b><span>${esc(e.err)}</span></div></div>` : '');
+}
+function kbPreview(e) {
+  const ch = kbChunksFrom(e);
+  const busy = ['uploading', 'extracting', 'importing'].includes(e.phase);
+  return `<div class="x-card x-prev"><div class="x-card-h">${ic('eye', 14)}<b>Extracted passages</b><span class="r">${busy ? 'Working…' : ch.length + ' ' + (ch.length === 1 ? 'passage' : 'passages')}</span></div>
+    ${busy ? `<div style="padding:14px">${[0, 1, 2].map(() => '<div class="sk" style="height:11px;width:40%;margin-bottom:8px"></div><div class="sk" style="height:10px;width:92%;margin-bottom:6px"></div><div class="sk" style="height:10px;width:70%;margin-bottom:18px"></div>').join('')}</div>`
+      : ch.length ? ch.map((c, i) => `<div class="x-chunk"><div class="x-ch-h"><span class="n">${i + 1}</span><b>${esc(c.h)}</b>${c.p ? `<span class="pg">p. ${c.p}</span>` : ''}</div><p>${esc(c.t)}</p></div>`).join('')
+      : `<div class="empty x-empty" style="padding:32px 18px"><div class="e-ic">${ic('file', 20)}</div><h3>Nothing extracted yet</h3><p>${e.kind === 'faq' ? 'Write a question and answer to preview the passage Cue will search.' : e.kind === 'text' ? 'Paste content to preview how it’s split into passages.' : 'Import the source to review the extracted text before publishing.'}</p></div>`}
+    <div class="x-prev-f">${e.vis === 'customer' ? ic('eye', 12) + 'Once published, the widget can quote these passages to customers.' : ic('lock', 12) + 'Internal: used for staff answers only. Never shown in the widget.'}</div></div>`;
+}
+function kbFoot(e, s) {
+  const pub = can('kbPublish');
+  if (S.kb.confirm === 'withdraw') return `<div class="x-foot warn"><span>${ic('alert', 14)}Withdraw “${esc(s.title)}”? It stops being used in new answers right away. You can publish it again later.</span><button class="btn danger" data-act="edWithdraw" data-v="yes">Withdraw</button><button class="btn" data-act="edWithdraw" data-v="no">Cancel</button></div>`;
+  const hasContent = kbChunksFrom(e).length > 0;
+  const working = s && (s.pending || ['queued', 'indexing'].includes(s.idx));
+  const pubBtn = pub ? `<button class="btn primary" data-act="edPublish" ${!hasContent || working || e.dirty || !s || (s.status === 'published' && !s.draftRev) ? 'disabled' : ''}>${working ? '<span class="spin"></span>Publishing…' : ic('check', 13) + (s && s.status === 'published' ? 'Publish update' : 'Publish')}</button>` : `<button class="btn primary" disabled title="${canNames('kbPublish')} publish">${ic('lock', 13)}Publish</button>`;
+  const note = !can('kbEdit') ? xLockNote('kbEdit') : e.dirty ? '<span class="x-note warn">Unsaved changes. Save your edits before publishing.</span>' : !s ? '<span class="x-note">Save a draft first. Publishing uses the saved revision.</span>' : !pub ? `<span class="x-note">Draft saved. ${canNames('kbPublish')} can publish it.</span>` : working ? '<span class="x-note">Publishing queued. The previous published revision stays active until indexing finishes.</span>' : '<span class="x-note">Publishing uses this saved revision.</span>';
+  return `<div class="x-foot">${note}<span class="x-foot-r">${s && s.status === 'published' && pub ? '<button class="btn danger" data-act="edWithdraw">Withdraw</button>' : ''}<button class="btn" data-act="edSave" ${!can('kbEdit') || (!e.dirty && s) ? 'disabled' : ''}>Save draft</button>${pubBtn}</span></div>`;
+}
+function kbEditor(id, kind) {
+  if (id !== 'new' && !kbSrc(id)) return `<div class="page enter x-page">${xEmpty('book', 'Source not found', 'It may have been deleted. Withdrawn sources stay in the list.', '<a class="btn" href="#/knowledge">Back to Knowledge</a>')}</div>`;
+  if (id === 'new' && !can('kbEdit')) return `<div class="page enter x-page"><a class="x-back" href="#/knowledge">${ic('arrowL', 14)}Knowledge</a>${xDenied('adding knowledge', 'kbEdit')}</div>`;
+  if (id === 'new' && !KIND[kind]) kind = 'faq';
+  const e = kbInitEd(id === 'new' ? null : id, kind), s = e.id ? kbSrc(e.id) : null;
+  const title = e.kind === 'faq' ? e.q || 'New FAQ' : e.title || (s ? s.title : 'New ' + KIND[e.kind].l.toLowerCase());
+  const visCard = (v, l, d, icn) => `<button class="x-vc ${e.vis === v ? 'on' : ''}" data-act="edVis" data-v="${v}" aria-pressed="${e.vis === v}" ${can('kbEdit') ? '' : 'disabled'}><span>${ic(icn, 14)}<b>${l}</b></span><small>${d}</small></button>`;
+  return `<div class="page enter x-page" style="max-width:1240px"><a class="x-back" href="#/knowledge">${ic('arrowL', 14)}Knowledge</a>
+    <div class="x-ed-h"><span class="x-kind lg">${ic(KIND[e.kind].i, 18)}</span><div style="min-width:0"><h1 id="ed-title-h">${esc(title)}</h1><div class="x-ed-m">${s ? stChip(s) : '<span class="chip outline">Not saved</span>'}${visChip(e.vis)}<span>${KIND[e.kind].l}</span><span>·</span><span>${esc(kbApp(e.app).name)}</span><span>·</span><span id="ed-ver">${kbVersionLine(s)}</span></div></div></div>
+    ${s && s.note ? `<div class="callout" style="background:var(--sunken);color:var(--ink-2);margin-bottom:14px">${ic('note', 14)}${esc(s.note)}</div>` : ''}
+    <div class="x-ed"><div><div class="x-card x-form">${kbFields(e)}
+      <div class="x-f"><span>Application</span><select class="inp" id="ed-app" ${can('kbEdit') ? '' : 'disabled'}>${S.kb.apps.map(a => `<option value="${a.id}" ${e.app === a.id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></div>
+      <div class="x-f"><span>Visibility</span><div class="x-vcs">${visCard('customer', 'Customer-facing', 'Published content can be used in customer widget answers.', 'eye')}${visCard('internal', 'Internal team only', 'Available to authorised staff. Excluded from customer widget answers.', 'lock')}</div></div>
+    </div></div>${kbPreview(e)}</div>${kbFoot(e, s)}</div>`;
+}
+function kbPage() {
+  if (S.id === 'test') return atPage();
+  if (S.id === 'widget') return wPage();
+  if (S.id) return kbEditor(S.id, S.sub);
+  return kbLibrary();
+}
+const edRefresh = () => { const e = S.kb.ed, s = e && e.id ? kbSrc(e.id) : null; const f = $('.x-foot'); if (f) f.outerHTML = kbFoot(e, s); const p = $('.x-prev'); if (p) p.outerHTML = kbPreview(e); const h = $('#ed-title-h'); if (h) h.textContent = (e.kind === 'faq' ? e.q : e.title) || (s ? s.title : 'Untitled'); };
+function kbSaveDraft() {
+  const e = S.kb.ed; const now = Date.now();
+  const title = (e.kind === 'faq' ? e.q : e.title).trim() || (e.kind === 'text' ? (e.text.split('\n')[0] || 'Untitled').slice(0, 60) : e.fileName || e.url.split('/').pop() || 'Untitled');
+  const chunks = kbChunksFrom(e).map(c => ({ ...c, k: (c.h + ' ' + c.t + ' ' + e.alts).toLowerCase() }));
+  let s = e.id ? kbSrc(e.id) : null;
+  if (!s) { s = { id: 'K-' + (S.kb.sources.length + 1), kind: e.kind, rev: 0, status: 'draft', idx: 'idle', by: OP.short, chunks: [] }; S.kb.sources.unshift(s); e.id = s.id; e.key = s.id; }
+  Object.assign(s, { title, q: e.q, a: e.a, alts: e.alts, text: e.text, url: e.url, fileName: e.fileName, app: e.app, vis: e.vis, chunks, updated: now, by: OP.short, error: e.phase === 'failed' ? e.err : '', idx: e.phase === 'failed' ? 'failed' : s.idx === 'failed' ? 'idle' : s.idx });
+  if (s.status === 'published' && e.dirty) s.draftRev = s.rev + 1;
+  if (s.status !== 'published') s.rev = Math.max(1, s.rev + (e.dirty ? 1 : 0));
+  if (s.status === 'withdrawn') s.status = 'draft';
+  e.dirty = false;
+  return s;
+}
+const XA = {
+  xRetry: () => { S.x.state = 'loading'; xRerender(); setTimeout(() => { S.x.state = 'populated'; xRerender(); renderDemo(); }, 700); },
+  xAsk: el => toast(`Access request sent to the workspace owner for ${el.dataset.v}`, 'info'),
+  demoX: el => { S.x.state = el.dataset.v; renderDemo(); if (S.sec) renderMain(false); },
+  demoRole: el => { S.x.role = el.dataset.v; renderDemo(); if (S.sec) renderMain(false); toast(`Viewing as ${ROLES[S.x.role]}`, 'info'); },
+  demoSpend: () => { S.cfg.exhausted = !S.cfg.exhausted; renderDemo(); if (S.sec) renderMain(false); },
+  kbMenu: () => { S.kb.menu = !S.kb.menu; xRerender(); },
+  kbF: el => { S.kb.f[el.dataset.k] = el.dataset.v; xRerender(); },
+  kbClear: () => { S.kb.f = { q: '', app: 'all', vis: 'all', status: 'all' }; xRerender(); },
+  edVis: el => { S.kb.ed.vis = el.dataset.v; S.kb.ed.dirty = true; xRerender(); },
+  edSave: () => { const s = kbSaveDraft(); toast(s.idx === 'failed' ? 'Draft saved. The import still needs to succeed before publishing.' : 'Draft saved. Publish when the extracted content is ready.'); if (S.id === 'new') go('#/knowledge/' + s.id); else xRerender(); },
+  edPublish: () => {
+    const s = kbSrc(S.kb.ed.id); if (!s || !can('kbPublish')) return;
+    const next = s.status === 'published' ? s.draftRev || s.rev + 1 : s.rev;
+    s.pending = next; s.idx = 'queued'; xRerender(); toast('Publishing queued. The previous published revision stays active until indexing finishes.', 'info');
+    setTimeout(() => { s.idx = 'indexing'; if (S.sec === 'knowledge') xRerender(); }, 900);
+    setTimeout(() => { s.idx = 'idle'; s.status = 'published'; s.rev = next; s.pending = null; s.draftRev = null; s.updated = Date.now(); if (S.sec === 'knowledge') xRerender(); toast(`Published r${next}. New answers can use it.`); }, 2600);
+  },
+  edWithdraw: el => {
+    if (!el.dataset.v) { S.kb.confirm = 'withdraw'; return xRerender(); }
+    S.kb.confirm = null;
+    if (el.dataset.v === 'yes') { const s = kbSrc(S.kb.ed.id); s.status = 'withdrawn'; s.updated = Date.now(); toast('Source withdrawn. It is excluded from new answers.', 'ok', { label: 'Undo', fn: () => { s.status = 'published'; xRerender(); } }); }
+    xRerender();
+  },
+  edFile: el => {
+    const e = S.kb.ed; const bad = el.dataset.v === 'bad';
+    e.fileName = bad ? 'scanned-terms.pdf' : 'refund-policy-2026.pdf'; e.phase = 'uploading'; e.dirty = true; xRerender();
+    setTimeout(() => { e.phase = 'extracting'; if (S.kb.ed === e) xRerender(); }, 700);
+    setTimeout(() => {
+      if (bad) { e.phase = 'failed'; e.err = 'This PDF is a scanned image with no text layer. Upload a text-based PDF or paste the text instead.'; e.chunks = []; }
+      else { e.phase = 'ready'; e.err = ''; e.chunks = kbSrc('K-3').chunks.map(c => ({ ...c })); toast('Document extracted. Review the draft before publishing.'); }
+      if (S.kb.ed === e) xRerender();
+    }, 1700);
+  },
+  edImport: () => {
+    const e = S.kb.ed; const url = e.url.trim();
+    if (!/^https:\/\/[^\s/]+\.[^\s/]+\/?\S*$/.test(url)) { e.phase = 'failed'; e.err = 'Enter a full public https:// address.'; return xRerender(); }
+    if (e.kind === 'github' && !/^https:\/\/github\.com\/[^/]+\/[^/]+\/blob\//.test(url)) { e.phase = 'failed'; e.err = 'Use a link to a file on github.com, like …/blob/main/docs/page.md.'; return xRerender(); }
+    e.phase = 'importing'; xRerender();
+    setTimeout(() => {
+      if (/releases\/1\.4|private|internal\./.test(url)) { e.phase = 'failed'; e.err = 'The page returned 403 Forbidden. Make sure it’s public, then import it again.'; e.chunks = []; }
+      else { e.phase = 'ready'; e.err = ''; e.chunks = (e.kind === 'github' ? kbSrc('K-5') : kbSrc('K-2')).chunks.map(c => ({ ...c })); if (!e.title) e.title = e.kind === 'github' ? url.split('/blob/')[1].split('/').slice(1).join('/') : 'Imported page'; }
+      const s = kbSaveDraft();
+      toast(e.phase === 'failed' ? 'Import failed. Saved as a draft so you can retry.' : 'Fresh page imported as a draft. Review and publish the update.', e.phase === 'failed' ? 'err' : 'ok');
+      if (S.id === 'new') go('#/knowledge/' + s.id); else xRerender();
+    }, 1400);
+  },
+};
+
+/* ---------- answer testing ---------- */
+const SYN = { rejected: 'fail', reject: 'fail', fails: 'fail', failing: 'fail', failed: 'fail', error: 'fail', broken: 'fail', 'won’t': 'fail', wont: 'fail', big: 'large', huge: 'large', money: 'refund', back: 'refund', cancel: 'refund', pictures: 'photo', picture: 'photo', photos: 'photo', image: 'photo', images: 'photo', pic: 'photo', add: 'upload', put: 'upload', send: 'upload', find: 'search', look: 'search', stored: 'storage', store: 'storage', files: 'storage' };
+const STOP = new Set('a an the is are do does i my me you your how can to of in on for and or it this that what why with be from at was'.split(' '));
+const toks = (s, sem) => s.toLowerCase().replace(/[^a-z0-9.’ ]/g, ' ').split(/\s+/).filter(w => w && !STOP.has(w)).flatMap(w => sem && SYN[w] ? [w, SYN[w]] : [w]);
+function retrieve(q, o) {
+  const sem = o.ret === 'hybrid', qt = toks(q, sem);
+  const hits = [];
+  S.kb.sources.forEach(s => (s.chunks || []).forEach((c, ci) => {
+    const kt = new Set(toks((c.k || '') + ' ' + c.h + ' ' + c.t, sem));
+    const m = qt.filter(w => kt.has(w));
+    const score = new Set(m).size / Math.max(3, new Set(qt).size);
+    if (score >= 0.34) hits.push({ s, c, ci, score, m: [...new Set(m)] });
+  }));
+  hits.sort((a, b) => b.score - a.score);
+  const usable = h => h.s.status === 'published' && h.s.idx !== 'failed' && (o.app === 'all' || h.s.app === o.app) && (o.scope === 'staff' || h.s.vis === 'customer');
+  const used = hits.filter(usable).slice(0, 3);
+  const skipped = hits.filter(h => !usable(h));
+  return { used, skipped, qt };
+}
+function answerFor(q, o) {
+  const t0 = performance.now();
+  const r = retrieve(q, o);
+  const meta = { model: o.model, via: modelVia(o.model), ret: o.ret, inT: 0, outT: 0, ms: 0 };
+  if (S.cfg.exhausted) return { status: 'limit', r, meta };
+  if (!r.used.length) return { status: 'insufficient', r, meta: { ...meta, ms: 180 + Math.round(performance.now() - t0) } };
+  const cited = r.used.slice(0, 2);
+  const text = cited.map((h, i) => h.c.t.replace(/\.$/, '') + ` [${i + 1}].`).join(' ');
+  meta.inT = 380 + r.used.length * 220; meta.outT = 40 + text.length / 4 | 0; meta.ms = { 'gemini-flash': 640, 'claude-haiku': 820, 'claude-sonnet': 1460, 'nova-lite': 710 }[o.model];
+  return { status: 'answered', r, cited, text, meta };
+}
+const hl = (t, words) => { let h = esc(t); words.filter(w => w.length > 2).forEach(w => { h = h.replace(new RegExp('(' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig'), '<mark>$1</mark>'); }); return h; };
+function atResult(res, label) {
+  if (!res) return '';
+  const head = label ? `<div class="at-lbl">${label}</div>` : '';
+  const m = res.meta;
+  const metaRow = `<div class="at-meta"><span>${esc(m.via)}</span><span>${esc(modelName(m.model))}</span><span>${m.ret === 'hybrid' ? 'Keyword + semantic' : 'Keyword baseline'}</span>${m.inT ? `<span>${m.inT} in · ${m.outT} out tokens</span><span>${m.ms} ms</span>` : '<span>No answer model call</span>'}</div>`;
+  const skipped = res.r.skipped.length ? `<div class="at-skip">${ic('eye', 13)}<div>${res.r.skipped.slice(0, 3).map(h => `<span><b>${esc(h.s.title)}</b> matched but wasn’t used: ${h.s.vis === 'internal' && S.at.scope === 'customer' ? 'internal source, excluded from customer answers' : h.s.status === 'draft' ? 'draft, not published' : h.s.status === 'withdrawn' ? 'withdrawn' : h.s.idx === 'failed' ? 'import failed' : 'different application'}.</span>`).join('')}</div></div>` : '';
+  if (res.status === 'limit') return `<div class="x-card at-res">${head}<div class="at-st fail">${ic('alert', 14)}No answer model call · spending limit reached</div><p class="at-body">Widget answers are paused until the limit is raised. Customers are offered a person instead.</p>${metaRow}<div class="at-f"><a class="btn sm" href="#/settings/usage">Open usage and limits</a></div></div>`;
+  if (res.status === 'insufficient') return `<div class="x-card at-res">${head}<div class="at-st warn">${ic('help', 14)}Not enough context · Cue won’t guess</div>
+    <div class="at-cust"><small>What the customer sees</small><div class="w-bub bot">I’m not sure about that one, and I don’t want to guess. Want me to bring in a person from the Bloom team?</div><div class="w-qr"><span>Talk to a person</span><span>Ask something else</span></div></div>
+    ${skipped}${metaRow}<div class="at-f">${can('kbEdit') ? `<button class="btn sm primary" data-act="atFaq">${ic('plus', 12)}Add an FAQ for this question</button>` : ''}<a class="btn sm" href="#/knowledge/widget" data-act="wPreset" data-v="handoff">See the handoff in the widget</a></div></div>`;
+  return `<div class="x-card at-res">${head}<div class="at-st ok">${ic('check', 14)}Answered from ${res.cited.length} ${res.cited.length === 1 ? 'passage' : 'passages'}</div>
+    <p class="at-body">${esc(res.text).replace(/\[(\d)\]/g, '<a class="cite" href="#at-p$1" data-act="atCite" data-v="$1">$1</a>')}</p>
+    <div class="at-ps">${res.r.used.map((h, i) => `<div class="at-p ${i < res.cited.length ? 'cited' : ''}" id="at-p${i + 1}"><div class="at-p-h"><span class="n">${i + 1}</span><b>${esc(h.s.title)}</b>${h.c.h !== h.s.title ? `<span>${esc(h.c.h)}${h.c.p ? ` · p. ${h.c.p}` : ''}</span>` : ''}<span class="r">${i < res.cited.length ? 'Cited' : 'Retrieved, not cited'} · ${(h.score * 100 | 0)}%</span></div><p>${hl(h.c.t, h.m)}</p><div class="at-p-f">${visChip(h.s.vis)}<a href="#/knowledge/${h.s.id}">Open source →</a></div></div>`).join('')}</div>
+    ${skipped}${metaRow}</div>`;
+}
+function atPage() {
+  const a = S.at;
+  const st = xState({ icon: 'sparkle', what: 'answer testing', err: ['Couldn’t reach the answer service', 'Nothing was sent to a model. Check the model settings, then try again.'], empty: ['Nothing to test against yet', 'Publish at least one customer-facing source, then ask the questions your customers ask.', '<a class="btn primary" href="#/knowledge/new/faq">Add an FAQ</a>'], rows: 3 });
+  const samples = ['How do I upload a photo?', 'Why does my 3 MB photo get rejected?', 'Can I get my money back after 30 days?', 'Do you have an Android app?', 'How are uploaded files stored?'];
+  const sel = (id, opts, v, label) => `<label class="x-f sm"><span>${label}</span><select class="inp" id="${id}">${opts.map(([k, l]) => `<option value="${k}" ${v === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`;
+  const busy = a.phase === 'running';
+  return `<div class="page enter x-page" style="max-width:1240px">${kbHead('Ask what your customers would ask. See the answer, the passages it cites, and what happens when Cue doesn’t know.')}${kbTabs('test')}
+    ${st || `<div class="at"><div class="x-card at-ask">
+      <label class="x-f"><span>Question</span><textarea class="inp x-ta" id="at-q" rows="3" placeholder="Ask something your customers would ask…">${esc(a.q)}</textarea></label>
+      <div class="at-samples">${samples.map(s => `<button class="chip outline" data-act="atSample" data-v="${esc(s)}">${esc(s)}</button>`).join('')}</div>
+      <div class="at-ctl">${sel('at-app', [['web', 'Bloom web'], ['ios', 'Bloom iOS'], ['all', 'All apps']], a.app, 'Application')}
+        <div class="x-f sm"><span>Answer as</span><div class="seg-ctl x-seg">${[['customer', 'Customer widget'], ['staff', 'Staff']].map(([k, l]) => `<button class="${a.scope === k ? 'on' : ''}" data-act="atScope" data-v="${k}">${l}</button>`).join('')}</div></div>
+        ${sel('at-model', MODELS.map(([k, l, v]) => [k, `${l} · ${v}`]), a.model, 'Widget model')}
+        ${sel('at-ret', [['hybrid', 'Keyword + semantic'], ['keyword', 'Keyword baseline']], a.ret, 'Retrieval')}</div>
+      <div class="at-go"><label class="switch">Compare retrieval and models<button class="tog ${a.compare ? 'on' : ''}" role="switch" aria-checked="${a.compare}" data-act="atCompare" aria-label="Compare retrieval and models"></button></label><button class="btn primary" data-act="atAsk" ${busy || !a.q.trim() ? 'disabled' : ''}>${busy ? '<span class="spin"></span>Answering…' : ic('send', 13) + 'Ask'}</button></div>
+      ${a.scope === 'customer' ? `<div class="x-prev-f" style="border:0;padding:0">${ic('eye', 12)}Customer mode uses only published, customer-facing sources, exactly like the widget.</div>` : `<div class="x-prev-f" style="border:0;padding:0">${ic('lock', 12)}Staff mode also uses internal sources. The widget never does.</div>`}
+    </div>
+    <div class="at-out" id="at-out">${busy ? `<div class="x-card at-res"><div class="at-steps"><span class="on">${ic('search', 12)}Searching ${S.kb.sources.reduce((n, s) => n + (s.chunks || []).length, 0)} passages</span><span>${ic('sparkle', 12)}Drafting answer</span><span>${ic('check', 12)}Checking citations</span></div>${[0, 1, 2].map(() => '<div class="sk" style="height:11px;width:90%;margin:10px 0"></div>').join('')}</div>`
+      : a.res ? (a.compare ? `<div class="at-cmp">${atResult(a.res, 'Current settings')}${atResult(a.res2, a.ret === 'hybrid' ? 'Keyword baseline' : 'Keyword + semantic')}</div>` : atResult(a.res))
+      : `<div class="x-card"><div class="empty x-empty"><div class="e-ic">${ic('sparkle', 22)}</div><h3>Ask a question to see Cue’s answer</h3><p>Try “Why does my 3 MB photo get rejected?”, then switch retrieval to Keyword baseline to see the difference.</p></div></div>`}</div></div>`}</div>`;
+}
+Object.assign(XA, {
+  atSample: el => { S.at.q = el.dataset.v; XA.atAsk(); },
+  atScope: el => { S.at.scope = el.dataset.v; S.at.res = null; xRerender(); },
+  atCompare: () => { S.at.compare = !S.at.compare; if (S.at.res) XA.atAsk(); else xRerender(); },
+  atAsk: () => {
+    const a = S.at; if (!a.q.trim()) return;
+    a.phase = 'running'; xRerender();
+    setTimeout(() => {
+      a.res = answerFor(a.q, a);
+      a.res2 = a.compare ? answerFor(a.q, { ...a, ret: a.ret === 'hybrid' ? 'keyword' : 'hybrid', model: a.model }) : null;
+      a.phase = 'idle'; if (S.sec === 'knowledge' && S.id === 'test') xRerender();
+    }, REDUCE ? 0 : 900);
+  },
+  atCite: (el, e) => { e.preventDefault(); const p = $('#at-p' + el.dataset.v); if (p) { p.scrollIntoView({ block: 'nearest', behavior: REDUCE ? 'auto' : 'smooth' }); p.classList.remove('flash'); void p.offsetWidth; p.classList.add('flash'); } },
+  atFaq: () => { S.kb.ed = null; const ed = kbInitEd(null, 'faq'); ed.q = S.at.q.trim(); ed.dirty = true; go('#/knowledge/new/faq'); },
+});
+
+/* ---------- customer widget ---------- */
+const W_PRESETS = [
+  ['conversation', 'Answer with sources', 'chat'], ['screenshot', 'Screenshot attached', 'image'], ['voice', 'Voice conversation', 'mic'], ['handoff', 'Not sure → a person', 'headset'],
+  ['loading', 'Loading', 'clock'], ['failed', 'Message not sent', 'alert'], ['offline', 'Offline', 'wifiOff'], ['micBlocked', 'Microphone blocked', 'micOff'], ['paused', 'Answers paused', 'gauge'],
+];
+const wBot = (text, extra = {}) => ({ who: 'bot', text, t: Date.now(), ...extra });
+const wMe = (text, extra = {}) => ({ who: 'me', text, t: Date.now(), ...extra });
+function wPresetMsgs(p) {
+  const up = answerFor('Why does my 3 MB photo get rejected?', { app: 'web', scope: 'customer', model: 'gemini-flash', ret: 'hybrid' });
+  const srcs = up.status === 'answered' ? up.cited.map(h => ({ title: h.s.title, h: h.c.h, url: h.s.url || '' })) : [];
+  const base = [wBot('Hi Maya! What can we help you with?', { greet: true })];
+  return {
+    conversation: [...base, wMe('Why does my 3 MB photo get rejected?'), wBot(up.text || 'Photos up to 5 MB are supported.', { srcs })],
+    screenshot: [...base, wMe('This keeps happening when I upload', { shot: { name: 'upload-error.png', size: '412 KB', st: 'sent' } }), wBot('Thanks, I can see the “Couldn’t upload your photo” message. Photos between 2 and 5 MB failed because of a bug that’s fixed in Bloom 1.4.3 [1].', { srcs: srcs.slice(1, 2) })],
+    voice: [...base, wMe('my photo won’t upload, it says try again', { voice: '0:04' }), wBot('Sorry about that. If the photo is between 2 and 5 MB, updating to Bloom 1.4.3 fixes it [1].', { voice: '0:06', srcs: srcs.slice(1, 2) })],
+    handoff: [...base, wMe('Do you have an Android app?'), wBot('I’m not sure about that one, and I don’t want to guess. Want me to bring in a person from the Bloom team?', { qr: ['Talk to a person', 'Ask something else'] }), wMe('Talk to a person'), wBot('', { handoff: true })],
+    loading: [...base, wMe('Can I get a refund on my annual plan?'), wBot('', { typing: true })],
+    failed: [...base, wMe('Can I change the date on a memory?', { failed: true })],
+    offline: [...base, wMe('Is there a dark mode?', { queued: true })],
+    micBlocked: [...base],
+    paused: [...base, wMe('How do I upload a photo?'), wBot('I can’t answer automatically right now, so I’ve passed your question to the Bloom team. A person will reply here and by email.', { handoff: true, paused: true })],
+  }[p] || base;
+}
+function wMsg(m) {
+  if (m.typing) return '<div class="w-row bot"><div class="w-bub bot w-typing"><i></i><i></i><i></i></div></div>';
+  if (m.handoff) return `<div class="w-hand"><div class="w-hand-h">${ic('headset', 15)}<b>A person will reply</b></div><p>${m.paused ? 'Your question is with the Bloom team.' : 'I’ve passed this conversation to the Bloom team, including what you’ve told me so far.'}</p><div class="w-hand-r"><span>Case</span><b>#BLM-2042</b></div><div class="w-hand-r"><span>Usually replies</span><b>within 2 hours</b></div><div class="w-hand-r"><span>We’ll reply</span><b>here and by email</b></div></div>`;
+  const shot = m.shot ? `<div class="w-shot ${m.shot.st}"><div class="w-shot-img"><span>Couldn’t upload your photo.</span></div><div><b>${esc(m.shot.name)}</b><small>${m.shot.st === 'uploading' ? 'Uploading… 64%' : m.shot.st === 'error' ? 'Too large (over 10 MB). Try a smaller screenshot.' : m.shot.size}</small></div></div>` : '';
+  const voice = m.voice ? `<span class="w-voice">${ic('mic', 11)}${m.voice}</span>` : '';
+  const body = m.text ? `<div class="w-bub ${m.who}${m.failed || m.queued ? ' faded' : ''}">${voice}${esc(m.text).replace(/\s?\[(\d)\]/g, '<sup>$1</sup>')}</div>` : '';
+  const srcs = m.srcs && m.srcs.length ? `<details class="w-srcs"><summary>${ic('book', 11)}${m.srcs.length} ${m.srcs.length === 1 ? 'source' : 'sources'}</summary>${m.srcs.map((s, i) => `<div class="w-src"><sup>${i + 1}</sup><span><b>${esc(s.title)}</b><small>${esc(s.h)}${s.url ? ' · ' + esc(s.url.replace(/^https:\/\//, '').split('/')[0]) : ''}</small></span></div>`).join('')}</details>` : '';
+  const qr = m.qr ? `<div class="w-qr">${m.qr.map(q => `<button data-act="wQuick" data-v="${esc(q)}">${esc(q)}</button>`).join('')}</div>` : '';
+  const st = m.failed ? `<div class="w-st err">${ic('alert', 11)}Not sent · <button data-act="wRetry">Retry</button></div>` : m.queued ? `<div class="w-st">${ic('clock', 11)}Waiting for connection</div>` : '';
+  return `<div class="w-row ${m.who}">${shot}${body}${srcs}${qr}${st}</div>`;
+}
+function wWidget() {
+  const w = S.w;
+  const voice = w.voice;
+  const voicePanel = voice === 'listening' ? `<div class="w-vp"><div class="w-wave">${Array.from({ length: 18 }, (_, i) => `<i style="animation-delay:${(i % 6) * .09}s"></i>`).join('')}</div><p>Listening… <span>“my photo won’t upload, it says try again”</span></p><div class="w-vp-b"><button class="w-btn ghost" data-act="wVoice" data-v="cancel">Cancel</button><button class="w-btn" data-act="wVoice" data-v="send">${ic('check', 13)}Done</button></div></div>`
+    : voice === 'speaking' ? `<div class="w-vp"><div class="w-wave speak">${Array.from({ length: 18 }, (_, i) => `<i style="animation-delay:${(i % 6) * .09}s"></i>`).join('')}</div><p>Speaking the answer… <span>Tap to stop. The transcript stays in the chat.</span></p><div class="w-vp-b"><button class="w-btn ghost" data-act="wVoice" data-v="stop">Stop</button></div></div>`
+    : voice === 'blocked' ? `<div class="w-vp blocked">${ic('micOff', 20)}<p><b>Microphone access is blocked</b><span>Allow microphone access for app.bloom.example in your browser settings, or type your question instead.</span></p><div class="w-vp-b"><button class="w-btn" data-act="wVoice" data-v="cancel">Type instead</button></div></div>` : '';
+  return `<div class="w-panel" role="dialog" aria-label="Bloom support">
+    <div class="w-h"><span class="w-logo">${ic('leaf', 14, '#fff')}</span><div><b>Bloom support</b><small>${w.offline ? '<i class="off"></i>Offline' : S.cfg.exhausted ? '<i class="wait"></i>A person will reply' : '<i></i>Usually answers instantly'}</small></div><button class="w-x" aria-label="Close support">${ic('x', 15)}</button></div>
+    ${w.offline ? `<div class="w-banner">${ic('wifiOff', 13)}You’re offline. Messages send when you reconnect.</div>` : ''}
+    <div class="w-body" id="w-body">${w.msgs.map(wMsg).join('')}</div>
+    ${voicePanel || `<div class="w-comp">${w.shot ? `<div class="w-att">${ic('image', 12)}<span>${esc(w.shot.name)}</span><small>${w.shot.st === 'uploading' ? 'Uploading…' : w.shot.st === 'error' ? 'Too large' : 'Ready'}</small><button data-act="wShot" data-v="remove" aria-label="Remove screenshot">${ic('x', 11)}</button></div>` : ''}
+      <div class="w-in"><textarea id="w-ta" rows="1" placeholder="${S.cfg.exhausted ? 'Write to the Bloom team…' : 'Ask a question…'}" aria-label="Message">${esc(w.draft)}</textarea>
+      <button class="w-ib" data-act="wShot" aria-label="Attach screenshot">${ic('image', 16)}</button><button class="w-ib" data-act="wVoice" data-v="start" aria-label="Talk instead">${ic('mic', 16)}</button><button class="w-send" data-act="wSend" aria-label="Send">${ic('send', 14, '#fff')}</button></div>
+      <div class="w-foot">Answers can be wrong. <button data-act="wQuick" data-v="Talk to a person">Talk to a person</button></div></div>`}</div>`;
+}
+function wPage() {
+  const st = xState({ icon: 'chat', what: 'the widget preview', err: ['Couldn’t load the widget preview', 'The widget configuration didn’t load. The live widget on your site isn’t affected.'], empty: ['No widget installed yet', 'Register an app and add the install snippet to your site. The preview uses that app’s published knowledge.', '<a class="btn primary" href="#/integrations/setup/widget">Set up the widget</a>'] });
+  if (!S.w.msgs.length) S.w.msgs = wPresetMsgs('conversation');
+  return `<div class="page enter x-page" style="max-width:1240px">${kbHead('What customers see. The widget answers only from published, customer-facing knowledge, and offers a person when it isn’t sure.')}${kbTabs('widget')}
+    ${st || `<div class="w-stage"><div class="w-site" aria-label="Bloom site preview"><div class="w-site-bar"><i></i><i></i><i></i><span>app.bloom.example/journal</span></div><div class="w-site-b"><div class="w-site-h">Good evening, Maya</div><div class="w-site-g">${[0, 1, 2, 3, 4, 5].map(i => `<span style="background:${['#f2b48a', '#cfe0d4', '#e8d7c1', '#c9d6ea', '#f1d9a8', '#dccbe9'][i]}"></span>`).join('')}</div></div>${wWidget()}<span class="w-fab">${ic('chat', 18, '#fff')}</span></div>
+      <aside class="w-side"><div class="x-card"><div class="x-card-h">${ic('panel', 14)}<b>States</b></div><div class="w-presets">${W_PRESETS.map(([k, l, i]) => `<button class="${S.w.preset === k ? 'on' : ''}" data-act="wPreset" data-v="${k}">${ic(i, 14)}${l}</button>`).join('')}</div></div>
+        <div class="x-card w-rules"><div class="x-card-h">${ic('shield', 14)}<b>What the widget never does</b></div><ul><li>Show HTTP codes, PRs or internal sources</li><li>Answer without a published source</li><li>Pretend a person replied</li><li>Keep listening after you tap Done</li></ul></div>
+        <div class="x-card w-rules"><div class="x-card-h">${ic('cpu', 14)}<b>This preview</b></div><ul><li>${esc(modelName(S.cfg.widgetModel))} via ${esc(modelVia(S.cfg.widgetModel))}</li><li>${S.kb.sources.filter(s => s.status === 'published' && s.vis === 'customer').length} published customer-facing sources</li><li>Voice ${S.setup.widgetOpts.voice ? 'on' : 'off'} · screenshots ${S.setup.widgetOpts.shots ? 'on' : 'off'}</li></ul><a class="btn sm" href="#/integrations/setup/widget" style="margin:0 14px 14px">Widget settings</a></div></aside></div>`}</div>`;
+}
+function wRender() { const p = $('.w-panel'); if (p) { p.outerHTML = wWidget(); const b = $('#w-body'); if (b) b.scrollTop = b.scrollHeight; } $$('.w-presets button').forEach(b => b.classList.toggle('on', b.dataset.v === S.w.preset)); }
+function wAsk(text, shot) {
+  const w = S.w; w.msgs.push(wMe(text, shot ? { shot } : {})); w.draft = ''; w.preset = '';
+  if (w.offline) { w.msgs[w.msgs.length - 1].queued = true; return wRender(); }
+  w.msgs.push(wBot('', { typing: true })); wRender();
+  setTimeout(() => {
+    w.msgs = w.msgs.filter(m => !m.typing);
+    if (!text && shot) w.msgs.push(wBot('Thanks for the screenshot. What were you trying to do when this happened?'));
+    else if (/person|human|someone|agent/i.test(text)) w.msgs.push(wBot('', { handoff: true }));
+    else {
+      const r = answerFor(text, { app: 'web', scope: 'customer', model: S.cfg.widgetModel, ret: 'hybrid' });
+      if (r.status === 'answered') w.msgs.push(wBot(r.text, { srcs: r.cited.map(h => ({ title: h.s.title, h: h.c.h, url: h.s.url || '' })) }));
+      else if (r.status === 'limit') w.msgs.push(wBot('', { handoff: true, paused: true }));
+      else w.msgs.push(wBot('I’m not sure about that one, and I don’t want to guess. Want me to bring in a person from the Bloom team?', { qr: ['Talk to a person', 'Ask something else'] }));
+    }
+    if (S.sec === 'knowledge') wRender();
+  }, REDUCE ? 0 : 1100);
+}
+Object.assign(XA, {
+  wPreset: el => {
+    const p = el.dataset.v, w = S.w;
+    Object.assign(w, { preset: p, msgs: wPresetMsgs(p), voice: p === 'micBlocked' ? 'blocked' : null, offline: p === 'offline', shot: null, draft: '' });
+    if (S.sec === 'knowledge' && S.id === 'widget') wRender(); else go('#/knowledge/widget');
+  },
+  wSend: () => {
+    const w = S.w, t = (($('#w-ta') || {}).value || '').trim();
+    if (!t && !w.shot) return;
+    if (w.shot && w.shot.st === 'uploading') return toast('Wait for the screenshot to finish uploading', 'info');
+    const shot = w.shot ? { ...w.shot, st: 'sent' } : null; w.shot = null;
+    wAsk(t, shot);
+  },
+  wQuick: el => { const v = el.dataset.v; if (v === 'Ask something else') { S.w.msgs.push(wBot('Sure, what else can I help with?')); return wRender(); } wAsk(v); },
+  wRetry: () => { const m = S.w.msgs.find(x => x.failed); if (!m) return; S.w.msgs = S.w.msgs.filter(x => x !== m); wAsk(m.text); },
+  wShot: el => {
+    const w = S.w;
+    if (el.dataset.v === 'remove') { w.shot = null; return wRender(); }
+    if (!S.setup.widgetOpts.shots) return toast('Screenshots are turned off in widget settings', 'info');
+    w.shot = { name: 'upload-error.png', size: '412 KB', st: 'uploading' }; wRender();
+    setTimeout(() => { if (w.shot) { w.shot.st = 'ready'; wRender(); } }, 900);
+  },
+  wVoice: el => {
+    const w = S.w, v = el.dataset.v;
+    if (v === 'start') { if (!S.setup.widgetOpts.voice) return toast('Voice is turned off in widget settings', 'info'); w.voice = 'listening'; return wRender(); }
+    if (v === 'cancel' || v === 'stop') { w.voice = null; return wRender(); }
+    if (v === 'send') {
+      w.voice = null; w.msgs.push(wMe('my photo won’t upload, it says try again', { voice: '0:04' })); w.msgs.push(wBot('', { typing: true })); wRender();
+      setTimeout(() => { w.msgs = w.msgs.filter(m => !m.typing); const r = answerFor('photo won’t upload fail', { app: 'web', scope: 'customer', model: S.cfg.widgetModel, ret: 'hybrid' }); w.msgs.push(r.status === 'answered' ? wBot(r.text, { voice: '0:06', srcs: r.cited.map(h => ({ title: h.s.title, h: h.c.h, url: h.s.url || '' })) }) : wBot('', { handoff: true, paused: r.status === 'limit' })); w.voice = r.status === 'answered' ? 'speaking' : null; wRender(); setTimeout(() => { if (w.voice === 'speaking') { w.voice = null; wRender(); } }, 2600); }, 1000);
+    }
+  },
+});
+
+/* ---------- app & connector setup ---------- */
+const SETUP_SECS = [['app', 'Applications', 'panel'], ['domains', 'Allowed domains', 'globe'], ['widget', 'In-app widget', 'widget'], ['repo', 'Repositories', 'github'], ['email', 'Email', 'mail'], ['slack', 'Slack', 'slack'], ['x', 'X', 'xlogo'], ['reddit', 'Reddit', 'reddit']];
+const VER = { ok: ['ok', 'Verified'], fail: ['fail', 'Needs attention'], wait: ['warn', 'Waiting for delivery'], off: ['', 'Not connected'], busy: ['run', 'Checking…'] };
+const verChip = k => { const [c, l] = VER[k]; return `<span class="chip ${c} ${c ? '' : 'outline'}">${k === 'busy' ? '<span class="spin" style="width:10px;height:10px;border-width:1.5px"></span>' : ''}${l}</span>`; };
+const curApp = () => S.setup.apps.find(a => a.id === S.setup.app) || S.setup.apps[0];
+function setupCard(key, title, sub, body, opts = {}) {
+  const v = S.setup.ver[key];
+  return `<section class="x-card su-card ${v === 'fail' ? 'fail' : ''}" id="su-${key}"><div class="su-h"><div><h3>${title}</h3><p>${sub}</p></div>${verChip(v)}</div>
+    ${v === 'fail' && opts.err ? `<div class="x-error" style="margin:0 18px 14px">${ic('alert', 14)}<div><b>${opts.err[0]}</b><span>${opts.err[1]}</span><code>${opts.err[2]}</code></div><button class="btn sm" data-act="suCheck" data-v="${key}" data-fix="1">${ic('refresh', 12)}Reconnect</button></div>` : ''}
+    ${v === 'wait' && opts.wait ? `<div class="callout" style="margin:0 18px 14px;background:var(--warn-t);color:var(--warn)">${ic('clock', 14)}${opts.wait}</div>` : ''}
+    <div class="su-b">${body}</div><div class="su-f"><span>${v === 'off' ? 'Not checked' : 'Last checked ' + (opts.checked || '4m') + ' ago'}</span><button class="btn sm" data-act="suCheck" data-v="${key}" ${v === 'busy' ? 'disabled' : ''}>${v === 'busy' ? '<span class="spin"></span>Checking…' : 'Check connection'}</button>${opts.save ? `<button class="btn sm primary" data-act="suSave" data-v="${key}">${opts.save}</button>` : ''}</div></section>`;
+}
+const fRow = (label, ctrl, hint = '') => `<div class="su-row"><label>${label}${hint ? `<small>${hint}</small>` : ''}</label><div>${ctrl}</div></div>`;
+function setupPage() {
+  const su = S.setup;
+  const st = xState({ icon: 'plug', what: 'app setup', perm: 'setup', err: ['Couldn’t load connections', 'Could not load connections. Refresh to retry. Nothing about your live connections changed.'], empty: ['Connect your application first', 'Register the app your customers use. Cue uses it to scope the widget, knowledge and repositories.', '<button class="btn primary" data-act="suNewApp">Register an application</button>'] });
+  const sec = SETUP_SECS.find(s => s[0] === S.sub) ? S.sub : 'app';
+  const a = curApp();
+  const domains = `<div class="su-chips">${a.domains.map(d => `<span class="su-chip">${ic('globe', 12)}${esc(d)}<button data-act="suDomain" data-v="${esc(d)}" aria-label="Remove ${esc(d)}">${ic('x', 11)}</button></span>`).join('') || '<span class="x-note">No domains yet. The widget won’t load anywhere until you add one.</span>'}</div>
+    <div class="x-inline"><input class="inp" id="su-dom" placeholder="app.example.com" style="max-width:260px" value="${esc(su.domDraft || '')}"><button class="btn" data-act="suDomain">Add domain</button></div>${su.domainErr ? `<div class="x-ferr">${ic('alert', 12)}${esc(su.domainErr)}</div>` : ''}`;
+  const snippet = `<script src="https://cue.example/widget.js"\n  data-app="${a.id}"\n  data-key="pk_live_7f3c…a91e"\n  async><\/script>`;
+  const tog = (k, l, d) => `<div class="su-tog"><span><b>${l}</b><small>${d}</small></span><button class="tog ${su.widgetOpts[k] ? 'on' : ''}" role="switch" aria-checked="${su.widgetOpts[k]}" data-act="suOpt" data-v="${k}" aria-label="${l}"></button></div>`;
+  const body = {
+    app: `<section class="x-card su-card" id="su-app"><div class="su-h"><div><h3>Applications</h3><p>The products your customers use. Knowledge, the widget and repositories are scoped per app.</p></div><button class="btn sm" data-act="suNewApp">${ic('plus', 12)}Register an application</button></div>
+      ${su.newApp ? `<div class="su-new">${fRow('Name', '<input class="inp" id="su-an" placeholder="Bloom Android">')}${fRow('Platform', '<select class="inp" id="su-ap"><option>Web</option><option>iOS</option><option>Android</option></select>')}<div class="x-inline" style="justify-content:flex-end"><button class="btn sm" data-act="suNewApp">Cancel</button><button class="btn sm primary" data-act="suAddApp">Register</button></div></div>` : ''}
+      <div class="su-apps">${su.apps.map(x => `<button class="su-app ${x.id === a.id ? 'on' : ''}" data-act="suApp" data-v="${x.id}"><span class="x-kind">${ic(x.platform === 'Web' ? 'globe' : 'panel', 15)}</span><span><b>${esc(x.name)}</b><small>${x.platform} · <code>${x.id}</code> · ${x.domains.length ? x.domains.length + ' domains' : 'no domains'}</small></span>${x.domains.length || x.platform !== 'Web' ? verChip('ok') : verChip('off')}</button>`).join('')}</div></section>`,
+    domains: setupCard('domains', 'Allowed domains · ' + esc(a.name), 'The widget only loads on these hosts. Requests from any other origin are refused.', domains, { checked: '1m' }),
+    widget: setupCard('widget', 'In-app widget · ' + esc(a.name), 'Paste this before the closing body tag on every page where customers should see support.', `<div class="su-code"><div class="su-code-h"><span>${ic('code', 12)}Copy-paste install</span><button class="btn sm ghost" data-act="suCopy">${ic('copy', 12)}Copy</button></div><pre>${esc(snippet)}</pre></div>
+      <div class="su-seen">${a.domains.length ? `${ic('check', 13)}Widget seen on <b>${esc(a.domains[0])}</b> 3 minutes ago` : `${ic('clock', 13)}Not seen yet. Install the snippet and open your site.`}</div>
+      ${tog('answers', 'Answer from knowledge', 'Uses only published, customer-facing sources.')}${tog('voice', 'Voice', 'Customers can talk instead of typing. Transcripts stay in the chat.')}${tog('shots', 'Screenshots', 'Attach a screenshot up to 10 MB.')}${tog('human', 'Ask for a person', 'Always available. Opens a case in the Inbox.')}
+      <a class="btn sm" href="#/knowledge/widget">Test widget ↗</a>`, { save: 'Save widget settings' }),
+    repo: setupCard('repo', 'Repositories', 'Where Codex implements fixes. Merges always need approval.', `${fRow('Repository', '<input class="inp" value="bloom/bloom-app">', 'Connected through the GitHub app')}${fRow('Default branch', '<input class="inp" value="main">')}${fRow('Codex implementation', '<select class="inp"><option>Cloud runner · sandboxed</option><option>Local worker</option></select>')}${fRow('Validation commands', `<textarea class="inp x-ta mono" id="su-cmds" rows="3">${esc(su.cmds)}</textarea>${su.cmdErr ? `<div class="x-ferr">${ic('alert', 12)}${esc(su.cmdErr)}</div>` : ''}`, 'JSON array of program and args')}`, { save: 'Save repository policy', checked: '12m' }),
+    email: setupCard('email', 'Email', 'Inbound email becomes cases. Replies go out from the same address.', `${fRow('Support receiving address', '<input class="inp" value="support@bloom.app">', 'Your Resend receiving address')}${fRow('Reply-from name', '<input class="inp" value="Bloom support">')}`, { save: 'Save and verify email', checked: '41m' }),
+    slack: setupCard('slack', 'Slack', 'Approvals, agent commands and resolved issues in #bloom-eng.', `${fRow('Delivery', '<div class="seg-ctl x-seg" style="max-width:420px"><button class="on">Hosted app · signed HTTPS</button><button>Local worker · Socket Mode</button></div>', 'Messages and approval buttons are delivered directly to the hosted Cue app over HTTPS.')}${fRow('Bot token', '<input class="inp" type="password" placeholder="Saved · leave blank to keep">')}${fRow('Signing secret', '<input class="inp" type="password" placeholder="Leave empty to keep current token">')}`, { err: ['Slack rejected the signing secret', 'Messages from Slack can’t be verified, so approvals and @Cue commands are ignored until you reconnect.', '401 invalid_signature · 09:12'], save: 'Save and verify Slack' }),
+    x: setupCard('x', 'X', 'Collect @bloomapp mentions. Replies are always drafts, posted by a person.', `${fRow('API credentials', '<input class="inp" type="password" placeholder="Saved · leave blank to keep">', 'From your own X developer app')}${fRow('Brand account user ID', '<input class="inp" value="1458829301" inputmode="numeric">', 'Numeric X user ID')}`, { wait: 'Credentials work; waiting for channel delivery to be verified. API polling active, last poll 2 minutes ago.', save: 'Save X connection' }),
+    reddit: setupCard('reddit', 'Reddit', 'Brand-account notifications and comment capture.', `${fRow('Account', '<span class="x-note">Inbox not connected. Sign in with the brand account to receive notifications.</span>')}<button class="btn sm primary" data-act="suCheck" data-v="reddit" data-fix="1">Connect Reddit</button>`),
+  }[sec];
+  return `<div class="page enter x-page" style="max-width:1240px"><a class="x-back" href="#/integrations">${ic('arrowL', 14)}Integrations</a><div class="page-h"><div><h1>App setup</h1><p>Credentials stay on the server. Connection checks show what is working.</p></div></div>
+    ${st || `<div class="su"><nav class="su-nav" aria-label="Setup sections">${SETUP_SECS.map(([k, l, i]) => `<a href="#/integrations/setup/${k}" class="${sec === k ? 'on' : ''}" ${sec === k ? 'aria-current="page"' : ''}>${ic(i, 14)}<span>${l}</span>${k === 'app' ? '' : `<i class="sd ${(VER[su.ver[k]] || ['', ''])[0]}"></i>`}</a>`).join('')}</nav><div class="su-main">${body}</div></div>`}</div>`;
+}
+Object.assign(XA, {
+  suApp: el => { S.setup.app = el.dataset.v; xRerender(); },
+  suNewApp: () => { S.setup.newApp = !S.setup.newApp; if (S.x.state === 'empty') S.x.state = 'populated'; go('#/integrations/setup/app'); xRerender(); },
+  suAddApp: () => { const n = ($('#su-an') || {}).value || ''; if (!n.trim()) return toast('Give the application a name', 'err'); const id = n.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'); S.setup.apps.push({ id, name: n.trim(), platform: $('#su-ap').value, domains: [] }); S.setup.app = id; S.setup.newApp = false; toast(`${n.trim()} registered. Add its allowed domains next.`); go('#/integrations/setup/domains'); },
+  suDomain: el => {
+    const a = curApp();
+    if (el.dataset.v) { a.domains = a.domains.filter(d => d !== el.dataset.v); S.setup.domainErr = ''; return xRerender(); }
+    const v = (($('#su-dom') || {}).value || '').trim().toLowerCase();
+    S.setup.domainErr = !v ? 'Enter a domain.' : /^https?:\/\//.test(v) ? 'Leave out https://. Enter just the host, like app.example.com.' : /\//.test(v) ? 'Enter a host without a path.' : v.startsWith('*.') ? 'Wildcards aren’t allowed. Add each host the widget runs on.' : !/^[a-z0-9-]+(\.[a-z0-9-]+)+(:\d+)?$|^localhost(:\d+)?$/.test(v) ? 'That doesn’t look like a domain.' : a.domains.includes(v) ? 'Already allowed.' : '';
+    S.setup.domDraft = S.setup.domainErr ? v : '';
+    if (!S.setup.domainErr) { a.domains.push(v); toast(`${v} allowed for ${a.name}`); }
+    xRerender();
+  },
+  suCopy: () => { try { navigator.clipboard.writeText($('.su-code pre').textContent); } catch (e) {} toast('Install snippet copied.'); },
+  suOpt: el => { const k = el.dataset.v; if (k === 'human') return toast('Asking for a person is always available to customers', 'info'); S.setup.widgetOpts[k] = !S.setup.widgetOpts[k]; xRerender(); },
+  suSave: el => {
+    if (el.dataset.v === 'repo') { const v = ($('#su-cmds') || {}).value || ''; let ok = false; try { const j = JSON.parse(v); ok = Array.isArray(j) && j.every(c => c && typeof c.program === 'string' && Array.isArray(c.args)); } catch (e) {} S.setup.cmds = v; S.setup.cmdErr = ok ? '' : 'Validation commands must be a JSON array of program and args objects.'; if (!ok) return xRerender(); }
+    toast('Saved and verified.'); xRerender();
+  },
+  suCheck: el => {
+    const k = el.dataset.v, prev = S.setup.ver[k], fix = el.dataset.fix;
+    S.setup.ver[k] = 'busy'; xRerender();
+    setTimeout(() => { S.setup.ver[k] = fix || prev === 'ok' ? 'ok' : prev; if (S.sec === 'integrations') xRerender(); toast(S.setup.ver[k] === 'ok' ? 'Connection verified' : prev === 'wait' ? 'Credentials work. Still waiting for delivery.' : 'Still failing. Check the credentials and reconnect.', S.setup.ver[k] === 'ok' ? 'ok' : 'err'); }, 1200);
+  },
+});
+
+/* ---------- crustdata research (growth › Cue customers) ---------- */
+const FIT = { strong: ['ok', 'Strong fit'], potential: ['warn', 'Potential'], low: ['', 'Outside target size'] };
+function crRow(c) {
+  const sl = S.cr.shortlist.includes(c.id), dm = S.cr.dismissed.includes(c.id);
+  return `<div class="cr-row ${S.cr.sel === c.id ? 'sel' : ''}" role="button" tabindex="0" data-act="crOpen" data-v="${c.id}"><span class="cr-logo" style="background:${c.color}">${c.name[0]}</span>
+    <div class="cr-main"><div class="cr-t"><b>${esc(c.name)}</b><span>${esc(c.domain)}</span><span class="chip ${FIT[c.fit][0]} ${FIT[c.fit][0] ? '' : 'outline'}">${FIT[c.fit][1]}</span></div><p>${esc(c.line)}</p>
+      <div class="cr-why">${c.why.slice(0, 2).map(w => `<span class="y">${ic('check', 11)}${esc(w)}</span>`).join('')}${c.miss.slice(0, 1).map(w => `<span class="n">${ic('x', 11)}${esc(w)}</span>`).join('')}</div></div>
+    <div class="cr-facts"><span>${ic('users', 12)}${c.emp} people <em>${esc(c.growth)}</em></span><span>${ic('globe', 12)}${esc(c.country)}</span><span>${ic('trend', 12)}${esc(c.fund)}</span></div>
+    <div class="cr-act">${dm ? `<button class="btn sm" data-act="crRestore" data-v="${c.id}">Restore</button>` : `<button class="btn sm ${sl ? 'on' : ''}" data-act="crShort" data-v="${c.id}" aria-pressed="${sl}">${ic('star', 12)}${sl ? 'Shortlisted' : 'Shortlist'}</button><button class="btn sm ghost" data-act="crDismiss" data-v="${c.id}" aria-label="Dismiss ${esc(c.name)}">${ic('x', 12)}</button>`}</div></div>`;
+}
+function gProspects() {
+  const cr = S.cr;
+  const st = xState({ icon: 'building', what: 'customer research', perm: 'research', err: ['Crustdata didn’t respond', 'The search returned 502 Bad Gateway. No credits were used. Try again in a minute.'], empty: ['No companies match', 'Loosen the headcount range or remove a filter. Searches that return nothing still use about 1 credit.', '<button class="btn" data-act="crReset">Reset filters</button>'], rows: 4 });
+  const left = Math.max(0, cr.limit - cr.used), out = left < 1;
+  const meter = `<div class="cr-meter ${out ? 'out' : cr.used / cr.limit > .8 ? 'hi' : ''}"><div class="cr-m-t"><span>${ic('gauge', 13)}<b>Crustdata credits</b></span><span>${cr.used.toFixed(1)} of ${cr.limit} used this month</span></div><div class="g-meter"><i style="width:${Math.min(100, cr.used / cr.limit * 100)}%"></i></div><small>Search ≈ 1 credit · company details ≈ 0.5 · resets Nov 1</small></div>`;
+  const sel = (k, opts, l) => `<label class="x-f sm"><span>${l}</span><select class="inp" data-crf="${k}">${opts.map(o => `<option ${cr.f[k] === o ? 'selected' : ''}>${o}</option>`).join('')}</select></label>`;
+  const tabs = [['results', 'Results', cr.rows.filter(c => !cr.dismissed.includes(c.id)).length], ['shortlist', 'Shortlist', cr.shortlist.length], ['dismissed', 'Dismissed', cr.dismissed.length]];
+  const rows = cr.rows.filter(c => cr.tab === 'shortlist' ? cr.shortlist.includes(c.id) : cr.tab === 'dismissed' ? cr.dismissed.includes(c.id) : !cr.dismissed.includes(c.id));
+  if (st) return `<div class="cr">${can('research') ? meter + '<div style="height:12px"></div>' : ''}${st}</div>`;
+  return `<div class="cr">${out ? `<div class="x-error" style="margin-bottom:12px">${ic('alert', 14)}<div><b>Credits used up</b><span>Searches and company details pause until Nov 1, or until an owner raises the monthly credit limit. Saved results stay available.</span></div>${can('limits') ? '<button class="btn sm" data-act="crTopUp">Raise limit</button>' : ''}</div>` : ''}
+    <div class="cr-top">${meter}<div class="x-card cr-search"><label class="x-search lg">${ic('search', 15)}<input id="cr-q" value="${esc(cr.q)}" placeholder="Describe the companies you’re looking for" aria-label="Describe companies"></label>
+      <div class="cr-f">${sel('ind', ['Any', 'Mobile apps', 'Consumer software', 'Photo & video', 'Productivity'], 'Industry')}${sel('size', ['Any', '1–10', '11–50', '11–200', '51–200', '201–500'], 'Headcount')}${sel('country', ['Any', 'United States', 'United Kingdom', 'Canada', 'Germany', 'India'], 'Country')}${sel('fund', ['Any', 'Bootstrapped', 'Seed', 'Series A', 'Series B+'], 'Funding')}
+      <button class="btn primary" data-act="crSearch" ${out || cr.phase === 'running' ? 'disabled' : ''}>${cr.phase === 'running' ? '<span class="spin"></span>Searching…' : ic('search', 13) + 'Search · ≈1 credit'}</button></div></div></div>
+    <div class="cr-note">${ic('shield', 13)}Research only. Cue never contacts these companies. Fit is researched from product and team-size signals, so check before reaching out.</div>
+    <nav class="g-tabs cr-tabs">${tabs.map(([k, l, n]) => `<a href="#/growth/prospects" data-act="crTab" data-v="${k}" class="${cr.tab === k ? 'on' : ''}">${l}<span class="n">${n}</span></a>`).join('')}</nav>
+    <div class="x-card" id="cr-list">${cr.phase === 'running' ? xSk(4).replace('<div class="x-card">', '<div>') : rows.length ? rows.map(crRow).join('') : `<div class="empty x-empty"><div class="e-ic">${ic(cr.tab === 'shortlist' ? 'star' : 'building', 22)}</div><h3>${cr.tab === 'shortlist' ? 'No companies shortlisted' : cr.tab === 'dismissed' ? 'Nothing dismissed' : 'No companies match'}</h3><p>${cr.tab === 'shortlist' ? 'Shortlist strong fits from Results to keep them here.' : cr.tab === 'dismissed' ? 'Dismissed companies stay here so they don’t come back in new searches.' : 'Loosen the filters and search again.'}</p></div>`}</div></div>`;
+}
+function crDetail(c) {
+  const r = (l, v) => `<div class="cr-kv"><span>${l}</span><b>${v}</b></div>`;
+  return `<div class="cr-d"><div class="cr-d-h"><span class="cr-logo lg" style="background:${c.color}">${c.name[0]}</span><div><h4>${esc(c.name)}</h4><a href="https://${esc(c.domain)}" target="_blank" rel="noopener">${esc(c.domain)} ↗</a></div><span class="chip ${FIT[c.fit][0]} ${FIT[c.fit][0] ? '' : 'outline'}" style="margin-left:auto">${FIT[c.fit][1]}</span></div>
+    <p>${esc(c.line)}</p>${r('Headcount', `${c.emp} people · ${esc(c.growth)} in 6 months`)}${r('Location', esc(c.country))}${r('Funding', esc(c.fund))}${r('Support and dev tools', esc(c.tools.join(', ')))}
+    <h5>Why it fits</h5>${c.why.map(w => `<div class="cr-y">${ic('check', 13)}${esc(w)}</div>`).join('')}${c.miss.map(w => `<div class="cr-n">${ic('x', 13)}${esc(w)}</div>`).join('')}
+    <h5>Signals</h5>${c.signals.length ? c.signals.map(s => `<div class="cr-s">${ic('zap', 12)}${esc(s)}</div>`).join('') : '<div class="x-note">No recent signals.</div>'}
+    <div class="x-note" style="margin-top:14px">Details already fetched · 0.5 credits used</div></div>`;
+}
+Object.assign(XA, {
+  crTab: (el, e) => { e.preventDefault(); S.cr.tab = el.dataset.v; xRerender(); },
+  crShort: (el, e) => { e.stopPropagation(); if (el.closest('.drawer')) closeOverlays(); const id = el.dataset.v, l = S.cr.shortlist; S.cr.shortlist = l.includes(id) ? l.filter(x => x !== id) : [...l, id]; xRerender(); },
+  crDismiss: (el, e) => { e.stopPropagation(); const id = el.dataset.v; S.cr.dismissed.push(id); S.cr.shortlist = S.cr.shortlist.filter(x => x !== id); xRerender(); toast('Dismissed. It won’t come back in new searches.', 'ok', { label: 'Undo', fn: () => { S.cr.dismissed = S.cr.dismissed.filter(x => x !== id); xRerender(); } }); },
+  crRestore: (el, e) => { e.stopPropagation(); S.cr.dismissed = S.cr.dismissed.filter(x => x !== el.dataset.v); xRerender(); },
+  crOpen: el => { const c = S.cr.rows.find(x => x.id === el.dataset.v); S.cr.sel = c.id; openDrawer(esc(c.name), crDetail(c), `<button class="btn" data-act="close">Close</button><button class="btn primary" data-act="crShort" data-v="${c.id}">${ic('star', 13)}${S.cr.shortlist.includes(c.id) ? 'Shortlisted' : 'Shortlist'}</button>`); },
+  crSearch: () => {
+    const cr = S.cr; cr.q = ($('#cr-q') || {}).value || cr.q;
+    if (cr.limit - cr.used < 1) return;
+    cr.phase = 'running'; xRerender();
+    setTimeout(() => { cr.phase = 'done'; cr.used = Math.round((cr.used + 1) * 10) / 10; cr.tab = 'results'; if (S.sec === 'growth') xRerender(); toast('4 companies found · 1 credit used'); }, 1100);
+  },
+  crReset: () => { S.cr.f = { ind: 'Any', size: 'Any', country: 'Any', fund: 'Any' }; S.x.state = 'populated'; renderDemo(); xRerender(); },
+  crTopUp: () => { S.cr.limit += 50; toast('Monthly credit limit raised to ' + S.cr.limit); xRerender(); },
+});
+
+/* ---------- settings ---------- */
+const SET_SECS = [['general', 'General', 'settings'], ['team', 'Team and roles', 'users'], ['models', 'Models', 'cpu'], ['usage', 'Usage and limits', 'gauge'], ['approvals', 'Approvals', 'shield']];
+const ROLE_CAN = [['Approve deploys', ['owner', 'engineering']], ['Approve growth drafts and specs', ['owner', 'product']], ['Publish knowledge', ['owner', 'product']], ['Draft knowledge', ['owner', 'product', 'support']], ['Reply to customers', ['owner', 'product', 'engineering', 'support']], ['Connect apps and channels', ['owner', 'engineering']], ['Customer research', ['owner', 'product']], ['Team, models and limits', ['owner']]];
+function setGeneral() {
+  return `<div class="set-card"><div class="set-row"><div class="sr-l"><b>Workspace name</b><span>Shown to your team</span></div><input class="inp" value="Bloom workspace" aria-label="Workspace name"></div>
+    <div class="set-row"><div class="sr-l"><b>Operator</b><span>Captures X posts and approves changes</span></div><span style="display:flex;gap:8px;align-items:center">${av(OP, 'sm')}${OP.name}</span></div>
+    <div class="set-row"><div class="sr-l"><b>Time zone</b><span>Used for usage resets and timestamps</span></div><select class="inp" style="max-width:280px"><option>Europe/London (GMT+1)</option><option>America/New_York</option><option>Asia/Kolkata</option></select></div></div>
+    <div class="set-card"><div class="set-row"><div class="sr-l"><b>Demo story</b><span>Reset cases, run and Bloom’s server limit back to 2 MB.</span></div><button class="btn danger" data-act="reset">${ic('refresh', 13)}Reset demo</button></div></div>`;
+}
+function setTeam() {
+  const c = S.cfg, own = can('team'), owners = c.team.filter(m => m.role === 'owner' && !m.invited).length;
+  return `<div class="set-card"><div class="set-card-h"><b>Members</b><span>${c.team.filter(m => !m.invited).length} people · ${c.team.filter(m => m.invited).length} invited</span>${own ? '' : xLockNote('team', 'Only owners change roles')}</div>
+    ${c.team.map(m => `<div class="tm-row">${av(m, 'sm')}<div class="tm-n"><b>${esc(m.name)}${m.you ? ' <span class="chip outline">You</span>' : ''}${m.invited ? ' <span class="chip warn">Invited</span>' : ''}</b><small>${m.invited ? 'Invite sent ' + rel(m.seen) + ' ago' : esc(m.email) + ' · active ' + rel(m.seen) + ' ago'}</small></div>
+      <select class="inp tm-role" data-tm="${m.id}" aria-label="Role for ${esc(m.name)}" ${!own || (m.role === 'owner' && owners === 1 && !m.invited) ? 'disabled' : ''}>${Object.entries(ROLES).map(([k, l]) => `<option value="${k}" ${m.role === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      ${own ? (m.invited ? `<button class="btn sm ghost" data-act="tmResend" data-v="${m.id}">Resend</button><button class="btn sm ghost danger" data-act="tmRemove" data-v="${m.id}">Revoke</button>` : m.you ? '<span class="tm-sp"></span><span class="tm-sp"></span>' : `<span class="tm-sp"></span><button class="btn sm ghost danger" data-act="tmRemove" data-v="${m.id}">Remove</button>`) : ''}</div>`).join('')}
+    ${owners === 1 && own ? `<div class="x-prev-f">${ic('lock', 12)}A workspace always keeps at least one owner. Make someone else an owner before changing your role.</div>` : ''}</div>
+    ${own ? `<div class="set-card"><div class="set-card-h"><b>Invite someone</b></div><div class="tm-inv"><input class="inp" id="tm-email" placeholder="name@bloom.example" value="${esc(c.invite)}" aria-label="Email"><select class="inp" id="tm-irole" aria-label="Role">${Object.entries(ROLES).map(([k, l]) => `<option value="${k}" ${c.inviteRole === k ? 'selected' : ''}>${l}</option>`).join('')}</select><button class="btn primary" data-act="tmInvite">${ic('userPlus', 13)}Send invite</button></div></div>` : ''}
+    <div class="set-card"><div class="set-card-h"><b>What each role can do</b></div><div class="rm"><div class="rm-r rm-hd"><span></span>${Object.values(ROLES).map(r => `<b>${r}</b>`).join('')}</div>${ROLE_CAN.map(([l, rs]) => `<div class="rm-r"><span>${l}</span>${Object.keys(ROLES).map(r => `<i class="${rs.includes(r) ? 'y' : ''}">${rs.includes(r) ? ic('check', 13) : '—'}</i>`).join('')}</div>`).join('')}</div></div>`;
+}
+function setModels() {
+  const c = S.cfg, own = can('models'), dis = own ? '' : 'disabled';
+  const sel = (id, v) => `<select class="inp" id="${id}" ${dis}>${MODELS.filter(m => c.route === 'litellm' || m[2] === 'Gemini API').map(([k, l, via]) => `<option value="${k}" ${v === k ? 'selected' : ''}>${l} · ${via}</option>`).join('')}</select>`;
+  return `${own ? '' : `<div class="callout" style="background:var(--sunken);color:var(--ink-2);margin-bottom:14px">${ic('lock', 14)}Only owners change models. You can see what’s in use.</div>`}
+    <div class="set-card"><div class="set-card-h"><b>Provider route</b></div><div class="set-row"><div class="sr-l"><b>How Cue reaches models</b><span>${c.route === 'litellm' ? 'Gemini directly, other models through your LiteLLM proxy.' : 'Only Gemini models, called directly with your API key.'}</span></div><div class="seg-ctl x-seg" style="width:300px">${[['gemini', 'Gemini API only'], ['litellm', 'Gemini + LiteLLM']].map(([k, l]) => `<button class="${c.route === k ? 'on' : ''}" data-act="cfgRoute" data-v="${k}" ${dis}>${l}</button>`).join('')}</div></div>
+      ${c.route === 'litellm' ? `<div class="set-row"><div class="sr-l"><b>LiteLLM proxy</b><span>Serves Claude Haiku, Claude Sonnet and Nova Lite</span></div><span class="chip ok">Reachable · 84 ms</span><input class="inp" value="https://llm.bloom.internal" ${dis} style="max-width:220px"></div>` : ''}
+      <div class="set-row"><div class="sr-l"><b>Gemini API key</b><span>Stored on the server. Never sent to the browser.</span></div><input class="inp" type="password" placeholder="Saved · leave blank to keep" ${dis}></div></div>
+    <div class="set-card"><div class="set-card-h"><b>Models by job</b></div>
+      <div class="set-row"><div class="sr-l"><b>Widget answers</b><span>Fast and cheap. Only answers from cited, published passages.</span></div>${sel('cfg-wm', c.widgetModel)}</div>
+      <div class="set-row"><div class="sr-l"><b>Agents</b><span>Investigation, specs and growth drafting</span></div>${sel('cfg-am', c.agentModel)}</div>
+      <div class="set-row"><div class="sr-l"><b>Embeddings</b><span>Used for semantic retrieval</span></div><span class="chip outline mono">text-embedding-004 · 768 dims</span></div>
+      <div class="x-prev-f">${ic('shield', 12)}If a model call fails, customers are offered a person. Cue never answers without context.</div></div>`;
+}
+function setUsage() {
+  const c = S.cfg, own = can('limits');
+  const spent = c.exhausted ? c.limit : c.spent, pct = Math.min(100, spent / c.limit * 100);
+  const max = Math.max(...c.daily);
+  return `${c.exhausted ? `<div class="x-error" style="margin-bottom:14px">${ic('alert', 14)}<div><b>Spending limit reached · $${c.limit.toFixed(2)}</b><span>Widget answers and agents are paused. Customers are offered a person instead. Raise the limit or wait for the reset on Nov 1.</span></div>${own ? '<button class="btn sm" data-act="cfgRaise">Raise limit</button>' : ''}</div>` : ''}
+    <div class="set-card"><div class="us-top"><div><small>Spent this month</small><b>$${spent.toFixed(2)}</b><span>of $${c.limit.toFixed(2)} limit · resets Nov 1</span></div><div class="us-spark" aria-label="Daily spend, last 14 days">${c.daily.map((d, i) => `<i style="height:${Math.round(d / max * 100)}%" title="$${d.toFixed(2)}" class="${i === c.daily.length - 1 ? 'on' : ''}"></i>`).join('')}</div></div>
+      <div class="us-bar ${c.exhausted ? 'out' : pct > c.alert ? 'hi' : ''}"><i style="width:${pct}%"></i><span style="left:${c.alert}%" title="Alert at ${c.alert}%"></span></div></div>
+    <div class="set-card"><div class="set-card-h"><b>By job and model</b><span>This month</span></div><div class="us-t"><div class="us-r hd"><span>Job</span><span>Model</span><span>Calls</span><span>Input</span><span>Output</span><span>Cost</span></div>
+      ${c.usage.map(([j, m, n, inT, outT, cost]) => `<div class="us-r"><span>${esc(j)}</span><span>${m === 'embed' ? 'text-embedding-004' : modelName(m)}<small>${modelVia(m)}</small></span><span>${n.toLocaleString()}</span><span>${inT}</span><span>${outT}</span><span>$${cost.toFixed(2)}</span></div>`).join('')}</div></div>
+    <div class="set-card"><div class="set-card-h"><b>Limits</b>${own ? '' : xLockNote('limits', 'Only owners change limits')}</div>
+      <div class="set-row"><div class="sr-l"><b>Monthly spending limit</b><span>Across Gemini and LiteLLM</span></div><span class="x-money">$<input class="inp" id="cfg-limit" value="${c.limit}" inputmode="decimal" ${own ? '' : 'disabled'}></span></div>
+      <div class="set-row"><div class="sr-l"><b>Alert owners at</b><span>Email and Slack</span></div><select class="inp" id="cfg-alert" style="max-width:120px" ${own ? '' : 'disabled'}>${[50, 80, 90].map(v => `<option value="${v}" ${c.alert === v ? 'selected' : ''}>${v}%</option>`).join('')}</select></div>
+      <div class="set-row"><div class="sr-l"><b style="display:flex;gap:6px;align-items:center">${ic('lock', 13)}When the limit is reached</b><span>Pause AI answers and agents. Offer customers a person. Always on.</span></div><span class="tog on locked" role="switch" aria-checked="true" aria-disabled="true"></span></div>
+      <div class="set-row"><div class="sr-l"><b>Crustdata credits</b><span>${S.cr.used.toFixed(1)} of ${S.cr.limit} used · separate from model spend</span></div><a class="btn sm" href="#/growth/prospects">Open research</a></div></div>`;
+}
+function setApprovals() {
+  return `<div class="set-card"><div class="set-row"><div class="sr-l"><b style="display:flex;gap:6px;align-items:center">${ic('lock', 13)}Require human approval before any deploy</b><span>Always on. Agents can propose; only people can ship.</span></div><span class="tog on locked" role="switch" aria-checked="true" aria-disabled="true"></span></div>
+    <div class="set-row"><div class="sr-l"><b style="display:flex;gap:6px;align-items:center">${ic('lock', 13)}Resolve only after verification</b><span>An issue closes when the customer’s scenario passes on the deployed build.</span></div><span class="tog on locked" role="switch" aria-checked="true" aria-disabled="true"></span></div>
+    <div class="set-row"><div class="sr-l"><b style="display:flex;gap:6px;align-items:center">${ic('lock', 13)}Growth replies are posted by a person</b><span>Approval isn’t publication. Someone posts from the brand account and records the URL.</span></div><span class="tog on locked" role="switch" aria-checked="true" aria-disabled="true"></span></div></div>`;
+}
+function settingsPageX() {
+  const sec = SET_SECS.find(s => s[0] === S.id) ? S.id : 'general';
+  const gated = { team: null, models: null, usage: 'usage' }[sec];
+  const st = sec !== 'general' && sec !== 'approvals' ? xState({ icon: 'settings', what: SET_SECS.find(s => s[0] === sec)[1].toLowerCase(), perm: gated || undefined, err: ['Couldn’t load settings', 'The settings service didn’t respond. Nothing was changed.'], empty: sec === 'team' ? ['Just you so far', 'Invite teammates and give each a role. Roles decide who can approve, publish and connect apps.', ''] : sec === 'usage' ? ['No usage yet', 'Spending appears after the first widget answer or agent task this month.', ''] : ['No models configured', 'Add a Gemini API key to turn on widget answers and agents.', ''] }) : null;
+  const body = st || { general: setGeneral, team: setTeam, models: setModels, usage: setUsage, approvals: setApprovals }[sec]();
+  return `<div class="page enter x-page" style="max-width:1100px"><div class="page-h"><div><h1>Settings</h1><p>Bloom workspace · signed in as ${ROLES[S.x.role]}</p></div></div>
+    <div class="su"><nav class="su-nav" aria-label="Settings sections">${SET_SECS.map(([k, l, i]) => `<a href="#/settings/${k}" class="${sec === k ? 'on' : ''}" ${sec === k ? 'aria-current="page"' : ''}>${ic(i, 14)}<span>${l}</span>${k === 'usage' && S.cfg.exhausted ? '<i class="sd fail"></i>' : ''}</a>`).join('')}</nav><div class="su-main">${body}</div></div></div>`;
+}
+Object.assign(XA, {
+  tmInvite: () => { const e = (($('#tm-email') || {}).value || '').trim(); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return toast('Enter a valid email address', 'err'); if (S.cfg.team.some(m => m.email === e)) return toast('That person is already in the workspace', 'err'); S.cfg.team.push({ id: 'u' + Date.now(), name: e, email: e, role: $('#tm-irole').value, invited: true, color: '#8C9390', ini: e[0].toUpperCase(), seen: Date.now() }); S.cfg.invite = ''; toast(`Invite sent to ${e}`); xRerender(); },
+  tmResend: () => toast('Invite sent again'),
+  tmRemove: el => { const m = S.cfg.team.find(x => x.id === el.dataset.v); S.cfg.team = S.cfg.team.filter(x => x !== m); toast(m.invited ? 'Invite revoked' : `${m.name} removed`, 'ok', { label: 'Undo', fn: () => { S.cfg.team.push(m); xRerender(); } }); xRerender(); },
+  cfgRoute: el => { S.cfg.route = el.dataset.v; if (el.dataset.v === 'gemini') { S.cfg.widgetModel = 'gemini-flash'; S.cfg.agentModel = 'gemini-flash'; } xRerender(); },
+  cfgRaise: () => { S.cfg.limit += 50; S.cfg.exhausted = false; renderDemo(); toast(`Limit raised to $${S.cfg.limit}. Answers resume now.`); xRerender(); },
+});
+
+/* ---------- listeners for these screens ---------- */
+document.addEventListener('input', e => {
+  const t = e.target, ed = S.kb.ed;
+  if (t.id === 'kb-q') { S.kb.f.q = t.value; const l = $('#kb-list'); if (l) l.innerHTML = kbRows(); }
+  if (ed && ({ 'ed-q': 'q', 'ed-a': 'a', 'ed-alts': 'alts', 'ed-title': 'title', 'ed-text': 'text', 'ed-url': 'url' })[t.id]) { ed[{ 'ed-q': 'q', 'ed-a': 'a', 'ed-alts': 'alts', 'ed-title': 'title', 'ed-text': 'text', 'ed-url': 'url' }[t.id]] = t.value; ed.dirty = true; edRefresh(); }
+  if (t.id === 'at-q') { S.at.q = t.value; const b = $('[data-act="atAsk"]'); if (b) b.disabled = !t.value.trim(); }
+  if (t.id === 'w-ta') { S.w.draft = t.value; t.style.height = 'auto'; t.style.height = Math.min(96, t.scrollHeight) + 'px'; }
+  if (t.id === 'tm-email') S.cfg.invite = t.value;
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.id === 'kb-status') { S.kb.f.status = t.value; xRerender(); }
+  if (t.id === 'ed-app' && S.kb.ed) { S.kb.ed.app = t.value; S.kb.ed.dirty = true; xRerender(); }
+  if (t.id === 'at-app') S.at.app = t.value;
+  if (t.id === 'at-model') S.at.model = t.value;
+  if (t.id === 'at-ret') S.at.ret = t.value;
+  if (t.dataset.crf) S.cr.f[t.dataset.crf] = t.value;
+  if (t.dataset.tm) { const m = S.cfg.team.find(x => x.id === t.dataset.tm); m.role = t.value; toast(`${m.name} is now ${ROLES[m.role]}`); xRerender(); }
+  if (t.id === 'cfg-wm') { S.cfg.widgetModel = t.value; toast(`Widget answers now use ${modelName(t.value)}`); }
+  if (t.id === 'cfg-am') { S.cfg.agentModel = t.value; toast(`Agents now use ${modelName(t.value)}`); }
+  if (t.id === 'cfg-alert') { S.cfg.alert = +t.value; xRerender(); }
+  if (t.id === 'cfg-limit') { const v = parseFloat(t.value); if (!(v > 0)) { toast('Enter a limit above $0', 'err'); return xRerender(); } S.cfg.limit = v; if (v > S.cfg.spent) S.cfg.exhausted = false; renderDemo(); toast(`Monthly limit set to $${v.toFixed(2)}`); xRerender(); }
+});
+document.addEventListener('keydown', e => {
+  const id = document.activeElement && document.activeElement.id;
+  if (e.key === 'Enter' && !e.shiftKey && id === 'w-ta') { e.preventDefault(); XA.wSend(); }
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && id === 'at-q') { e.preventDefault(); XA.atAsk(); }
+  if (e.key === 'Enter' && id === 'su-dom') { e.preventDefault(); XA.suDomain({ dataset: {} }); }
+  if (e.key === 'Enter' && id === 'cr-q') { e.preventDefault(); XA.crSearch(); }
+  if (e.key === 'Escape' && S.kb && S.kb.menu) { S.kb.menu = false; xRerender(); }
+});
+document.addEventListener('click', e => { if (S.kb && S.kb.menu && !e.target.closest('.x-menu-wrap')) { S.kb.menu = false; if (S.sec === 'knowledge') xRerender(); } });
+settingsPage = settingsPageX;
+
 /* ------------------------------------------------------------------ overlays */
 let lastFocus = null;
 function openKeys() {
   lastFocus = document.activeElement;
   const row = (keys, label) => `<div class="kr"><span>${label}</span><span class="kk">${keys.map(k => `<span class="kbd">${k}</span>`).join('')}</span></div>`;
-  const names = { home: 'Home', inbox: 'Inbox', issues: 'Issues', features: 'Feature requests', growth: 'Growth', agents: 'Agents', agent: 'Agent activity', integrations: 'Integrations', settings: 'Settings' };
+  const names = { home: 'Home', inbox: 'Inbox', issues: 'Issues', features: 'Feature requests', growth: 'Growth', agents: 'Agents', agent: 'Agent activity', knowledge: 'Knowledge', integrations: 'Integrations', settings: 'Settings' };
   $('#overlay').innerHTML = `<div class="scrim" data-act="close" style="opacity:1"></div><div class="palette keys" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" tabindex="-1">
     <div class="keys-h"><b>Keyboard shortcuts</b><button class="btn ghost sm" data-act="close" aria-label="Close">${ic('x', 14)}</button></div>
     <div class="keys-b"><div><h6>Go to</h6>${Object.entries(GO_KEYS).map(([k, v]) => row(['G', k.toUpperCase()], names[v])).join('')}</div>
@@ -3160,6 +4189,9 @@ function renderDemo() {
   if (!S.sec) { el.innerHTML = ''; return; }
   el.innerHTML = `${demoOpen ? `<div class="demo-panel" role="dialog" aria-label="Demo controls"><h5>Demo controls <a href="bloom.html" target="_blank" rel="noopener" style="font-weight:500;color:var(--accent);text-decoration:none">Open Bloom ↗</a></h5>
     <div class="demo-row"><label>Inbox state</label><div class="seg-ctl">${['populated', 'loading', 'empty', 'error'].map(k => `<button class="${S.inboxState === k ? 'on' : ''}" data-act="demoInbox" data-v="${k}">${k}</button>`).join('')}</div></div>
+    <div class="demo-row"><label>New screens</label><div class="seg-ctl">${['populated', 'loading', 'empty', 'error'].map(k => `<button class="${S.x.state === k ? 'on' : ''}" data-act="demoX" data-v="${k}">${k}</button>`).join('')}</div></div>
+    <div class="demo-row"><label>Signed in as</label><div class="seg-ctl">${Object.entries(ROLES).map(([k, l]) => `<button class="${S.x.role === k ? 'on' : ''}" data-act="demoRole" data-v="${k}">${l}</button>`).join('')}</div></div>
+    <div class="demo-row"><div class="switch">AI spending limit reached<button class="tog ${S.cfg.exhausted ? 'on' : ''}" role="switch" aria-checked="${S.cfg.exhausted}" data-act="demoSpend" aria-label="AI spending limit reached"></button></div></div>
     <div class="demo-row"><label>Growth state</label><div class="seg-ctl">${['populated', 'loading', 'empty', 'error'].map(k => `<button class="${S.growth.state === k ? 'on' : ''}" data-act="demoGrowth" data-v="${k}">${k}</button>`).join('')}</div></div>
     <div class="demo-row"><label>Run speed</label><div class="seg-ctl">${[1, 3].map(k => `<button class="${S.speed === k ? 'on' : ''}" data-act="speed" data-v="${k}">${k}×</button>`).join('')}</div></div>
     <div class="demo-row"><div class="switch">Make stage 7 fail once<button class="tog ${S.failArmed ? 'on' : ''}" role="switch" aria-checked="${S.failArmed}" data-act="failToggle" aria-label="Make stage 7 fail once"></button></div></div>
@@ -3211,7 +4243,7 @@ const A = {
   approveSpec: el => { const f = S.features.find(x => x.id === el.dataset.id); S.featureBusy = f.id; refresh(); setTimeout(() => { f.status = 'approved'; f.approvedAt = Date.now(); S.featureBusy = null; S.events.unshift({ t: Date.now(), title: 'Specification approved', detail: `${f.id} · ${f.title} · sent to engineering`, kind: 'ok', ref: 'ISS-14' }); toast(`${f.id} specification approved`, 'ok'); refresh(); }, 800 / S.speed); },
   agentFilter: el => { S.agentFilter = el.dataset.v; renderMain(false); },
   connectSlack: () => { S.integrations.slack = 'busy'; renderMain(false); setTimeout(() => { S.integrations.slack = 'on'; toast('Slack connected · #bloom-support', 'ok'); if (S.sec === 'integrations') renderMain(false); }, 1400); },
-  manage: el => toast(`${el.dataset.v} settings open in the full app`, 'info'),
+  manage: el => go('#/integrations/setup/' + ({ 'In-app widget': 'widget', GitHub: 'repo', 'Coding agent': 'repo', Slack: 'slack', Email: 'email', X: 'x' }[el.dataset.v] || 'app')),
   tog: el => { el.classList.toggle('on'); el.setAttribute('aria-checked', el.classList.contains('on')); },
   reset: resetAll,
   retryInbox: () => { S.inboxState = 'loading'; renderInbox(); renderDemo(); setTimeout(() => { S.inboxState = 'populated'; renderMain(true); renderDemo(); }, 900); },
@@ -3221,7 +4253,7 @@ const A = {
   failToggle: () => { S.failArmed = !S.failArmed; renderDemo(); toast(S.failArmed ? 'Stage 7 will fail once on the next run' : 'Failure injection off', 'info'); },
   pal: el => runPal(+el.dataset.i),
 };
-Object.assign(A, GA, AGA);
+Object.assign(A, GA, AGA, XA);
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]'); if (!el) return;
   const fn = A[el.dataset.act]; if (!fn) return;

@@ -13,6 +13,8 @@ import { decodeVoiceAudio } from "@/lib/voice-decoder";
 import { triage } from "@/lib/triage";
 import { spokenReply } from "@/lib/google-speech";
 import type { Id } from "@/convex/_generated/dataModel";
+import { widgetOriginAllowed } from "@/lib/widget-preview";
+import { fallbackReply } from "@/lib/reply-policy";
 export const runtime = "nodejs";
 const input = z.object({
   action: z.enum(["start", "turn", "end"]),
@@ -25,6 +27,7 @@ const input = z.object({
   origin: z.string().url().optional(),
   token: z.string().max(2000).optional(),
   name: z.string().max(80).optional(),
+  preview: z.boolean().optional(),
 });
 export async function POST(request: NextRequest) {
   let phase = "validation";
@@ -38,14 +41,28 @@ export async function POST(request: NextRequest) {
     const b = input.parse(await request.json());
     let owner: string,
       appId: string | undefined,
-      appName = "Bloom";
+      appName = "Bloom",
+      knowledgeEnabled = true;
     if (b.app) {
       const app = (await readIntegrations()).apps.find((a) => a.id === b.app);
-      if (!app || !b.origin || !app.origins.includes(b.origin))
+      if (
+        !app ||
+        !b.origin ||
+        !(await widgetOriginAllowed(request, app.origins, b.origin, b.preview))
+      )
         throw new Error("App origin is not allowed");
-      owner = verifyWidgetSession(b.token || "", app, b.origin);
+      owner = verifyWidgetSession(
+        b.token || "",
+        b.preview ? { ...app, origins: [...app.origins, b.origin] } : app,
+        b.origin,
+      );
+      if (app.widget?.voice === false)
+        throw new Error(
+          "Voice is disabled for this app. Please use support chat.",
+        );
       appId = app.id;
       appName = app.name;
+      knowledgeEnabled = app.widget?.answers !== false;
     } else owner = await guest(request);
     widgetRateLimit(owner + ":voice:" + b.action, b.action === "turn" ? 8 : 20);
     const store = db(),
@@ -115,10 +132,15 @@ export async function POST(request: NextRequest) {
       medium: "voice" as const,
       message: transcript,
     };
-    const knowledge = appId
-      ? await answerKnowledge(appId, context, {})
-      : undefined;
-    let reply = knowledge?.text || (await draft(context));
+    const knowledge =
+      appId && knowledgeEnabled
+        ? await answerKnowledge(appId, context, {})
+        : undefined;
+    let reply =
+      knowledge?.text ||
+      (appId && !knowledgeEnabled
+        ? fallbackReply(context)
+        : await draft(context));
     phase = "persist";
     const caseId = await store.mutation(api.voice.finish, {
       secret: auth,

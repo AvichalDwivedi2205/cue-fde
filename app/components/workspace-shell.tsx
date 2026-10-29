@@ -1,22 +1,7 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import type { ReactNode } from "react";
-import "./workspace-shell.css";
-
-// The supplied design owns the colours and icons used by the live workspace.
-async function foundation() {
-  const source = await readFile(
-    path.join(process.cwd(), "design/cue.html"),
-    "utf8",
-  );
-  const variables = source.match(/:root\s*\{[^}]+\}/)?.[0];
-  if (!variables) throw new Error("Cue design variables are missing");
-  const block = source.split("const P = {")[1]?.split("\n};")[0] || "";
-  const icons = Object.fromEntries(
-    [...block.matchAll(/(\w+): '([^']*)'/g)].map((m) => [m[1], m[2]]),
-  );
-  return { variables, icons };
-}
+import { Icon } from "./ui";
+import { readIntegrations } from "@/lib/integration-config";
+import { WorkspacePreferences } from "./workspace-preferences";
 
 const groups = [
   {
@@ -37,7 +22,7 @@ const groups = [
     label: "Grow",
     links: [
       ["growth", "Growth", "trend", "/cue#/growth"],
-      ["prospects", "Cue customers", "search", "/cue#/growth/prospects"],
+      ["prospects", "Cue customers", "search", "/customers"],
     ],
   },
   {
@@ -50,10 +35,10 @@ const groups = [
   {
     label: "Workspace",
     links: [
-      ["knowledge", "Knowledge", "bulb", "/knowledge"],
+      ["knowledge", "Knowledge", "book", "/knowledge"],
       ["integrations", "Integrations", "plug", "/cue#/integrations"],
       ["setup", "App setup", "widget", "/setup"],
-      ["settings", "Settings", "settings", "/cue#/settings"],
+      ["settings", "Settings", "settings", "/settings"],
     ],
   },
 ] as const;
@@ -69,87 +54,109 @@ export async function WorkspaceShell({
   user?: { name: string; role: string };
   children: ReactNode;
 }) {
-  const { variables, icons } = await foundation();
-  const icon = (name: string, size = 16) => (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={name === "cue" ? 3.2 : 1.8}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      dangerouslySetInnerHTML={{ __html: icons[name] || icons.plug }}
-    />
-  );
+  const preferences = user ? (await readIntegrations()).workspace : undefined;
+  const workspaceName = preferences?.name || "Cue workspace";
   const initials = (user?.name || "Cue")
     .split(/\s+/)
     .slice(0, 2)
-    .map((part) => part[0])
+    .map((p) => p[0])
     .join("")
     .toUpperCase();
   return (
-    <div className="workspace-shell">
-      <style dangerouslySetInnerHTML={{ __html: variables }} />
-      <a className="workspace-skip" href="#workspace-content">
-        Skip to content
-      </a>
-      <aside className="workspace-sidebar" aria-label="Sidebar">
-        <a className="workspace-brand" href="/cue#/home" aria-label="Cue home">
-          <span className="workspace-logo">{icon("cue", 13)}</span>
-          <span>Cue</span>
+    <WorkspacePreferences timezone={preferences?.timezone || "Asia/Kolkata"}>
+      <div className="grid h-dvh grid-cols-[64px_minmax(0,1fr)] grid-rows-[52px_minmax(0,1fr)] min-[961px]:grid-cols-[232px_minmax(0,1fr)]">
+        <a
+          href="#workspace-content"
+          className="fixed -top-16 left-20 z-50 rounded-lg bg-white px-4 py-2 focus:top-2"
+        >
+          Skip to content
         </a>
-        <nav aria-label="Workspace navigation">
-          {groups.map((group) => (
-            <div className="workspace-nav-group" key={group.label}>
-              {group.label && (
-                <div className="workspace-nav-heading">{group.label}</div>
-              )}
-              {group.links.map(([key, label, symbol, href]) => (
-                <a
-                  key={key}
-                  href={href}
-                  className={active === key ? "active" : ""}
-                  aria-current={active === key ? "page" : undefined}
-                  aria-label={label}
-                  title={label}
-                >
-                  {icon(symbol)}
-                  <span>{label}</span>
-                </a>
-              ))}
-            </div>
-          ))}
-        </nav>
-        <div className="workspace-sidebar-footer">
-          {icon("leaf", 14)}
-          <span>Cue workspace</span>
-        </div>
-      </aside>
-      <header className="workspace-topbar">
-        <a className="workspace-name" href="/cue#/home">
-          <span>{icon("leaf", 12)}</span>Cue workspace
-        </a>
-        <span className="workspace-divider">/</span>
-        <span className="workspace-location">{title}</span>
-        <div className="workspace-topbar-actions">
-          <a href="/cue#/home" title="Review pending decisions on Home">
-            {icon("hourglass", 15)}
-            <span>Approvals</span>
-          </a>
-          <span
-            className="workspace-avatar"
-            title={user ? `${user.name} · ${user.role}` : "Cue workspace"}
+        <aside
+          className="row-span-2 flex min-w-0 flex-col overflow-y-auto bg-cue-sidebar px-2 py-3 text-cue-nav min-[961px]:px-2.5"
+          aria-label="Sidebar"
+        >
+          <a
+            href="/cue#/home"
+            className="mb-3 flex items-center justify-center gap-2.5 px-2 pb-1 text-[15px] font-semibold text-white min-[961px]:justify-start"
+            aria-label="Cue home"
           >
-            {initials}
+            <span className="grid size-[22px] place-items-center rounded-md bg-white text-cue-sidebar">
+              <Icon name="cue" size={13} />
+            </span>
+            <span className="hidden min-[961px]:inline">Cue</span>
+          </a>
+          <nav aria-label="Workspace navigation">
+            {groups.map((group) => (
+              <div className="mb-2" key={group.label}>
+                {group.label && (
+                  <div className="hidden px-2.5 pt-3 pb-1.5 font-mono text-[10.5px] tracking-wider text-cue-nav-muted uppercase min-[961px]:block">
+                    {group.label}
+                  </div>
+                )}
+                {group.links.map(([key, label, symbol, href]) => (
+                  <a
+                    key={key}
+                    href={href}
+                    title={label}
+                    aria-label={label}
+                    aria-current={active === key ? "page" : undefined}
+                    className={`relative my-0.5 flex min-h-9 items-center justify-center gap-2.5 rounded-[7px] px-2.5 text-xs font-medium hover:bg-cue-nav-active hover:text-white min-[961px]:min-h-8 min-[961px]:justify-start ${active === key ? "bg-cue-nav-active text-white before:absolute before:top-2 before:bottom-2 before:-left-2 before:w-0.5 before:bg-cue-green" : ""}`}
+                  >
+                    <Icon name={symbol} />
+                    <span className="hidden min-[961px]:inline">{label}</span>
+                  </a>
+                ))}
+              </div>
+            ))}
+          </nav>
+          <div className="mt-auto flex items-center justify-center gap-2 px-2 pt-6 pb-2 text-xs text-cue-nav-muted min-[961px]:justify-start">
+            <Icon name="leaf" size={14} className="text-cue-green" />
+            <span className="hidden truncate min-[961px]:inline">
+              {workspaceName}
+            </span>
+          </div>
+        </aside>
+        <header className="col-start-2 flex min-w-0 items-center gap-3 border-b border-cue-line bg-cue-panel px-3 md:px-[18px]">
+          <a
+            href="/cue#/home"
+            className="flex items-center gap-2 text-xs font-semibold"
+          >
+            <span className="grid size-5 place-items-center rounded-md bg-cue-green text-white">
+              <Icon name="leaf" size={12} />
+            </span>
+            <span className="max-w-32 truncate sm:max-w-48">
+              {workspaceName}
+            </span>
+          </a>
+          <span className="hidden text-cue-subtle sm:inline">/</span>
+          <span className="hidden truncate text-cue-subtle sm:inline">
+            {title}
           </span>
+          <div className="ml-auto flex items-center gap-4">
+            <a
+              href="/cue#/home"
+              className="flex items-center gap-1.5 text-xs"
+              title="Review pending decisions"
+            >
+              <Icon name="hourglass" size={15} />
+              <span className="hidden md:inline">Approvals</span>
+            </a>
+            <a
+              href="/settings"
+              className="grid size-7 place-items-center rounded-full bg-cue-green text-[11px] font-semibold text-white"
+              title={user ? `${user.name} · ${user.role}` : "Account settings"}
+            >
+              {initials}
+            </a>
+          </div>
+        </header>
+        <div
+          id="workspace-content"
+          className="col-start-2 min-h-0 min-w-0 overflow-y-auto"
+        >
+          {children}
         </div>
-      </header>
-      <div className="workspace-content" id="workspace-content">
-        {children}
       </div>
-    </div>
+    </WorkspacePreferences>
   );
 }

@@ -17,7 +17,10 @@
     "verify": "tsx scripts/verify.ts",
     "preflight": "tsx scripts/preflight.ts",
     "evaluate:triage": "tsx scripts/evaluate-triage.ts",
-    "evaluate:replies": "tsx scripts/evaluate-replies.ts"
+    "evaluate:replies": "tsx scripts/evaluate-replies.ts",
+    "ui:build": "node scripts/build-ui.mjs",
+    "prebuild": "npm run ui:build",
+    "predev:web": "npm run ui:build"
   },
   "dependencies": {
     "@convex-dev/agent": "^0.7.7",
@@ -45,6 +48,8 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@tailwindcss/cli": "4.3.3",
+    "@tailwindcss/postcss": "4.3.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -52,6 +57,7 @@
     "eslint": "^9",
     "eslint-config-next": "^16.3.0",
     "prettier": "3.6.2",
+    "tailwindcss": "4.3.3",
     "typescript": "^6.0.3",
     "vitest": "^4.1.11"
   },

@@ -24,7 +24,7 @@ export function renderCueLanding(source: string) {
   if (!head || !landing)
     throw new Error("Cue design is missing its landing page");
   head.childNodes = head.childNodes.filter(
-    (n) => !("tagName" in n && n.tagName === "script"),
+    (n) => !("tagName" in n && ["script", "style"].includes(n.tagName)),
   );
   const publicNodes = elements(landing);
   for (const node of publicNodes) {
@@ -128,5 +128,5 @@ export function renderCueLanding(source: string) {
     "Cue — Bloom workspace",
     "Cue — customer problems to verified fixes",
   );
-  return `<!doctype html><html lang="en"><head>${publicHead}<link rel="icon" href="/cue-icon.svg"><style>html{scroll-behavior:smooth;scroll-padding-top:80px} .ticker-list{height:auto;min-height:270px} .ticker-list::after{display:none} .t-item .t-text{white-space:normal} .t-tag{white-space:nowrap} .lnav{border-bottom-color:var(--line)} #marquee>span[aria-hidden]{display:contents} @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}</style><noscript><style>.chapter{opacity:1}.stage-label + .scene{opacity:1;transform:none}</style></noscript></head><body>${content}<script src="/cue-landing.js" defer></script></body></html>`;
+  return `<!doctype html><html lang="en"><head>${publicHead}<link rel="stylesheet" href="/cue-workspace.css"><link rel="icon" href="/cue-icon.svg"><style>html{scroll-behavior:smooth;scroll-padding-top:80px} .ticker-list{height:auto;min-height:270px} .ticker-list::after{display:none} .t-item .t-text{white-space:normal} .t-tag{white-space:nowrap} .lnav{border-bottom-color:var(--line)} #marquee>span[aria-hidden]{display:contents} @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}</style><noscript><style>.chapter{opacity:1}.stage-label + .scene{opacity:1;transform:none}</style></noscript></head><body>${content}<script src="/cue-landing.js" defer></script></body></html>`;
 }

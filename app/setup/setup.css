@@ -1,211 +1,96 @@
-.setup {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 24px 28px 60px;
-  color: var(--ink);
-  font: inherit;
-}
-.setup a {
-  color: var(--accent);
-}
-.setup h1 {
-  font-size: 20px;
-  margin: 0 0 6px;
-}
-.setup .lede {
-  font-size: 13px;
-  color: var(--ink-2);
-  line-height: 1.6;
-}
-.setup section {
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 16px;
-  margin: 16px 0;
-  scroll-margin-top: 70px;
-}
-.setup h2 {
-  font-size: 15px;
-  margin: 0;
-}
-.setup h3 {
-  font-size: 14px;
-}
-.setup p,
-.setup li {
-  line-height: 1.7;
-}
-.setup .section-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-.setup .badge {
-  font: 11px var(--mono);
-  background: var(--accent-t);
-  color: var(--accent-d);
-  border-radius: 5px;
-  padding: 3px 7px;
-}
-.setup form {
-  margin-top: 18px;
-}
-.setup label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 14px;
-}
-.setup input,
-.setup select,
-.setup textarea {
-  display: block;
-  width: 100%;
-  margin-top: 6px;
-  border: 1px solid var(--line-2);
-  border-radius: 6px;
-  padding: 8px 10px;
-  background: #fff;
-  color: var(--ink);
-  font: inherit;
-}
-.setup .team-member {
-  border: 1px solid var(--line-2);
-  border-radius: 8px;
-  padding: 16px;
-  margin: 18px 0;
-}
-.setup .team-member legend {
-  font-weight: 600;
-  padding: 0 6px;
-}
-.setup textarea {
-  height: 85px;
-  resize: vertical;
-}
-.setup button {
-  border: 1px solid var(--accent);
-  border-radius: 6px;
-  padding: 6px 12px;
-  font: 500 13px var(--sans);
-  color: white;
-  background: var(--accent);
-  cursor: pointer;
-}
-.setup button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-.setup .secondary {
-  background: white;
-  color: var(--accent);
-}
-.setup .fields {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0 18px;
-}
-.setup .checkbox-field {
-  display: flex;
-  grid-column: 1 / -1;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-}
-.setup .checkbox-field input {
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  padding: 0;
-}
-.setup .links {
-  display: flex;
-  gap: 18px;
-  flex-wrap: wrap;
-  font-size: 13px;
-}
-.setup pre {
-  background: var(--sunken);
-  padding: 16px;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font-size: 12px;
-  border-radius: 6px;
-  line-height: 1.7;
-}
-.setup .small {
-  font-size: 12px;
-  color: var(--ink-2);
-}
-.setup .install {
-  border-top: 1px solid var(--line);
-  margin-top: 22px;
-  padding-top: 14px;
-}
-.setup-notice {
-  position: sticky;
-  top: 8px;
-  background: var(--accent-t);
-  border: 1px solid var(--accent-l);
-  border-radius: 10px;
-  padding: 14px;
-  z-index: 2;
-  font-size: 13px;
-}
-@media (max-width: 640px) {
-  .setup {
-    margin: 0 auto;
-    padding: 16px;
+@reference "../globals.css";
+@layer components {
+  .setup h1 {
+    @apply text-[22px] font-semibold tracking-tight;
+  }
+  .setup .lede {
+    @apply mt-1 mb-5 text-cue-muted;
+  }
+  .setup-layout {
+    @apply grid items-start gap-5 lg:grid-cols-[180px_minmax(0,1fr)];
+  }
+  .setup-sections {
+    @apply flex gap-1 overflow-x-auto lg:sticky lg:top-5 lg:flex-col;
+  }
+  .setup-sections a {
+    @apply flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-xs text-cue-muted hover:bg-cue-hover;
+  }
+  .setup-sections a.active {
+    @apply bg-cue-green-soft font-medium text-cue-green;
+  }
+  .setup-body {
+    @apply min-w-0;
+  }
+  .setup-notice {
+    @apply mb-4 rounded-lg border border-cue-line bg-cue-panel px-3 py-2.5 text-xs text-cue-muted;
   }
   .setup section {
-    padding: 20px;
+    @apply mb-4 rounded-[10px] border border-cue-line bg-cue-panel p-5;
+  }
+  .setup section[hidden] {
+    display: none;
+  }
+  .setup .section-heading {
+    @apply mb-3 flex items-center justify-between gap-3;
+  }
+  .setup h2 {
+    @apply text-[15px] font-semibold;
+  }
+  .setup h3 {
+    @apply text-sm font-semibold;
+  }
+  .setup section p {
+    @apply my-3 text-xs leading-relaxed text-cue-muted;
+  }
+  .setup label {
+    @apply mb-4 flex flex-col gap-1.5 text-xs font-medium;
+  }
+  .setup label.flex-row {
+    @apply flex-row;
+  }
+  .setup input:not([type="checkbox"]):not([type="hidden"]),
+  .setup textarea,
+  .setup select {
+    @apply w-full min-w-0 rounded-md border border-cue-line bg-cue-panel px-2.5 py-2 text-[13px] font-normal placeholder:text-cue-subtle focus:border-cue-green disabled:opacity-50;
+  }
+  .setup input[type="checkbox"] {
+    @apply accent-cue-green;
+  }
+  .setup input[type="password"] {
+    @apply font-mono;
   }
   .setup .fields {
-    grid-template-columns: 1fr;
+    @apply grid gap-x-4 md:grid-cols-2;
   }
-  .setup .section-heading {
-    align-items: flex-start;
+  .setup button:not(.ui-button) {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md border border-cue-green bg-cue-green px-3 py-2 text-xs font-medium text-white hover:bg-cue-green-dark disabled:opacity-40;
   }
-}
-
-.setup-sections {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin: 18px 0;
-}
-.setup-sections a {
-  border: 1px solid var(--line-2);
-  border-radius: 6px;
-  padding: 5px 10px;
-  color: var(--ink-2);
-  text-decoration: none;
-  background: var(--panel);
-}
-.setup-sections a:hover {
-  background: var(--hover);
-  color: var(--ink);
-}
-.workspace-content .setup button:hover:not(:disabled) {
-  background: var(--accent-d);
-}
-.workspace-content .setup button.secondary:hover:not(:disabled) {
-  background: var(--accent-t);
-}
-.setup pre {
-  font-family: var(--mono);
-}
-.setup form,
-.setup .fields > * {
-  min-width: 0;
-}
-@media (max-width: 640px) {
-  .setup .section-heading {
-    flex-wrap: wrap;
+  .setup button.secondary {
+    @apply border-cue-line bg-white text-cue-ink hover:bg-cue-hover;
   }
-  .setup section {
-    padding: 16px;
+  .setup .badge {
+    @apply rounded-md border border-cue-line bg-cue-sunken px-2 py-1 text-[10px] text-cue-muted;
+  }
+  .setup .small,
+  .setup small {
+    @apply text-[11px] font-normal text-cue-subtle;
+  }
+  .setup .links {
+    @apply my-4 flex flex-wrap gap-3 text-xs text-cue-green;
+  }
+  .setup ol {
+    @apply my-4 list-decimal space-y-2 pl-5 text-xs leading-relaxed text-cue-muted;
+  }
+  .setup code {
+    @apply rounded bg-cue-sunken px-1 font-mono text-[11px] break-all;
+  }
+  .setup .team-member {
+    @apply mb-4 rounded-lg border border-cue-line p-3;
+  }
+  .setup legend {
+    @apply px-1 text-xs font-medium;
+  }
+  .setup pre {
+    @apply overflow-auto rounded-lg border border-cue-line bg-cue-sunken/40 p-3 font-mono text-[11px] whitespace-pre-wrap break-all;
   }
 }

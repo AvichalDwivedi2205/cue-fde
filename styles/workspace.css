@@ -1,0 +1,13 @@
+@layer components {
+  .home-grid > * {
+    min-width: 0;
+  }
+  .att-i p, .att-i .mono {
+    overflow-wrap: anywhere;
+  }
+  @media (max-width: 1240px) {
+    .home-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}

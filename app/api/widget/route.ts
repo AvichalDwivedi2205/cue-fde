@@ -14,6 +14,7 @@ import { geminiReady } from "@/lib/gemini";
 import { answerKnowledge, type KnowledgeAnswer } from "@/lib/knowledge-answer";
 import { KNOWLEDGE_WORKSPACE } from "@/lib/knowledge-policy";
 import { fallbackReply } from "@/lib/reply-policy";
+import { widgetOriginAllowed } from "@/lib/widget-preview";
 const input = z.object({
   action: z.enum(["session", "read", "message"]),
   app: z.string().max(100),
@@ -23,6 +24,8 @@ const input = z.object({
   name: z.string().trim().max(80).optional(),
   page: z.string().max(2000).optional(),
   attachment: z.string().max(6000000).optional(),
+  preview: z.boolean().optional(),
+  handoff: z.boolean().optional(),
 });
 export async function POST(request: Request) {
   try {
@@ -31,7 +34,10 @@ export async function POST(request: Request) {
       throw new Error("Request too large");
     const b = input.parse(await request.json());
     const app = (await readIntegrations()).apps.find((a) => a.id === b.app);
-    if (!app || !app.origins.includes(b.origin))
+    if (
+      !app ||
+      !(await widgetOriginAllowed(request, app.origins, b.origin, b.preview))
+    )
       return Response.json(
         { error: "App origin is not allowed" },
         { status: 403 },
@@ -39,11 +45,21 @@ export async function POST(request: Request) {
     if (b.action === "session") {
       widgetRateLimit("session:" + app.id, 120);
       return Response.json(
-        { token: issueWidgetSession(app, b.origin), name: app.name },
+        {
+          token: issueWidgetSession(
+            b.preview ? { ...app, origins: [...app.origins, b.origin] } : app,
+            b.origin,
+          ),
+          name: app.name,
+        },
         { headers: { "cache-control": "no-store" } },
       );
     }
-    const owner = verifyWidgetSession(b.token || "", app, b.origin);
+    const owner = verifyWidgetSession(
+      b.token || "",
+      b.preview ? { ...app, origins: [...app.origins, b.origin] } : app,
+      b.origin,
+    );
     widgetRateLimit(owner + ":" + b.action, b.action === "message" ? 12 : 60);
     const store = db(),
       auth = secret();
@@ -64,6 +80,7 @@ export async function POST(request: Request) {
       return Response.json(
         {
           name: app.name,
+          settings: app.widget,
           progress: previous ? supportProgress(previous) : null,
           attachments: previous?.attachments || [],
           case: previous?.case
@@ -89,6 +106,8 @@ export async function POST(request: Request) {
       );
     }
     if (!b.text) throw new Error("Write a message");
+    if (b.attachment && app.widget?.screenshots === false)
+      throw new Error("Screenshots are disabled for this app");
     const customer = b.name || "Guest";
     const context =
       b.page && new URL(b.page).origin === b.origin
@@ -106,7 +125,11 @@ export async function POST(request: Request) {
     };
     let ack = fallbackReply({ ...replyContext.conversation, ...replyContext });
     let knowledge: KnowledgeAnswer | undefined;
-    if (geminiReady() || process.env.LITELLM_API_KEY)
+    if (
+      !b.handoff &&
+      app.widget?.answers !== false &&
+      (geminiReady() || process.env.LITELLM_API_KEY)
+    )
       try {
         knowledge = await answerKnowledge(
           app.id,
@@ -115,6 +138,9 @@ export async function POST(request: Request) {
         );
         ack = knowledge.text;
       } catch {}
+    if (b.handoff)
+      ack =
+        "Your request for a person has been saved with this conversation. The team can reply here.";
     const { caseId: id, created } = await store.mutation(
       api.intake.widgetMessage,
       {

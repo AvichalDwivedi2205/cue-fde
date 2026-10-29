@@ -13,10 +13,12 @@ async function harness(storage = new Map<string, string>()) {
     window: {},
     document: {
       addEventListener: () => {},
+      removeEventListener: () => {},
       getElementById: () => null,
       querySelector: (s: string) => elements.get(s),
     },
     addEventListener: () => {},
+    removeEventListener: () => {},
     matchMedia: () => ({ matches: false }),
     setInterval: () => 1,
     fetch: (_url: string, options?: { method?: string }) => {

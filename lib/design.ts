@@ -9,6 +9,18 @@ export async function design(name: "bloom" | "cue") {
     path.join(process.cwd(), "lib/browser", name + ".js"),
     "utf8",
   );
+  if (name === "cue") {
+    // These prototype handlers change fixtures in browser memory. Their product
+    // equivalents are authenticated React screens; keep them out of live HTML.
+    html = html.replace(
+      /\/\* -+ workspace screens: knowledge, setup, widget, research, settings \*\/[\s\S]*?(?=\/\* -+ overlays \*\/)/,
+      "const XA = {};\n",
+    );
+    html = html.replace(
+      /<style>[\s\S]*?<\/style>/,
+      '<link rel="stylesheet" href="/cue-workspace.css">',
+    );
+  }
   if (name === "cue")
     bridge +=
       "\n" +
@@ -25,6 +37,11 @@ export async function design(name: "bloom" | "cue") {
       (await fs.readFile(
         path.join(process.cwd(), "lib/browser/prospects.js"),
         "utf8",
+      )) +
+      "\n" +
+      (await fs.readFile(
+        path.join(process.cwd(), "lib/browser/navigation.js"),
+        "utf8",
       ));
   html = html.replace(
     name === "cue"
@@ -40,11 +57,11 @@ export async function design(name: "bloom" | "cue") {
     html = html
       .replace(
         'href="#/${k}"',
-        "href=\"${k === 'knowledge' ? '/knowledge' : k === 'setup' ? '/setup' : k === 'prospects' ? '#/growth/prospects' : '#/' + k}\"",
+        "href=\"${k === 'knowledge' ? '/knowledge' : k === 'settings' ? '/settings' : k === 'setup' ? '/setup' : k === 'prospects' ? '/customers' : '#/' + k}\"",
       )
       .replace(
         "['integrations', 'Integrations', 'plug', '']",
-        "['knowledge', 'Knowledge', 'bulb', ''], ['setup', 'App setup', 'widget', ''], ['prospects', 'Cue customers', 'search', ''], ['integrations', 'Integrations', 'plug', '']",
+        "['setup', 'App setup', 'widget', ''], ['prospects', 'Cue customers', 'search', ''], ['integrations', 'Integrations', 'plug', '']",
       )
       .replace("['Grow', ['growth']]", "['Grow', ['growth', 'prospects']]")
       .replace(
@@ -57,6 +74,12 @@ export async function design(name: "bloom" | "cue") {
       )
       .replaceAll("S.sec === k ?", "navActive(k) ?")
       .replace("const gLink = o => ", "let gLink = o => ")
+      .replace("const clock = t =>", "let clock = t =>")
+      .replace("const hm = t =>", "let hm = t =>")
+      .replace(
+        "weekday: 'long', month: 'long', day: 'numeric'",
+        "weekday: 'long', month: 'long', day: 'numeric', timeZone: S.integrations?.timezone || 'Asia/Kolkata'",
+      )
       .replace(
         "g.state === 'empty' || (!g.opps.length && !g.campaigns.length)",
         "(g.state === 'empty' || (!g.opps.length && !g.campaigns.length)) && g.tab !== 'results'",

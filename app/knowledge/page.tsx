@@ -2,7 +2,6 @@ import { headers } from "next/headers";
 import { operator } from "@/lib/access";
 import { KnowledgeClient } from "./knowledge-client";
 import { WorkspaceShell } from "../components/workspace-shell";
-import "./knowledge.css";
 export const dynamic = "force-dynamic";
 export default async function KnowledgePage() {
   let actor: Awaited<ReturnType<typeof operator>>;

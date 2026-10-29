@@ -46,9 +46,11 @@ export default async function Connections() {
           : undefined
       }
     >
-      <main className="workspace-connections">
-        <h1>Connected accounts</h1>
-        <p>
+      <main className="ui-page max-w-[1056px]">
+        <h1 className="text-[22px] font-semibold tracking-tight">
+          Connected accounts
+        </h1>
+        <p className="mt-2 text-xs leading-relaxed text-cue-muted">
           WorkOS AuthKit identifies the operator. Pipes manages provider consent
           and credentials.
         </p>
@@ -63,9 +65,11 @@ export default async function Connections() {
               shared={!!session.organizationId}
             />
           ) : (
-            <section>
-              <h2>No external providers enabled yet</h2>
-              <p>
+            <section className="ui-card my-5 space-y-3 p-5">
+              <h2 className="text-sm font-semibold">
+                No external providers enabled yet
+              </h2>
+              <p className="mt-2 text-xs leading-relaxed text-cue-muted">
                 Your WorkOS login is connected. Enable the Slack provider with
                 your Slack app credentials in the WorkOS dashboard, then connect
                 the intended workspace here.
@@ -80,13 +84,13 @@ export default async function Connections() {
             </section>
           )
         ) : (
-          <section>
-            <h2>
+          <section className="ui-card my-5 space-y-3 p-5">
+            <h2 className="text-sm font-semibold">
               {configured
                 ? "Operator access required"
                 : "WorkOS account setup needed"}
             </h2>
-            <p>
+            <p className="mt-2 text-xs leading-relaxed text-cue-muted">
               {configured
                 ? "Sign in with your operator account."
                 : "Add the WorkOS API key and client ID to the local environment. Login and account connections will become available here."}
@@ -100,21 +104,23 @@ export default async function Connections() {
             </a>
           </section>
         )}
-        <section>
-          <h2>Engineering connections</h2>
-          <p>
+        <section className="ui-card my-5 space-y-3 p-5">
+          <h2 className="text-sm font-semibold">Engineering connections</h2>
+          <p className="mt-2 text-xs leading-relaxed text-cue-muted">
             Codex uses the existing local ChatGPT login. GitHub uses the
             connected local GitHub CLI account. Gemini uses the selected Google
             Cloud project.
           </p>
-          <p>
+          <p className="mt-2 text-xs leading-relaxed text-cue-muted">
             Slack event handling requires a Slack app signing secret. Provider
             consent must include the scopes needed for each action.
           </p>
         </section>
         {session?.user && (
           <form action={signOutAction}>
-            <button type="submit">Sign out</button>
+            <button className="ui-button" type="submit">
+              Sign out
+            </button>
           </form>
         )}
       </main>

@@ -3,7 +3,6 @@ import { operator } from "@/lib/access";
 import { requirePermission } from "@/lib/roles";
 import { SetupClient } from "./setup-client";
 import { WorkspaceShell } from "../components/workspace-shell";
-import "./setup.css";
 export const dynamic = "force-dynamic";
 export default async function Setup() {
   let actor: Awaited<ReturnType<typeof operator>>;

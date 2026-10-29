@@ -17,6 +17,7 @@ import {
 } from "@/lib/knowledge-import";
 import { answerKnowledge, SUPPORT_MODELS } from "@/lib/knowledge-answer";
 import type { Id } from "@/convex/_generated/dataModel";
+import { configuredSupportModel } from "@/lib/model-config";
 export const runtime = "nodejs";
 const input = z.discriminatedUnion("action", [
   z
@@ -53,6 +54,7 @@ const input = z.discriminatedUnion("action", [
       question: z.string().trim().min(1).max(2000),
       model: z.enum(SUPPORT_MODELS).optional(),
       mode: z.enum(["hybrid", "keyword"]).optional(),
+      audience: z.enum(["customer", "staff"]).optional(),
     })
     .strict(),
 ]);
@@ -74,7 +76,7 @@ export async function GET(request: Request) {
       canEdit: ["owner", "product", "support"].includes(user.role),
       canPublish: ["owner", "product"].includes(user.role),
     };
-    const model = process.env.CUE_SUPPORT_MODEL || "gemini-2.5-flash";
+    const model = await configuredSupportModel();
     if (!appId)
       return Response.json(
         {
@@ -204,7 +206,7 @@ export async function POST(request: Request) {
       const answer = await answerKnowledge(
         app.id,
         { appName: app.name, message: a.question, channel: "chat" },
-        { model: a.model, mode: a.mode },
+        { model: a.model, mode: a.mode, audience: a.audience },
       );
       return Response.json({
         text: answer.text,

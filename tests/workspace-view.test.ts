@@ -20,6 +20,7 @@ async function workspaceBrowser(selected: string) {
       },
     },
     addEventListener: () => {},
+    removeEventListener: () => {},
     matchMedia: () => ({ matches: false }),
     fetch: (url: string) =>
       new Promise((resolve) => reads.push({ url, resolve })),
@@ -69,13 +70,13 @@ test("workspace navigation reaches Knowledge, setup and customer research with o
   const attribute = (node: DefaultTreeAdapterTypes.Element, name: string) =>
     node.attrs.find((a) => a.name === name)?.value;
   expect(links.map((n) => attribute(n, "href"))).toEqual(
-    expect.arrayContaining(["/knowledge", "/setup", "#/growth/prospects"]),
+    expect.arrayContaining(["/knowledge", "/setup", "/customers", "/settings"]),
   );
   expect(
     links
       .filter((n) => attribute(n, "aria-current") === "page")
       .map((n) => attribute(n, "href")),
-  ).toEqual(["#/growth/prospects"]);
+  ).toEqual(["/customers"]);
 });
 const snapshot = (id: string) => ({
   app: { id, name: id },

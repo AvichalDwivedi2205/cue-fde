@@ -1,7 +1,8 @@
 (() => {
   const query = new URLSearchParams(location.search),
     app = query.get("app"),
-    origin = query.get("origin");
+    origin = query.get("origin"),
+    preview = query.get("preview") === "1";
   const messages = document.getElementById("messages"),
     form = document.getElementById("composer"),
     input = document.getElementById("message"),
@@ -16,7 +17,7 @@
     const response = await fetch("/api/widget", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action, app, origin, token: session, ...extra }),
+      body: JSON.stringify({ action, app, origin, token: session, preview, ...extra }),
     });
     const data = await response.json();
     if (!response.ok) {
@@ -30,6 +31,8 @@
     if (!session || busy) return;
     const data = await call("read");
     document.getElementById("brand").textContent = data.name + " support";
+    document.getElementById("voice").hidden = data.settings?.voice === false;
+    file.closest("label").hidden = data.settings?.screenshots === false;
     const nearBottom =
       messages.scrollHeight - messages.scrollTop - messages.clientHeight < 80;
     messages.replaceChildren();
@@ -104,9 +107,16 @@
   document.getElementById("voice").onclick = () => {
     if (!session) return;
     window.CueVoice.open(
-      { app, origin, token: session, name: context.name },
+      { app, origin, token: session, name: context.name, preview },
       () => void read(),
     );
+  };
+  document.getElementById("handoff").onclick = async () => {
+    if (busy || !session) return;
+    busy = true; submit.disabled = true;
+    try { await call("message", { text:"I’d like to talk to a person.", name:context.name, page:context.page, handoff:true }); busy = false; await read(); messages.scrollTop = messages.scrollHeight; }
+    catch (e) { status.textContent = e.message; }
+    finally { busy = false; submit.disabled = !session; }
   };
   form.onsubmit = async (e) => {
     e.preventDefault();

@@ -22,6 +22,7 @@ import {
   type ReplyContext,
 } from "./reply-policy";
 import type { Id } from "../convex/_generated/dataModel";
+import { configuredSupportModel } from "./model-config";
 export type KnowledgeHit = {
   _id: Id<"knowledgeChunks">;
   sourceId: Id<"knowledgeSources">;
@@ -179,6 +180,7 @@ async function answerImpl(
   options: {
     model?: string;
     mode?: "hybrid" | "keyword";
+    audience?: "customer" | "staff";
     allowDirectFaq?: boolean;
   } = {},
 ): Promise<KnowledgeAnswer> {
@@ -189,7 +191,7 @@ async function answerImpl(
   const { hits, retrieval } = await retrieveKnowledge(
     appId,
     message,
-    "customer",
+    options.audience || "customer",
     previous,
     options.mode,
   );
@@ -250,8 +252,7 @@ async function answerImpl(
       model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
     };
   }
-  const model =
-    options.model || process.env.CUE_SUPPORT_MODEL || "gemini-2.5-flash";
+  const model = options.model || (await configuredSupportModel());
   let usage: { inputTokens: number; outputTokens: number } | undefined;
   let stage = "provider";
   try {

@@ -38,10 +38,13 @@ export async function GET(request: NextRequest) {
     const snapshot = await db().query(api.cue.snapshot, { secret: secret() });
     const slack = await slackConfig(),
       email = await emailConfig(),
-      socket = await slackRuntimeStatus();
+      socket = await slackRuntimeStatus(),
+      config = await readIntegrations();
     return NextResponse.json({
       ...snapshot,
       integration: {
+        workspaceName: config.workspace?.name || "Cue workspace",
+        timezone: config.workspace?.timezone || "Asia/Kolkata",
         convex: true,
         gemini: geminiReady(),
         github: process.env.CUE_GITHUB_REPO || null,
@@ -57,12 +60,11 @@ export async function GET(request: NextRequest) {
           ? await notificationRuntimeStatus()
           : null,
         x: {
-          configured: !!(await readIntegrations()).x,
+          configured: !!config.x,
           ...(await xRuntimeStatus()),
         },
         workos: workosReady(),
-        codingApps:
-          (await readIntegrations()).coding?.map((c) => c.appId) || [],
+        codingApps: config.coding?.map((c) => c.appId) || [],
         actor: actor.name,
         role: actor.role,
         members:

@@ -39,6 +39,13 @@ export const appInput = z.object({
   name: z.string().trim().min(1).max(60),
   origins: z.array(originSchema).min(1).max(20),
 });
+export const widgetOptionsInput = z
+  .object({
+    answers: z.boolean(),
+    voice: z.boolean(),
+    screenshots: z.boolean(),
+  })
+  .strict();
 export const codingInput = z.object({
   appId: z.string().min(1).max(100),
   repository: z.string().regex(/^[\w.-]+\/[\w.-]+$/),
@@ -137,6 +144,7 @@ export const emailInput = z
 export type WidgetApp = z.infer<typeof appInput> & {
   id: string;
   createdAt: number;
+  widget?: z.infer<typeof widgetOptionsInput>;
 };
 export type SlackConfig = z.infer<typeof slackInput> & {
   webhookLastEventAt?: number;
@@ -208,6 +216,7 @@ export type IntegrationConfig = {
   email?: EmailConfig;
   coding?: CodingConfig[];
   x?: XConfig;
+  workspace?: { name: string; timezone: string; supportModel?: string };
 };
 const file = () => path.join(process.cwd(), ".cue", "integrations.enc");
 const key = () =>

@@ -1,0 +1,136 @@
+@import "tailwindcss";
+@import "./tokens.css";
+@source "../app/widget/route.ts";
+@source "../public/widget-frame.js";
+@layer base {
+  body {
+    margin: 0;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    color: var(--ink);
+    font:
+      13px/1.5 Inter,
+      system-ui,
+      sans-serif;
+  }
+  button {
+    cursor: pointer;
+    font: inherit;
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+@layer components {
+  header {
+    @apply flex items-center justify-between gap-3 border-b px-5 py-4;
+    border-color: var(--line);
+  }
+  header strong {
+    @apply block text-[14px] font-semibold;
+  }
+  .brand-mark {
+    @apply grid size-8 shrink-0 place-items-center rounded-lg;
+    background: var(--accent);
+    color: #fff;
+  }
+  .brand-name {
+    @apply flex-1;
+  }
+  header small {
+    @apply mt-0.5 block text-[11px];
+    color: var(--ink-2);
+  }
+  button {
+    @apply rounded-md px-3 py-2 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40;
+    background: var(--accent);
+    color: #fff;
+  }
+  button:hover:not(:disabled) {
+    background: var(--accent-d);
+  }
+  #close {
+    @apply size-7 p-0 text-xl;
+    background: var(--sunken);
+    color: var(--ink-2);
+  }
+  #messages {
+    @apply flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5;
+    background: var(--bg);
+  }
+  .bubble {
+    @apply max-w-[94%] self-start rounded-xl border px-3.5 py-3;
+    background: #fff;
+    border-color: var(--line);
+  }
+  .customer {
+    @apply self-end border-transparent;
+    background: var(--accent-t);
+  }
+  .bubble small {
+    @apply block text-[10px] font-medium;
+    color: var(--ink-2);
+  }
+  .bubble p {
+    @apply mt-1 whitespace-pre-wrap break-words text-xs leading-relaxed;
+  }
+  .welcome {
+    @apply rounded-lg p-4 text-xs leading-relaxed;
+    color: var(--ink-2);
+  }
+  footer {
+    @apply border-t bg-white px-4 pt-3 pb-4;
+    border-color: var(--line);
+  }
+  #status {
+    @apply mb-2 text-[10px];
+    color: var(--ink-2);
+  }
+  textarea {
+    @apply w-full resize-none rounded-lg border p-3 text-xs leading-relaxed;
+    height: 64px;
+    border-color: var(--line);
+  }
+  form > div {
+    @apply mt-2 flex flex-wrap items-center justify-between gap-2;
+  }
+  .file {
+    @apply cursor-pointer rounded-md border px-2 py-1.5 text-[11px];
+    border-color: var(--line);
+    color: var(--ink-2);
+  }
+  .file input {
+    @apply sr-only;
+  }
+  #voice {
+    @apply border bg-white text-[11px];
+    border-color: var(--line);
+    color: var(--ink-2);
+  }
+  #voice:hover {
+    background: var(--hover);
+  }
+  .source-card {
+    @apply mt-3 border-t pt-2;
+    border-color: var(--line);
+  }
+  .source-card summary {
+    @apply cursor-pointer text-[11px] font-medium;
+    color: var(--accent);
+  }
+  .source-card p {
+    @apply mt-2 text-[11px];
+    color: var(--ink-2);
+  }
+  #handoff {
+    @apply bg-transparent p-0 text-[10px] underline;
+    color: var(--ink-2);
+  }
+  .widget-footnote {
+    @apply mt-2 text-center text-[10px];
+    color: var(--ink-3);
+  }
+}

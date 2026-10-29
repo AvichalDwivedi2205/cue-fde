@@ -15,6 +15,7 @@ import {
   codingInput,
   xInput,
   xConfigForSave,
+  widgetOptionsInput,
 } from "@/lib/integration-config";
 import {
   checkSlack,
@@ -97,6 +98,39 @@ export async function POST(request: Request) {
   }
   try {
     const b = await request.json();
+    if (b.action === "appUpdate") {
+      const input = appInput.parse(b),
+        id = z.string().min(1).max(100).parse(b.id);
+      await updateIntegrations((c) => {
+        if (!c.apps.some((a) => a.id === id))
+          throw new Error("Application not found");
+        return {
+          ...c,
+          apps: c.apps.map((a) =>
+            a.id === id
+              ? { ...a, ...input, origins: [...new Set(input.origins)] }
+              : a,
+          ),
+        };
+      });
+      return Response.json({
+        ok: true,
+        message: "Application and allowed origins saved.",
+      });
+    }
+    if (b.action === "widget") {
+      const id = z.string().min(1).max(100).parse(b.appId),
+        widget = widgetOptionsInput.parse(b.widget);
+      await updateIntegrations((c) => {
+        if (!c.apps.some((a) => a.id === id))
+          throw new Error("Application not found");
+        return {
+          ...c,
+          apps: c.apps.map((a) => (a.id === id ? { ...a, widget } : a)),
+        };
+      });
+      return Response.json({ ok: true, message: "Widget settings saved." });
+    }
     if (b.action === "x") {
       const old = (await readIntegrations()).x;
       const input = xInput.parse({
