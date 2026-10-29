@@ -17,6 +17,59 @@ const body = {
 };
 beforeEach(() => vi.stubEnv("CUE_DEMO_SECRET", "secret"));
 afterEach(() => vi.unstubAllEnvs());
+test("spoken answers reject withdrawn context atomically and retain visitor ownership", async () => {
+  const { t, sourceId, publish } = await setup();
+  const chunkId = await publish(),
+    owner = "widget:app-a:voice-verification",
+    key = "a0000000-0000-4000-8000-000000000011";
+  const sessionId = await t.mutation(api.voice.start, {
+    secret: "secret",
+    owner,
+    appId: "app-a",
+    customer: "Verification",
+  });
+  await t.mutation(api.voice.claim, {
+    secret: "secret",
+    owner,
+    sessionId,
+    key,
+  });
+  await t.mutation(api.knowledge.withdraw, { ...scope, sourceId });
+  await t.mutation(api.voice.finish, {
+    secret: "secret",
+    owner,
+    sessionId,
+    key,
+    transcript: "What is the upload limit?",
+    reply: "Photos up to 5 MB",
+    knowledge: {
+      workspaceId: scope.workspaceId,
+      usedChunkIds: [chunkId],
+      citedChunkIds: [chunkId],
+      status: "answered",
+      provider: "approved-faq",
+      model: "none",
+      inputTokens: 0,
+      outputTokens: 0,
+    },
+  });
+  const saved = await t.query(api.voice.turn, {
+    secret: "secret",
+    owner,
+    sessionId,
+    key,
+  });
+  expect(saved?.reply).toContain("information changed");
+  expect(saved?.reply).not.toContain("5 MB");
+  await expect(
+    t.query(api.voice.turn, {
+      secret: "secret",
+      owner: "someone-else",
+      sessionId,
+      key,
+    }),
+  ).rejects.toThrow("not found");
+});
 async function setup() {
   const t = convexTest(schema, modules),
     sourceId = await t.mutation(api.knowledge.save, body);

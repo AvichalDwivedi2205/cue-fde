@@ -26,9 +26,10 @@ export function publicAddress(address: string) {
     );
   }
   if (isIP(address) !== 6) return false;
-  const normalized = new URL(
-    "https://[" + address + "]/ ".trim(),
-  ).hostname.replace(/[\[\]]/g, "");
+  const normalized = new URL("https://[" + address + "]/").hostname.replace(
+    /[\[\]]/g,
+    "",
+  );
   return (
     /^[23][0-9a-f]{3}:/i.test(normalized) &&
     !/^(2001:(:|0:|db8)|2002:)/i.test(normalized)
