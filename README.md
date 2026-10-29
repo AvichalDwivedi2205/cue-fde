@@ -1,8 +1,10 @@
 # Cue × Bloom
 
+The canonical public repository is [AvichalDwivedi2205/cue-b2c](https://github.com/AvichalDwivedi2205/cue-b2c). It contains the actual development history, product source, tests, and submission evidence. The earlier `cue-neathack-2026` snapshot is retired; new work belongs here.
+
 A working implementation of customer support turning into an engineering fix. Both applications use the supplied designs in `design/bloom.html` and `design/cue.html`; live adapters replace their browser-only story state.
 
-Company knowledge is available at [`/knowledge`](https://cue.latchgrid.in/knowledge): add FAQs, text, TXT/Markdown/PDF/DOCX files, public pages or GitHub documents, then review and publish them for a registered app. Typed and spoken widget answers retrieve published sources and show citations. Gemini is the default; the optional LiteLLM team key is available for an explicit later switch. See [setup, scope and verification](docs/company-knowledge.md).
+Company knowledge is available at [`/knowledge`](https://cue.latchgrid.in/knowledge): add FAQs, text, TXT/Markdown/PDF/DOCX files, public pages or GitHub documents, then review and publish them for a registered app. Typed and spoken widget answers retrieve published sources and show citations. Support and qualification use Gemini; Growth writing uses Claude Sonnet 4.6 through LiteLLM. See [setup, scope and verification](docs/company-knowledge.md) and [the current release and build provenance](docs/repository-and-build-provenance.md).
 
 ## Run
 

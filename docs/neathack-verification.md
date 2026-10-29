@@ -6,9 +6,9 @@ evidence. Submission publication remains a separate step.
 
 ## Working source and release
 
-- Public source: <https://github.com/AvichalDwivedi2205/cue-neathack-2026>.
+- Canonical public source: <https://github.com/AvichalDwivedi2205/cue-b2c>, preserving the original development history. The earlier snapshot is retired. See [current release and build provenance](repository-and-build-provenance.md).
 - Tracing implementation: source commit `b4b7ee0d8160004b6fa19ed49d6f272573e6a791`.
-- Clean public snapshot: `e2ac467e783582211e0514e57440643e75776bdc`.
+- Historical public snapshot: `e2ac467e783582211e0514e57440643e75776bdc`; this is not the current product release.
 - Crustdata integration: source commit `a4c3394`, with website review and layout
   fixes in `918eb80` and final release
   `2ec885ecd4121d54b4c94552f2b73c4dce4ea428`.
@@ -16,8 +16,9 @@ evidence. Submission publication remains a separate step.
   `5d778a808be77e589417208b002f93f2b187c899`. Bloom's installed source-card
   renderer is source commit `f15b664` and Vercel deployment
   `dpl_9K9emwAdjFAdCdyuKvF2g9R15tki`.
-- Hosted Cue: <https://cue.latchgrid.in>; Cloud Run revision `cue-00034-fm9`,
-  Ready and serving 100% of traffic. Container digest
+- Current hosted Cue: <https://cue.latchgrid.in>; source `70033e31cd60bebb610d6953a3fb097f19325ec0`, Cloud Run revision `cue-00040-wit`. The current release passed 408 tests across 64 files, lint, typecheck, production build, 17 hosted boundary checks, and six live widget checks; details are in [current provenance](repository-and-build-provenance.md).
+- Earlier Crustdata release: Cloud Run revision `cue-00034-fm9`.
+  Historical container digest
   `sha256:0a86b674d375b88067cec78411a7ad9866782a567654a4404727087eb2c6e0e8`.
 - Public checks passed: secure customer cookie; exact 5 MiB acceptance and
   one-byte-over rejection; persisted photo storage; denied foreign-origin
@@ -94,11 +95,13 @@ held-out accuracy or remove the need for product review.
 
 ## Entire
 
-The GitHub App is installed only on the original `cue-b2c` repository. A
-separate clean public snapshot is also pushed to an Entire-native repository;
-the app's GitHub access was not expanded.
+The GitHub App is installed only on `cue-b2c`, now the canonical public source
+repository. The latest build capture is described in
+[current build provenance](repository-and-build-provenance.md). The historical
+public snapshot below was also pushed to an Entire-native repository; the app's
+GitHub access was not expanded.
 
-Checkpoint ID: **`01M4N3E1W54RN7FC20B4GJGPEV`**.
+Historical checkpoint ID: **`01M4N3E1W54RN7FC20B4GJGPEV`**.
 
 - [Public captured session](https://entire.io/et/cue-neathack-2026/cue/session/01a129c7-7f3e-7e00-80a5-dbdbea47cf3c)
 - [Commit carrying the checkpoint trailer](https://entire.io/et/cue-neathack-2026/cue/commit/e2ac467e783582211e0514e57440643e75776bdc)
@@ -114,9 +117,9 @@ Codex hook configuration is checked in. Future automatic capture requires
 reviewing/enabling it through Codex's `/hooks`; this checkpoint was captured
 using the official manual session-attach command.
 
-The checkpoint above captures the initial tracing build. Crustdata source and
-demo updates are published as later repository commits; this update does not
-claim a new Entire checkpoint for the subsequent research session.
+The historical checkpoint above captures the initial tracing build. It does
+not represent the latest workspace or model-routing release. Use the refreshed
+checkpoint in the current build provenance for the latest captured session.
 
 ## cfo.ai and plan
 

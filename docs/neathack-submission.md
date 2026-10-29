@@ -16,11 +16,11 @@ and a saved team membership; the customer app is public.
 | Requirement | Current status |
 |---|---|
 | neatlogs | Integrated and deployed. Actual model traces, failed/passing regression replay, and hosted support/triage traces verified; see `neathack-verification.md`. |
-| Entire | CLI enabled; GitHub App restricted to `cue-b2c`. Public checkpoint `01M4N3E1W54RN7FC20B4GJGPEV` captured and verified accessible. |
+| Entire | CLI enabled; GitHub App restricted to the canonical `cue-b2c` repository. Refreshed genuine session checkpoint `01M4R2NJSBS811SF9BFG13YA4F`; see [current build provenance](repository-and-build-provenance.md). |
 | cfo.ai | Business plan and editable financial model saved. Public view-only link: https://cfo.ai/s/IfzpWk2LZv2xR34C. Base/stress economics and hypothetical runway inspected; trial cancellation verified. |
-| Public code | Published: https://github.com/AvichalDwivedi2205/cue-neathack-2026. Clean source, lockfile and tests; private environment files/artifacts/history excluded. |
+| Public code | https://github.com/AvichalDwivedi2205/cue-b2c. Full original development history, latest product source, lockfile, tests, and evidence. Runtime secrets and local artifacts are ignored. |
 | Crustdata (optional) | Live company search and exact-ID enrichment for potential buyers of Cue. Ten records from two searches; 22.30 credits reported. Four shortlisted after product-site review, five awaiting review and one dismissed. Buying intent remains unverified. [Details](crustdata-customer-research.md). |
-| Demo | Narrated 2:29 evidence walkthrough from authentic UI screenshots, covering Cue and all three required sponsors. [Watch or download](evidence/cue-neathack-demo.mp4). |
+| Demo | Existing narrated 2:29 evidence walkthrough from authentic UI screenshots covers earlier retained runs and required sponsors. [Watch or download](evidence/cue-neathack-demo.mp4). It predates the latest workspace and model-routing release; a new end-to-end video has not been recorded. |
 
 ## Claims supported by current evidence
 
@@ -40,9 +40,9 @@ pilot economics plan. Crustdata researches potential buyers with a reviewed
 company shortlist. Human review precedes release; commercial results remain
 to be tested.
 
-Demo: https://github.com/AvichalDwivedi2205/cue-neathack-2026/raw/refs/heads/main/docs/evidence/cue-neathack-demo.mp4
-Code: https://github.com/AvichalDwivedi2205/cue-neathack-2026
-Checkpoint: https://entire.io/et/cue-neathack-2026/cue/session/01a129c7-7f3e-7e00-80a5-dbdbea47cf3c · ID 01M4N3E1W54RN7FC20B4GJGPEV
+Earlier evidence video: https://github.com/AvichalDwivedi2205/cue-b2c/raw/refs/heads/main/docs/evidence/cue-neathack-demo.mp4
+Code: https://github.com/AvichalDwivedi2205/cue-b2c
+Checkpoint: https://entire.io/gh/AvichalDwivedi2205/cue-b2c/session/01a129c7-7f3e-7e00-80a5-dbdbea47cf3c · ID 01M4R2NJSBS811SF9BFG13YA4F
 Plan: https://cfo.ai/s/IfzpWk2LZv2xR34C
 
 The video is a documentary walkthrough of retained run evidence and fresh
