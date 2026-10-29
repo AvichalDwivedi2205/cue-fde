@@ -27,7 +27,18 @@ test("assembled Cue bridge initializes against the supplied design bindings", as
       approve: typeof A.gApprove,
       discovered: G_TODO.includes('discovered'),
       journey: gJourney({ author: '@tester', j: {} })
-    }; })();`,
+    };
+    S.growth.state = 'populated'; S.growth.opps = [];
+    S.growth.campaigns = [{id: 'campaign', title: 'Caption search', cap: 'cap',
+      sources: ['Official X recent search'], queries: ['photo journal'],
+      budget: {used: 20, limit: 20}, paused: false, goal: 'Activation'}];
+    S.growth.capabilities = [{id: 'cap', title: 'Caption search', claim: 'Find captions',
+      release: 'current-release', status: 'valid', check: 'Verified', verifiedAt: Date.now()}];
+    S.growth.tab = 'opportunities';
+    window.agentUI = {opportunities: growthPage()};
+    S.growth.tab = 'campaigns'; window.agentUI.campaigns = growthPage();
+    S.growth.tab = 'results'; window.agentUI.results = growthPage();
+    })();`,
   );
   expect(() => vm.runInContext(executable, context)).not.toThrow();
   expect(context.window.initialized).toMatchObject({
@@ -37,6 +48,21 @@ test("assembled Cue bridge initializes against the supplied design bindings", as
     discovered: true,
   });
   expect(context.window.initialized.journey).toContain("Original source");
+  expect(context.window.agentUI.opportunities).toContain(
+    'data-testid="growth-agent-status"',
+  );
+  expect(context.window.agentUI.opportunities).toContain("Daily limit reached");
+  expect(context.window.agentUI.opportunities).toContain("Pause agent");
+  expect(context.window.agentUI.opportunities).not.toContain(
+    'id="growth-source"',
+  );
+  expect(context.window.agentUI.results).not.toContain('id="growth-source"');
+  expect(context.window.agentUI.campaigns).toContain(
+    '<details class="blk" id="growth-source-import"',
+  );
+  expect(context.window.agentUI.campaigns).not.toContain(
+    'id="growth-source-import" open',
+  );
 });
 
 test("actual Growth bridge renders unqualified sources and unsupported needs without fixture facts", async () => {
@@ -131,6 +157,7 @@ test("actual Growth bridge renders unqualified sources and unsupported needs wit
       getElementById: () => null,
     },
     gDraftHtml: empty,
+    gOpportunities: empty,
     gFootHtml: empty,
     gCampaigns: empty,
     growthPage: empty,
@@ -158,7 +185,8 @@ test("actual Growth bridge renders unqualified sources and unsupported needs wit
   const discovered = vm.runInContext("gDetail(S.growth.opps[0])", context);
   expect(discovered).toContain("qualification pending");
   expect(discovered).toContain("matching awaits source qualification");
-  expect(discovered).toContain("Qualify source");
+  expect(discovered).toContain("checks this source automatically");
+  expect(discovered).not.toContain("Qualify source");
   expect(discovered).not.toContain("Not a product need");
   const unsupported = vm.runInContext("gDetail(S.growth.opps[1])", context);
   expect(unsupported).toContain("No verified capability answers this request");

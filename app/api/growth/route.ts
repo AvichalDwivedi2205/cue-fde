@@ -191,6 +191,7 @@ export async function POST(request: Request) {
           campaignId: c._id,
           ...(o ? { opportunityId: o._id } : {}),
           release,
+          automatic: true,
         });
         return Response.json({ ok: true, taskId });
       }
@@ -296,12 +297,26 @@ export async function POST(request: Request) {
         break;
       case "pause":
         if (!c || a.paused === undefined) throw new Error("Campaign required");
+        if (!a.paused) {
+          if (!["owner", "product"].includes(actor.role))
+            throw new ConvexError("Product role required");
+          if (!config.x?.enabled)
+            throw new ConvexError(
+              "Connect official X discovery before starting Growth",
+            );
+          const credits = await createXApi(config.x).credits();
+          if (credits.freeBalance < 1.1)
+            throw new ConvexError(
+              "Free credits below conservative search reserve",
+            );
+        }
         await db().mutation(api.growthExecution.pause, {
           secret: secret(),
           actor,
           appId: a.appId,
           campaignId: c._id,
           paused: a.paused,
+          release,
         });
         break;
     }
