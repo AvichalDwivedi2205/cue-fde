@@ -2,7 +2,7 @@ import { createServer } from "node:net";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { randomBytes } from "node:crypto";
-import { Script } from "node:vm";
+import { Script, createContext } from "node:vm";
 import { afterEach, expect, test } from "vitest";
 import { photo } from "../demo/bloom/fixture.mjs";
 import {
@@ -80,6 +80,53 @@ test("normal journal uploads use the protected isolated service and exact releas
   expect(page.includes("5 MB")).toBe(true);
   for (const script of page.matchAll(/<script>([\s\S]*?)<\/script>/g))
     expect(() => new Script(script[1])).not.toThrow();
+  const supportBridge = page.match(
+    /\/\* Installed Cue support bridge \*\/([\s\S]*?)\/\* ---------- Boot ---------- \*\//,
+  )?.[1];
+  expect(supportBridge).toBeTruthy();
+  const draft = {
+    upload: { status: "error", file: "original-photo" },
+    title: "Memory to retry",
+    caseToken: "original-visitor-conversation",
+  };
+  let launches = 0,
+    focused = false,
+    loadingNotice = "";
+  const frame = {
+    style: { display: "none" },
+    focus: () => (focused = true),
+  };
+  const launcher = {
+    click: () => {
+      launches++;
+      frame.style.display = frame.style.display === "none" ? "block" : "none";
+    },
+  };
+  const elements: Record<string, unknown> = {
+    "cue-widget-launcher": launcher,
+    "cue-widget-frame": frame,
+  };
+  const supportContext = createContext({
+    document: { getElementById: (id: string) => elements[id] },
+    S: draft,
+    toast: (message: string) => (loadingNotice = message),
+  });
+  new Script(supportBridge!).runInContext(supportContext);
+  new Script("getHelpFromError(); openChat();").runInContext(supportContext);
+  expect(launches).toBe(1);
+  expect(frame.style.display).toBe("block");
+  expect(focused).toBe(true);
+  expect(draft).toEqual({
+    upload: { status: "error", file: "original-photo" },
+    title: "Memory to retry",
+    caseToken: "original-visitor-conversation",
+  });
+  new Script("closeChat(); closeChat();").runInContext(supportContext);
+  expect(launches).toBe(2);
+  expect(frame.style.display).toBe("none");
+  delete elements["cue-widget-launcher"];
+  new Script("getHelpFromError();").runInContext(supportContext);
+  expect(loadingNotice).toContain("Support is still loading");
   async function upload(size: number, cookie?: string) {
     const form = new FormData();
     form.append(

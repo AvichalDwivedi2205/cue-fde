@@ -75,7 +75,28 @@ async function renderJournal(config: RehearsalConfig) {
     "utf8",
   );
   adapter = adapter.split("const voiceButton = document.createElement")[0];
-  const bridge = `${adapter}\nrestoreHistory = () => {}; renderDemo = () => {}; afterDelivered = () => {};\n`;
+  const bridge = `${adapter}
+restoreHistory = () => {}; renderDemo = () => {}; afterDelivered = () => {};
+/* Installed Cue support bridge */
+openChat = () => {
+  const launcher = document.getElementById("cue-widget-launcher");
+  const frame = document.getElementById("cue-widget-frame");
+  if (!launcher || !frame) {
+    toast("Support is still loading. Please try again.", { icon: "alert" });
+    return;
+  }
+  if (frame.style.display === "none") launcher.click();
+  frame.focus({ preventScroll: true });
+};
+closeChat = () => {
+  const launcher = document.getElementById("cue-widget-launcher");
+  const frame = document.getElementById("cue-widget-frame");
+  if (launcher && frame && frame.style.display !== "none") launcher.click();
+};
+// The installed widget owns reports, attachments and its saved conversation.
+// Keep the failed upload and draft intact; do not create the reference chat's synthetic screenshot.
+getHelpFromError = () => openChat();
+`;
   html = html.replace(
     "/* ---------- Boot ---------- */",
     bridge + "\n/* ---------- Boot ---------- */",
