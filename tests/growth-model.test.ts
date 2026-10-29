@@ -142,6 +142,53 @@ test("selected Claude route uses the same verified context and records actual to
   expect(call.messages[0].content).toContain("never a source of product facts");
   expect(generate).not.toHaveBeenCalled();
 });
+test("a real campaign-length link leaves an explicit prose budget for Sonnet", async () => {
+  const campaignLink =
+    "https://cue.latchgrid.in/g/vyUbtPHkMCdPN0phxEyXCrfNt-dAzOaL.e84cf674cc774c0129d40e8650350be68ac41a7e5e2dee688aa16bc50dd91337";
+  const text =
+    "Bloom finds memories using all words in your caption query. " +
+    campaignLink;
+  completion.mockResolvedValue({
+    choices: [{ message: { content: JSON.stringify({ reply: text }) } }],
+  });
+  const result = await generateGrowthDraft(
+    "Anyone recommend a photo journal where I can find memories by words in captions?",
+    claims,
+    campaignLink,
+    "Bloom",
+    undefined,
+    { model: "claude-sonnet-4.6" },
+  );
+  const call = completion.mock.calls[0][0];
+  const budget = 280 - campaignLink.length - 1;
+  expect(call.messages[0].content).toContain(
+    `Prose before the link must be at most ${budget} characters`,
+  );
+  expect(call.messages[0].content).toContain(
+    "Aim for 100 characters of prose or fewer",
+  );
+  expect(result.text).toBe(text);
+  expect(result.text.length).toBeLessThanOrEqual(280);
+});
+test("a campaign URL leaving no room for a grounded reply fails before spending model tokens", async () => {
+  const oversizedLink = "https://cue.test/g/" + "a".repeat(240);
+  await expect(
+    generateGrowthDraft(
+      "Find saved captions",
+      claims,
+      oversizedLink,
+      "Bloom",
+      undefined,
+      {
+        model: "claude-sonnet-4.6",
+      },
+    ),
+  ).rejects.toThrow(
+    "Campaign link leaves insufficient space for a grounded reply",
+  );
+  expect(completion).not.toHaveBeenCalled();
+  expect(generate).not.toHaveBeenCalled();
+});
 test.each([
   "not JSON",
   JSON.stringify({ reply: "Bloom syncs captions: " + link }),
