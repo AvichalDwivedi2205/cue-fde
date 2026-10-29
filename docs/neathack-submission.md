@@ -1,4 +1,6 @@
-# Cue · neatHack 2026 submission preparation
+# Cue · neatHack 2026 submission
+
+**Submitted and confirmed on October 12, 2026.** The [public X quote-post](https://x.com/Avichal2205/status/2109699331062366279) includes the final narrated demo and the official launch post. The form confirmed submission for every teammate. [Receipt and submitted details](submission-2026-10-12-receipt.md) · [Completed checklist and tool evidence](submission-2026-10-12-checklist.md).
 
 **Track:** Build an agent that works (literally).
 
@@ -20,7 +22,7 @@ and a saved team membership; the customer app is public.
 | cfo.ai | Business plan and editable financial model saved. Public view-only link: https://cfo.ai/s/IfzpWk2LZv2xR34C. Base/stress economics and hypothetical runway inspected; trial cancellation verified. |
 | Public code | https://github.com/AvichalDwivedi2205/cue-b2c. Full original development history, latest product source, lockfile, tests, and evidence. Runtime secrets and local artifacts are ignored. |
 | Crustdata (optional) | Live company search and exact-ID enrichment for potential buyers of Cue. Ten records from two searches; 22.30 credits reported. Four shortlisted after product-site review, five awaiting review and one dismissed. Buying intent remains unverified. [Details](crustdata-customer-research.md). |
-| Demo | Fresh 2:50 product footage has been recorded and edited from actual UI, including the new widget-to-Codex fix, exact Slack approval, original-photo retry, grounded Growth reply, Requests and required sponsors. Technical, visual and privacy checks passed. The user's voiceover is still to be attached. [Final narration and timestamps](neathack-demo-script.md). The [earlier 2:29 evidence walkthrough](evidence/cue-neathack-demo.mp4) remains separate historical evidence. |
+| Demo | [Published narrated demo](https://x.com/Avichal2205/status/2109699331062366279): 179.916667 seconds, 1920 × 1080, edited at 1.1× with the user's own voice and reduced background noise. Actual UI shows the fresh widget-to-Codex fix, exact Slack approval, original-photo retry, grounded Growth reply, Requests and required sponsors. Technical, visual, audio and privacy checks passed. The [earlier 2:29 evidence walkthrough](evidence/cue-neathack-demo.mp4) remains separate historical evidence. |
 
 ## Claims supported by current evidence
 
@@ -32,25 +34,27 @@ Existing Growth evidence is a controlled activation, with zero organic
 acquisition claimed. A draft PR is not a deployment and a drafted reply is not
 an external publication.
 
-## Draft X submission text
+## Published submission
 
-Built Cue for #neatHack: an agent that turns consumer-app support reports into
-investigated, reviewed and independently verified fixes. Bloom shows the loop.
-Traced with neatlogs, with an inspectable Entire build checkpoint and a cfo.ai
-pilot economics plan. Crustdata researches potential buyers with a reviewed
-company shortlist. Human review precedes release; commercial results remain
-to be tested.
+The [published founder post](https://x.com/Avichal2205/status/2109699331062366279)
+quotes the [official launch post](https://x.com/bettersayAJ/status/2109639214723932495),
+attaches the final narrated video, and tags **@neatlogs**, **@EntireHQ** and
+**@arithecfo**. The exact approved prose is saved as [Markdown](submission-2026-10-12-x-post.md)
+and [plain text](submission-2026-10-12-x-post.txt). Crustdata remains an optional
+implemented integration; it is not claimed in the published post or video.
 
-Earlier evidence video: https://github.com/AvichalDwivedi2205/cue-b2c/raw/refs/heads/main/docs/evidence/cue-neathack-demo.mp4
-Code: https://github.com/AvichalDwivedi2205/cue-b2c
-Checkpoint: https://entire.io/gh/AvichalDwivedi2205/cue-b2c/session/01a129c7-7f3e-7e00-80a5-dbdbea47cf3c · ID 01M4RAVQZBH96V76R2QHD6GKZR
-Plan: https://cfo.ai/s/IfzpWk2LZv2xR34C
+The official form at <https://neatlogs.com/submission> displayed **SUBMISSION
+RECEIVED** and confirmed that Cue's project is submitted for every teammate.
+Receipt: **`3e7e1dc9-fbfd-44d9-a778-b745d110e46d`**. No teammate needs to submit again.
 
-The linked earlier video is a documentary walkthrough of retained run evidence.
-The new product footage contains a fresh controlled coding run with actual waits
+The published video includes a fresh controlled coding run with actual waits
 cut using elapsed-time captions, plus historical channel and sponsor evidence.
-It is not yet a published narrated submission. The planned
-event submission window is October 12, 2026,
-19:00–23:55 IST; verify final announcements in the event Discord.
-No X submission has been posted. The text above is a draft for review and may
-need multiple posts to fit X's account-specific length limits.
+The final edit follows the user's narration checkpoints, includes the supplied
+opening and closing clips, and uses the user's own voice without AI narration.
+Growth remains controlled verification evidence, with zero organic acquisition
+claimed. The cfo.ai results are hypothetical planning scenarios, not achieved revenue.
+
+- Public code: <https://github.com/AvichalDwivedi2205/cue-b2c>
+- Entire session: <https://entire.io/gh/AvichalDwivedi2205/cue-b2c/session/01a129c7-7f3e-7e00-80a5-dbdbea47cf3c>
+- Checkpoint ID: `01M4RAVQZBH96V76R2QHD6GKZR`
+- cfo.ai plan: <https://cfo.ai/s/IfzpWk2LZv2xR34C>
