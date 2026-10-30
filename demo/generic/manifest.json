@@ -1,0 +1,7 @@
+{
+  "name": "Generic Notes",
+  "expectedFailure": "title missing (expected saved)",
+  "allowedPaths": ["lib/"],
+  "testCommands": [{ "program": "node", "args": ["test.mjs"] }],
+  "baseBranch": "main"
+}

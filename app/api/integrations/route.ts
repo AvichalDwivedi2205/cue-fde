@@ -17,6 +17,8 @@ import {
   xConfigForSave,
   widgetOptionsInput,
 } from "@/lib/integration-config";
+import { packContext } from "@/lib/app-pack";
+import { db, api, secret } from "@/lib/server-store";
 import {
   checkSlack,
   checkEmail,
@@ -36,7 +38,17 @@ export async function GET(request: Request) {
       email = await emailConfig();
     return Response.json(
       {
-        apps: config.apps,
+        apps: await Promise.all(
+          config.apps.map(async (a) => {
+            const pack = await packContext(a.id);
+            return {
+              ...a,
+              packStatus: pack?.status || "none",
+              installChecked: !!pack?.installCheckedAt,
+              hasEngineering: !!pack?.engineering,
+            };
+          }),
+        ),
         coding: config.coding || [],
         x: {
           configured: !!config.x,
@@ -166,10 +178,20 @@ export async function POST(request: Request) {
           target,
         ],
       }));
+      // Canonical binding lives on the pack (checked in-transaction when runs
+      // are born); the vault copy stays for the frozen Bloom flow.
+      await db().mutation(api.appPacks.bindEngineering, {
+        secret: secret(),
+        appId: target.appId,
+        repository: target.repository,
+        baseBranch: target.baseBranch,
+        allowedPaths: target.allowedPaths,
+        testCommands: target.testCommands,
+      });
       return Response.json({
         ok: true,
         message:
-          "Repository policy saved. Approved specifications can be implemented in isolated checkouts. Changes require Engineering review; deployment uses your repository's release process.",
+          "Repository policy saved. Bug reports and approved specifications on this app can be implemented in isolated checkouts. Changes require Engineering review; deployment uses your repository's release process.",
       });
     }
     if (b.action === "team") {
@@ -215,6 +237,16 @@ export async function POST(request: Request) {
       await updateIntegrations((c) => {
         if (c.apps.length >= 20) throw new Error("Connected app limit reached");
         return { ...c, apps: [...c.apps, app] };
+      });
+      // The pack in Convex is canonical (identity, lifecycle, bindings);
+      // this vault write stays for backward compatibility with the frozen
+      // Bloom entries and any pre-flip readers.
+      await db().mutation(api.appPacks.ensure, {
+        secret: secret(),
+        appId: app.id,
+        name: app.name,
+        origins: app.origins,
+        status: "draft",
       });
       return Response.json({ app });
     }

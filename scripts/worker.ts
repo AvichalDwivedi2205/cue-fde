@@ -30,7 +30,10 @@ const notifications = startNotificationListener();
 const { startXListener } = await import("../lib/x-listener");
 const x = startXListener();
 const { sendSlackRunUpdate } = await import("../lib/delivery");
-const { implementFeature } = await import("../lib/feature-runner");
+const { implementFeature, implementFix } = await import(
+  "../lib/feature-runner"
+);
+const { runExecutionMode } = await import("../lib/coding-policy");
 const {
   ensureRehearsal,
   readRehearsalConfig,
@@ -162,7 +165,9 @@ while (!stopping) {
     const abort = new AbortController(),
       deadline = setTimeout(
         () => abort.abort(),
-        job.kind === "feature" ? 900000 : 300000,
+        job.kind === "feature" || run.deploymentMode === "pull_request"
+          ? 900000
+          : 300000,
       );
     currentAbort = abort;
     const heartbeat = setInterval(
@@ -181,9 +186,17 @@ while (!stopping) {
     );
     try {
       await sendSlackRunUpdate(run._id).catch(() => {});
-      if (job.kind === "investigate")
-        await investigate(run._id, run.issueId, abort.signal);
-      else if (job.kind === "feature")
+      if (job.kind === "investigate") {
+        // Dispatch by the run's mode (single source in coding-policy): the
+        // Bloom fixture and rehearsals keep their local runner; pull-request
+        // runs go through the shared PR pipeline for features and bugs.
+        const mode = runExecutionMode(run);
+        if (mode === "pull_request")
+          await (run.kind === "feature"
+            ? implementFeature
+            : implementFix)(run._id, abort.signal);
+        else await investigate(run._id, run.issueId, abort.signal);
+      } else if (job.kind === "feature")
         await implementFeature(run._id, abort.signal);
       else if (job.kind === "deploy") await approveAndDeploy(run._id);
       else throw new Error("Unsupported worker job kind");

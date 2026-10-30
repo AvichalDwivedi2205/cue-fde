@@ -13,6 +13,7 @@ import {
   specVersion,
 } from "./slack-messages";
 import { reviewers } from "./roles";
+import { packContext, asAppRef, type AppRef } from "./app-pack";
 import { replyFacts } from "./reply-policy";
 const digest = (text: string) =>
   createHash("sha256").update(text).digest("hex");
@@ -188,7 +189,9 @@ export async function sendSlackReply(
   const run = snapshot.runs
     .filter((r) => r.issueId === c.issueId)
     .sort((a, b) => b.createdAt - a.createdAt)[0];
-  const message = supportMessage(body, c, issue, run);
+  const pack = issue?.appId ? await packContext(issue.appId) : null;
+  const app: AppRef | undefined = pack ? asAppRef(pack) : undefined;
+  const message = supportMessage(body, c, issue, run, app);
   const id = await store.mutation(api.deliveries.reserve, {
     secret: auth,
     key: `slack-reply:${caseId}:${digest(body)}`,
@@ -238,7 +241,11 @@ export async function sendSlackRunUpdate(runId: Id<"runs">) {
   const run = snapshot.runs.find((r) => r._id === runId);
   const issue = snapshot.issues.find((i) => i._id === run?.issueId);
   if (!run || !issue) return;
-  const message = runMessage(run, issue, reviewers(config, "deploy"));
+  const pack = await packContext(run.targetId || issue.appId || "bloom");
+  const app: AppRef | undefined = pack ? asAppRef(pack) : undefined;
+  const destination = pack?.routing?.engineeringChannel || config.engineeringChannel;
+  if (!destination) return;
+  const message = runMessage(run, issue, reviewers(config, "deploy"), app);
   if (run.status !== "awaiting_approval") {
     const review = snapshot.deliveries.find(
       (d) => d.key === `approval:${runId}` && d.status === "sent",
@@ -255,14 +262,14 @@ export async function sendSlackRunUpdate(runId: Id<"runs">) {
     secret: auth,
     key,
     channel: "slack",
-    destination: config.engineeringChannel,
+    destination,
     body: message.text,
     actor: "Cue",
   });
   try {
     const receipt = await slackPost(
       config.botToken,
-      config.engineeringChannel,
+      destination,
       message.text,
       message.blocks,
     );
@@ -293,21 +300,24 @@ export async function sendSpecApproval(issueId: Id<"issues">, actor: string) {
   const ids = reviewers(config, "spec");
   if (!ids.length)
     throw new Error("Connect a Product or Owner Slack reviewer first");
-  const message = specApprovalMessage(issue, ids);
+  const pack = await packContext(issue.appId || "bloom");
+  const app: AppRef | undefined = pack ? asAppRef(pack) : undefined;
+  const destination = pack?.routing?.engineeringChannel || config.engineeringChannel;
+  const message = specApprovalMessage(issue, ids, app);
   const key = `spec-approval:${issueId}:${specVersion(issue.spec)}`;
   if (snapshot.deliveries.some((d) => d.key === key)) return;
   const id = await db().mutation(api.deliveries.reserve, {
     secret: secret(),
     key,
     channel: "slack",
-    destination: config.engineeringChannel,
+    destination,
     body: message.text,
     actor,
   });
   try {
     const receipt = await slackPost(
       config.botToken,
-      config.engineeringChannel,
+      destination,
       message.text,
       message.blocks,
     );

@@ -185,8 +185,11 @@ describe("Cue permissions and lifecycle", () => {
     const s = await t.query(api.cue.snapshot, auth),
       one = s.cases.find((c) => c._id === a)!,
       two = s.cases.find((c) => c._id === b)!;
-    expect(one.issueId).toBe(two.issueId);
+    // Non-Bloom reports start as provisional per-app issues; grouping them
+    // is triage's job, never the Bloom upload heuristic. They must not join
+    // Bloom's fixture issue.
     expect(one.issueId).not.toBe(issue._id);
+    expect(two.issueId).not.toBe(issue._id);
     await expect(
       t.mutation(api.cue.link, { ...auth, caseId: a, issueId: issue._id }),
     ).rejects.toThrow();
@@ -203,7 +206,7 @@ describe("Cue permissions and lifecycle", () => {
     ).rejects.toThrow("across connected apps");
     await expect(
       t.mutation(api.cue.startRun, { ...auth, issueId: one.issueId! }),
-    ).rejects.toThrow("Bloom upload");
+    ).rejects.toThrow("reproduced");
     expect(
       await t.query(api.bloom.conversation, {
         ...auth,

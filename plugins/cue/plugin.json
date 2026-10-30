@@ -1,0 +1,26 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "cue",
+  "version": "0.1.3",
+  "description": "Read Cue customer issues, linked report evidence, and engineering fix verification directly in Codex. Private local operator connection scoped to one configured app.",
+  "author": {
+    "name": "Avichal Dwivedi"
+  },
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Cue",
+        "shortDescription": "Customer issues in Codex",
+        "longDescription": "Read Cue customer issues, linked report evidence, and engineering fix verification directly in Codex. Private local operator connection scoped to one configured app.",
+        "developerName": "Avichal Dwivedi",
+        "category": "Developer Tools",
+        "logo": "./assets/cue-icon.png",
+        "composerIcon": "./assets/cue-icon.png",
+        "capabilities": [
+          "Read"
+        ],
+        "defaultPrompt": "Find the Bloom upload issue, read its customer report, and show the verified fix status."
+      }
+    }
+  }
+}

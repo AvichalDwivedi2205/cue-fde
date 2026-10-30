@@ -276,6 +276,17 @@ const reply = await draft(replyContext);
 assert.ok(reply.length && socialReplyLength(reply) <= 280);
 assert.deepEqual(replyProblems(reply, replyContext), []);
 check("Live Vertex Gemini returns a bounded X brand draft");
+assert.equal(
+  (
+    await fetch(base + "/api/onboarding", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: base },
+      body: JSON.stringify({ action: "activate", appId: "cue_app_000000000000000000000000" }),
+    })
+  ).status,
+  401,
+);
+check("Pack lifecycle actions require an authenticated owner");
 await fs.mkdir(".cue", { recursive: true });
 await fs.writeFile(
   base.startsWith("https:")

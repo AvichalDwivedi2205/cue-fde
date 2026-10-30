@@ -5,18 +5,45 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 import { Codex } from "@openai/codex-sdk";
 import { api, db, secret } from "./server-store";
-import { readIntegrations } from "./integration-config";
 import {
+  bugPrompt,
   featurePrompt,
   permittedChange,
   protectedSource,
 } from "./coding-policy";
+import { requireActivePack, asCodingConfig } from "./app-pack";
+import type { CodingConfig } from "./integration-config";
 import { sendSlackRunUpdate } from "./delivery";
 import type { Id } from "../convex/_generated/dataModel";
 import { observed, recordWorkflowFailure } from "./observability";
 import { runCodexSession } from "./codex-session";
 const exec = promisify(execFile);
-async function implementFeatureImpl(runId: Id<"runs">, signal: AbortSignal) {
+
+type PullRequestFlavor = {
+  kind: "feature" | "bug";
+  promptFor: (policy: CodingConfig) => string;
+  prTitle: string;
+  commitMessage: string;
+  prBody: (parts: {
+    issue: { title: string; description: string; spec?: string };
+    summary: string;
+    before: string;
+    after: string;
+    commit: string;
+    reproductionStatus?: "reproduced" | "not_reproduced";
+  }) => string;
+  // feature: baseline checks must pass before Codex starts. bug: the baseline
+  // is recorded as-is — a failing baseline is the honest reproduction signal,
+  // a passing one is reported as not_reproduced.
+  baseline: "must_pass" | "record_only";
+  rootCause: string;
+};
+
+async function runPullRequestPipeline(
+  runId: Id<"runs">,
+  flavor: PullRequestFlavor,
+  signal: AbortSignal,
+) {
   const store = db(),
     auth = secret(),
     repo = path.join(process.cwd(), ".cue", "runs", runId);
@@ -65,19 +92,27 @@ async function implementFeatureImpl(runId: Id<"runs">, signal: AbortSignal) {
     const state = await store.query(api.cue.snapshot, { secret: auth }),
       run = state.runs.find((r) => r._id === runId),
       issue = state.issues.find((i) => i._id === run?.issueId);
-    if (
-      !run ||
-      run.kind !== "feature" ||
-      !run.approvedSpec ||
-      !issue ||
-      issue.spec !== run.approvedSpec
-    )
-      throw new Error("Approved feature specification changed");
+    if (!run || !issue) throw new Error("Run not found");
+    if (flavor.kind === "feature") {
+      if (
+        run.kind !== "feature" ||
+        !run.approvedSpec ||
+        issue.spec !== run.approvedSpec
+      )
+        throw new Error("Approved feature specification changed");
+    } else {
+      if (run.kind !== "bug" || run.deploymentMode !== "pull_request")
+        throw new Error("Run is not a pull-request bug fix");
+      if (!run.reproduction)
+        throw new Error("Reproduction context missing for bug fix run");
+    }
     issueId = issue._id;
-    const policy = (await readIntegrations()).coding?.find(
-      (p) => p.appId === run.targetId && p.repository === run.repository,
-    );
-    if (!policy) throw new Error("Connected repository policy is unavailable");
+    // The pack is the single policy source; the run must reference exactly
+    // the binding it was created with.
+    const pack = await requireActivePack(run.targetId ?? "bloom");
+    const policy = asCodingConfig(pack);
+    if (policy.repository !== run.repository)
+      throw new Error("Connected repository policy does not match the run");
     await fs.mkdir(path.dirname(repo), { recursive: true });
     // The supervisor clones before Codex starts; the coding agent has no network access.
     await exec(
@@ -95,7 +130,7 @@ async function implementFeatureImpl(runId: Id<"runs">, signal: AbortSignal) {
       { timeout: 60_000, signal, maxBuffer: 2 * 1024 * 1024 },
     );
     const base = await command("git", ["rev-parse", "HEAD"]);
-    const branch = `cue/feature-${runId}`;
+    const branch = `cue/${flavor.kind}-${runId}`;
     await command("git", ["checkout", "-b", branch]);
     await command("git", ["config", "user.name", "Cue"]);
     await command("git", ["config", "user.email", "cue@localhost"]);
@@ -132,13 +167,37 @@ async function implementFeatureImpl(runId: Id<"runs">, signal: AbortSignal) {
         );
       return output.join("\n\n").slice(-20000);
     };
-    const before = await checks();
+    let before = "";
+    let baselineFailed = false;
+    if (flavor.baseline === "must_pass") {
+      before = await checks();
+      await log("Repository baseline passed", before, "success");
+    } else {
+      try {
+        before = await checks();
+        await log(
+          "Repository baseline passed",
+          "The repository's own checks pass at the base commit; they do not reproduce the reported failure. The PR body will say so.",
+          "success",
+        );
+      } catch (e) {
+        baselineFailed = true;
+        const err = e as { stdout?: string; stderr?: string; message?: string };
+        before = `${err.stdout || ""}${err.stderr || ""}\n${err.message || ""}`
+          .trim()
+          .slice(-20000);
+        await log(
+          "Repository baseline check failed",
+          "The repository's own checks fail at the base commit — this is the reproduction signal for the reported bug.",
+          "success",
+        );
+      }
+    }
     await update({
       before,
       phase: "implementing",
-      rootCause: `Implement the approved specification: ${issue.title}`,
+      rootCause: flavor.rootCause,
     });
-    await log("Repository baseline passed", before, "success");
     const agent = new Codex({
       env: testEnv,
       ...(process.env.CUE_CODEX_PATH
@@ -153,13 +212,13 @@ async function implementFeatureImpl(runId: Id<"runs">, signal: AbortSignal) {
       webSearchMode: "disabled",
     });
     await log(
-      "Codex implementing approved feature",
+      "Codex implementing change",
       `Repository ${policy.repository}; base ${base}. Allowed paths: ${policy.allowedPaths.join(", ")}.`,
     );
     let summary = "";
     await runCodexSession(
       thread,
-      featurePrompt(issue.title, run.approvedSpec, policy),
+      flavor.promptFor(policy),
       signal,
       async (e) => {
         if (e.type === "item.completed" && e.item.type === "command_execution")
@@ -169,7 +228,7 @@ async function implementFeatureImpl(runId: Id<"runs">, signal: AbortSignal) {
           );
         if (e.type === "item.completed" && e.item.type === "file_change")
           await log(
-            "Codex proposed feature patch",
+            "Codex proposed patch",
             e.item.changes
               .map((c) => `${c.kind}: ${path.basename(c.path)}`)
               .join("\n"),
@@ -180,7 +239,7 @@ async function implementFeatureImpl(runId: Id<"runs">, signal: AbortSignal) {
         if (e.type === "error") throw new Error(e.message);
       },
     );
-    if (signal.aborted) throw new Error("Feature run canceled");
+    if (signal.aborted) throw new Error("Run canceled");
     if ((await command("git", ["rev-parse", "HEAD"])) !== base)
       throw new Error("Agent changed Git history");
     const changed = (await command("git", ["diff", "HEAD", "--name-only"]))
@@ -198,41 +257,46 @@ async function implementFeatureImpl(runId: Id<"runs">, signal: AbortSignal) {
         !permittedChange(file, policy) ||
         (tracked.includes(file) && protectedSource(file))
       )
-        throw new Error(`Feature patch violates repository policy: ${file}`);
+        throw new Error(`Patch violates repository policy: ${file}`);
       if (!(await fs.lstat(path.join(repo, file))).isFile())
-        throw new Error(`Feature patch contains a non-file: ${file}`);
+        throw new Error(`Patch contains a non-file: ${file}`);
     }
     for (const [file, expected] of protectedHashes)
       if (hash(await fs.readFile(path.join(repo, file))) !== expected)
         throw new Error(`Protected source changed: ${file}`);
-    const fresh = await store.query(api.cue.snapshot, { secret: auth });
-    if (
-      fresh.issues.find((i) => i._id === issue._id)?.spec !== run.approvedSpec
-    )
-      throw new Error("Feature specification changed during implementation");
+    if (flavor.kind === "feature") {
+      const fresh = await store.query(api.cue.snapshot, { secret: auth });
+      if (
+        fresh.issues.find((i) => i._id === issue._id)?.spec !== run.approvedSpec
+      )
+        throw new Error("Feature specification changed during implementation");
+    }
     const after = await checks();
-    await log("Independent feature checks passed", after, "success");
+    await log("Independent checks passed", after, "success");
     await command("git", ["add", "--", ...changed, ...added]);
     const diff = await command("git", ["diff", "--cached"]);
     if (diff.length > 200000)
-      throw new Error("Feature patch exceeds review size limit");
-    await command("git", [
-      "commit",
-      "-m",
-      `Implement ${issue.title.slice(0, 100)}`,
-    ]);
+      throw new Error("Patch exceeds review size limit");
+    await command("git", ["commit", "-m", flavor.commitMessage]);
     const commit = await command("git", ["rev-parse", "HEAD"]);
     await command("git", ["push", "origin", branch]);
+    const reproductionStatus: "reproduced" | "not_reproduced" | undefined =
+      flavor.kind === "bug"
+        ? baselineFailed
+          ? "reproduced"
+          : "not_reproduced"
+        : undefined;
     const bodyFile = path.join(process.cwd(), ".cue", `pr-${runId}.txt`);
     await fs.writeFile(
       bodyFile,
-      `${issue.title}\n\n${JSON.parse(run.approvedSpec).specification}\n\nApproved acceptance criteria:\n${JSON.parse(
-        run.approvedSpec,
-      )
-        .acceptanceCriteria.map((c: string) => `- ${c}`)
-        .join(
-          "\n",
-        )}\n\nImplementation:\n${summary}\n\nValidation:\n${after}\n\nEngineering review must approve exact commit ${commit}. This draft PR has not been merged or deployed.`,
+      flavor.prBody({
+        issue,
+        summary,
+        before,
+        after,
+        commit,
+        reproductionStatus,
+      }),
       { mode: 0o600 },
     );
     const pr = await command("gh", [
@@ -246,7 +310,7 @@ async function implementFeatureImpl(runId: Id<"runs">, signal: AbortSignal) {
       branch,
       "--draft",
       "--title",
-      `Implement ${issue.title.slice(0, 100)}`,
+      flavor.prTitle,
       "--body-file",
       bodyFile,
     ]);
@@ -258,9 +322,10 @@ async function implementFeatureImpl(runId: Id<"runs">, signal: AbortSignal) {
       after,
       summary,
       prUrl: pr,
+      ...(reproductionStatus ? { reproductionStatus } : {}),
     });
     await log(
-      "Feature PR ready for Engineering review",
+      "PR ready for Engineering review",
       `${pr}\nExact commit ${commit}. Deployment remains subject to the connected repository's release process.`,
       "approval",
     );
@@ -273,8 +338,38 @@ async function implementFeatureImpl(runId: Id<"runs">, signal: AbortSignal) {
       phase: signal.aborted ? "canceled" : "failed",
       error,
     }).catch(() => {});
-    await log("Feature implementation needs attention", error, "failure");
+    await log("Implementation needs attention", error, "failure");
   }
+}
+
+async function implementFeatureImpl(runId: Id<"runs">, signal: AbortSignal) {
+  const store = db(),
+    auth = secret();
+  const state = await store.query(api.cue.snapshot, { secret: auth }),
+    run = state.runs.find((r) => r._id === runId),
+    issue = state.issues.find((i) => i._id === run?.issueId);
+  if (!run?.approvedSpec || !issue?.spec)
+    throw new Error("Approved feature specification changed");
+  const spec = JSON.parse(run.approvedSpec);
+  return await runPullRequestPipeline(
+    runId,
+    {
+      kind: "feature",
+      promptFor: (policy) =>
+        featurePrompt(issue.title, run.approvedSpec!, policy),
+      prTitle: `Implement ${issue.title.slice(0, 100)}`,
+      commitMessage: `Implement ${issue.title.slice(0, 100)}`,
+      prBody: ({ summary, after, commit }) =>
+        `${issue.title}\n\n${spec.specification}\n\nApproved acceptance criteria:\n${spec.acceptanceCriteria
+          .map((c: string) => `- ${c}`)
+          .join(
+            "\n",
+          )}\n\nImplementation:\n${summary}\n\nValidation:\n${after}\n\nEngineering review must approve exact commit ${commit}. This draft PR has not been merged or deployed.`,
+      baseline: "must_pass",
+      rootCause: `Implement the approved specification: ${issue.title}`,
+    },
+    signal,
+  );
 }
 
 export const implementFeature = observed(
@@ -284,3 +379,42 @@ export const implementFeature = observed(
     input: (runId) => ({ runId }),
   },
 );
+
+async function implementFixImpl(runId: Id<"runs">, signal: AbortSignal) {
+  const store = db(),
+    auth = secret();
+  const state = await store.query(api.cue.snapshot, { secret: auth }),
+    run = state.runs.find((r) => r._id === runId),
+    issue = state.issues.find((i) => i._id === run?.issueId);
+  if (!issue || !run?.reproduction)
+    throw new Error("Reproduction context missing for bug fix run");
+  return await runPullRequestPipeline(
+    runId,
+    {
+      kind: "bug",
+      promptFor: (policy) =>
+        bugPrompt(issue.title, issue.description, run.reproduction!, policy),
+      prTitle: `Fix ${issue.title.slice(0, 100)}`,
+      commitMessage: `Fix ${issue.title.slice(0, 100)}`,
+      prBody: ({
+        summary,
+        before,
+        after,
+        commit,
+        reproductionStatus,
+      }) =>
+        `${issue.title}\n\nReported reproduction:\n${run.reproduction}\n\nRepository check at base commit: ${
+          reproductionStatus === "reproduced"
+            ? "FAILED (matches the reported failure)"
+            : "PASSED (the repository's checks did not reproduce the reported failure)"
+        }\n\nInvestigation summary:\n${summary}\n\nBaseline output:\n${before}\n\nChecks after the change:\n${after}\n\nEngineering review must approve exact commit ${commit}. This draft PR has not been merged or deployed, and nothing here claims the fix is verified for customers.`,
+      baseline: "record_only",
+      rootCause: `Investigate and fix the reported bug: ${issue.title}`,
+    },
+    signal,
+  );
+}
+
+export const implementFix = observed("Cue bug fix implementation", implementFixImpl, {
+  input: (runId) => ({ runId }),
+});

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { sameOrigin } from "@/lib/access";
-import { readIntegrations } from "@/lib/integration-config";
+import { requireSessionPack, asWidgetApp } from "@/lib/app-pack";
 import {
   issueWidgetSession,
   verifyWidgetSession,
@@ -37,11 +37,17 @@ export async function POST(request: Request) {
     if (Number(request.headers.get("content-length") || 0) > 6500000)
       throw new Error("Request too large");
     const b = input.parse(await request.json());
-    const app = (await readIntegrations()).apps.find((a) => a.id === b.app);
-    if (
-      !app ||
-      !(await widgetOriginAllowed(request, app.origins, b.origin, b.preview))
-    )
+    let pack: Awaited<ReturnType<typeof requireSessionPack>>;
+    try {
+      pack = await requireSessionPack(b.app);
+    } catch {
+      return Response.json(
+        { error: "App origin is not allowed" },
+        { status: 403 },
+      );
+    }
+    const app = asWidgetApp(pack);
+    if (!(await widgetOriginAllowed(request, app.origins, b.origin, b.preview)))
       return Response.json(
         { error: "App origin is not allowed" },
         { status: 403 },

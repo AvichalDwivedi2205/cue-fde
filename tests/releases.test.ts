@@ -35,6 +35,19 @@ async function setup() {
     channel: "chat",
   });
   await t.run((ctx) => ctx.db.patch("cases", caseId, { issueId }));
+  await t.mutation(api.appPacks.ensure, {
+    ...auth,
+    appId: "bloom",
+    name: "Bloom",
+    origins: ["https://bloom.test"],
+    status: "active",
+    engineering: {
+      repository: "owner/bloom",
+      baseBranch: "main",
+      allowedPaths: ["limits.mjs"],
+      testCommands: [{ program: "node", args: ["test.mjs"] }],
+    },
+  });
   const runId = await t.mutation(api.cue.startFeature, {
     ...auth,
     issueId,

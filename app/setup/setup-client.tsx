@@ -9,7 +9,9 @@ export type App = {
   id: string;
   name: string;
   origins: string[];
-  widget?: { answers: boolean; voice: boolean; screenshots: boolean };
+  widget?: { answers: boolean; voice: boolean; screenshots: boolean };  packStatus?: "draft" | "active" | "suspended" | "none";
+  installChecked?: boolean;
+  hasEngineering?: boolean;
 };
 type Status = {
   x: {
@@ -212,6 +214,7 @@ export function SetupClient({
                   busy={busy}
                   send={send}
                   register={(e) => void form(e, "app")}
+                  reload={load}
                 />
               )}
               <section id="reddit" hidden={active !== "reddit"}>

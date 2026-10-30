@@ -44,6 +44,20 @@ async function setup(approved = true) {
         : {}),
     }),
   );
+  // The pack, not the caller, decides the repository; tests bind it here.
+  await t.mutation(api.appPacks.ensure, {
+    ...auth,
+    appId: "bloom",
+    name: "Bloom",
+    origins: ["https://bloom.test"],
+    status: "active",
+    engineering: {
+      repository: policy.repository,
+      baseBranch: policy.baseBranch,
+      allowedPaths: policy.allowedPaths,
+      testCommands: policy.testCommands,
+    },
+  });
   return {
     t,
     issueId,
@@ -71,9 +85,15 @@ describe("Approved feature implementation", () => {
     await expect(
       t.mutation(api.cue.startFeature, { ...args, expectedSpec: "{}" }),
     ).rejects.toThrow("approved specification");
-    await expect(
-      t.mutation(api.cue.startFeature, { ...args, targetId: "other" }),
-    ).rejects.toThrow("connected app");
+    // The pack, not the caller, decides the repository: a spoofed targetId
+    // is ignored and the run still lands on the issue's own app.
+    const spoofed = await t.mutation(api.cue.startFeature, {
+      ...args,
+      targetId: "other",
+    });
+    const spoofedRun = await t.run((ctx) => ctx.db.get("runs", spoofed));
+    expect(spoofedRun?.targetId).toBe("bloom");
+    expect(spoofedRun?.repository).toBe(policy.repository);
   });
   test("concurrent delegation creates one run and one durable job", async () => {
     const { t, args } = await setup();
@@ -100,6 +120,7 @@ describe("Approved feature implementation", () => {
         phase: "awaiting_approval",
         commit,
         after: "checks passed",
+        reproductionStatus: "reproduced",
       },
     });
     await expect(

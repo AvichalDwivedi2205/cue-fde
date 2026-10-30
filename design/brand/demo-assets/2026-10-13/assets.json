@@ -1,0 +1,37 @@
+{
+  "saved_at_ist": "2026-10-13T03:14:20.753536+05:30",
+  "shared_asset_directory": "/Users/avichaldwivedi/dev/Cue/cue-demo/design/brand/demo-assets/2026-10-13",
+  "assets": [
+    {
+      "file": "bloom-lantern-walk.png",
+      "absolute_path": "/Users/avichaldwivedi/dev/Cue/cue-demo/design/brand/demo-assets/2026-10-13/bloom-lantern-walk.png",
+      "role": "Selected recognizable photo for genuine Bloom upload and retry",
+      "source": "built-in imagegen; see bloom-lantern-walk-generation.json",
+      "format": "PNG",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "bytes": 2599266,
+      "sha256": "44d1debb3ba7999ed7dfb250ec513a00fb764be9f27b2b422fd932d9ef268db5"
+    },
+    {
+      "file": "cue-landing-hero.jpg",
+      "absolute_path": "/Users/avichaldwivedi/dev/Cue/cue-demo/design/brand/demo-assets/2026-10-13/cue-landing-hero.jpg",
+      "role": "Selected closing-page reference: real Cue landing hero",
+      "source": "https://cue.latchgrid.in/",
+      "format": "JPEG",
+      "dimensions": [
+        1710,
+        1073
+      ],
+      "bytes": 118487,
+      "sha256": "82d15f7390a773d072ae251c39e7b7668bf7b550eaaa8eda9b295d92b78db2b5"
+    }
+  ],
+  "usage_notes": [
+    "Lantern image pixels are unchanged from the selected generated original. It is 2,599,266 bytes, not yet a 3 MiB test fixture; actual Bloom upload/reload testing remains to be done.",
+    "Landing hero is an unedited real browser capture for the requested ending. Its native dimensions are recorded; recapture at delivery resolution if needed.",
+    "Use these assets for the revised video. Preserve original footage/evidence and distinguish generated photo from actual product evidence."
+  ]
+}

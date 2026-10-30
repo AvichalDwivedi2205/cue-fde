@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { api, db, secret } from "./server-store";
 import { readIntegrations } from "./integration-config";
+import { resolveAppPack, listPacks } from "./app-pack";
 import {
   sharedWorkerStatus,
   xRuntimeStatus,
@@ -30,16 +31,14 @@ export async function workspaceApp(appId?: string) {
       app: { id: "bloom", name: "Legacy Bloom", origins: [] as string[] },
       config,
     };
-  const app = appId
-    ? config.apps.find((a) => a.id === appId)
-    : config.apps.find((a) =>
-        a.origins.includes(
-          process.env.CUE_BLOOM_PUBLIC_URL ||
-            "https://bloom-with-cue.vercel.app",
-        ),
-      );
-  if (!app) throw new Error("Choose a registered app");
-  return { app, config };
+  const pack = await resolveAppPack(appId);
+  if (!pack) throw new Error("Choose a registered app");
+  if (pack.status === "suspended")
+    throw new Error("This application is suspended");
+  return {
+    app: { id: pack.appId, name: pack.name, origins: pack.origins },
+    config,
+  };
 }
 export async function postWorkspace(
   input: z.infer<typeof workspaceInput>,
@@ -495,10 +494,9 @@ export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
     app: { id: app.id, name: app.name },
     apps: [
       { id: "bloom", name: "Legacy Bloom" },
-      ...(await readIntegrations()).apps.map((a) => ({
-        id: a.id,
-        name: a.name,
-      })),
+      ...(await listPacks())
+        .filter((p) => p.status !== "suspended")
+        .map((p) => ({ id: p.appId, name: p.name })),
     ],
     agents,
     tasks,

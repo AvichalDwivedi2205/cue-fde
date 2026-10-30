@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 nextEnv.loadEnvConfig(process.cwd());
 const { api, db, secret } = await import("../lib/server-store");
-const { readIntegrations } = await import("../lib/integration-config");
 const { generateGrowthDraft } = await import("../lib/growth-model");
 const { growthContext } = await import("../lib/company-context");
 const { answerKnowledge } = await import("../lib/knowledge-answer");
@@ -13,16 +12,17 @@ assert(
   process.env.LITELLM_API_KEY,
   "LiteLLM must be configured to verify its route",
 );
-const app = (await readIntegrations()).apps.find((a) =>
+const { listPacks } = await import("../lib/app-pack");
+const app = (await listPacks()).find((a) =>
   process.env.CUE_VERIFY_CONTEXT_APP
-    ? a.id === process.env.CUE_VERIFY_CONTEXT_APP
+    ? a.appId === process.env.CUE_VERIFY_CONTEXT_APP
     : a.name === "Bloom" &&
       a.origins.includes("https://bloom-with-cue.vercel.app"),
 );
 assert(app, "Select a registered app with published context");
 const saved = await db().query(api.growth.snapshot, {
   secret: secret(),
-  appId: app.id,
+  appId: app.appId,
 });
 const capability = saved.capabilities.find((c) => c.valid);
 assert(capability, "Current verified capability required");
@@ -31,7 +31,7 @@ const destination = app.origins.find(
 );
 assert(destination);
 const deployed = await (await fetch(destination + "/api/health")).json();
-assert.equal(deployed.appId, app.id);
+assert.equal(deployed.appId, app.appId);
 assert.equal(deployed.release, capability.release);
 
 const link =
@@ -47,7 +47,7 @@ try {
   for (const source of sources) {
     // One frozen retrieval and published voice version per matched comparison.
     const context = await growthContext(
-      app.id,
+      app.appId,
       source + "\n" + capability.need,
     );
     assert(context.hits.length, "Published customer-visible context required");
@@ -87,7 +87,7 @@ try {
     for (const model of ["gemini-2.5-flash", "claude-sonnet-4.6"] as const) {
       const started = Date.now();
       const answer = await answerKnowledge(
-        app.id,
+        app.appId,
         { appName: app.name, message: question },
         { mode: "keyword", model },
       );
@@ -113,7 +113,7 @@ try {
   }
   const report = {
     checkedAt: new Date().toISOString(),
-    appId: app.id,
+    appId: app.appId,
     release: capability.release,
     comparison:
       "Identical source, verified claims, retrieved passages, published brand version and 280-character destination budget for each Growth pair. Support uses the same keyword retrieval and published voice per question.",

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { guest, sameOrigin } from "@/lib/access";
 import { api, db, secret } from "@/lib/server-store";
-import { readIntegrations } from "@/lib/integration-config";
+import { requireSessionPack, asWidgetApp } from "@/lib/app-pack";
 import { verifyWidgetSession, widgetRateLimit } from "@/lib/widget-session";
 import { draft, geminiReady, transcribeAudio } from "@/lib/gemini";
 import { answerKnowledge } from "@/lib/knowledge-answer";
@@ -44,9 +44,13 @@ export async function POST(request: NextRequest) {
       appName = "Bloom",
       knowledgeEnabled = true;
     if (b.app) {
-      const app = (await readIntegrations()).apps.find((a) => a.id === b.app);
+      let app: ReturnType<typeof asWidgetApp>;
+      try {
+        app = asWidgetApp(await requireSessionPack(b.app));
+      } catch {
+        throw new Error("App origin is not allowed");
+      }
       if (
-        !app ||
         !b.origin ||
         !(await widgetOriginAllowed(request, app.origins, b.origin, b.preview))
       )

@@ -1,5 +1,6 @@
 import type { Doc } from "../convex/_generated/dataModel";
 import { createHash } from "node:crypto";
+import type { AppRef } from "./app-pack";
 import { stripVTControlCharacters } from "node:util";
 import { replyFacts } from "./reply-policy";
 
@@ -94,6 +95,7 @@ export function supportMessage(
   c: Case,
   issue?: Issue,
   run?: Run,
+  app?: AppRef,
 ): SlackMessage {
   const featureVerified = replyFacts({ issue, run }).featureVerified;
   const verified = verifiedSlackFix(issue, run) || featureVerified;
@@ -120,6 +122,7 @@ export function supportMessage(
     blocks: [
       header(heading),
       section((issue?.title || c.title).slice(0, 3000)),
+      ...(app ? [context(`App · ${app.name}`)] : []),
       fields(`Priority\n${c.priority}`, `Status\n${status}`),
       ...bodyBlocks(body),
       ...(verified
@@ -156,6 +159,7 @@ function reviewerBlock(ids: string[], role: string) {
 export function specApprovalMessage(
   issue: Pick<Doc<"issues">, "_id" | "title" | "spec" | "status">,
   reviewerIds: string[] = [],
+  app?: AppRef,
 ): SlackMessage {
   if (!issue.spec || issue.status !== "spec_ready")
     throw new Error("No pending specification");
@@ -168,6 +172,7 @@ export function specApprovalMessage(
     blocks: [
       header("Feature specification review"),
       section(issue.title.slice(0, 3000)),
+      ...(app ? [context(`App · ${app.name}`)] : []),
       reviewerBlock(reviewerIds, "Product"),
       ...bodyBlocks(spec.specification),
       ...bodyBlocks(
@@ -222,6 +227,7 @@ export function approvalMessage(
   run: Run,
   title: string,
   reviewerIds: string[] = [],
+  app?: AppRef,
 ): SlackMessage {
   if (
     run.status !== "awaiting_approval" ||
@@ -236,7 +242,7 @@ export function approvalMessage(
   const prOnly = run.deploymentMode === "pull_request";
   const approvalDetail = prOnly
     ? "Approve this exact implementation commit for your repository's release process. This does not merge, deploy, or announce the feature."
-    : "Approve to deploy this exact commit to the connected Bloom environment. Cue verifies the deployed change afterward.";
+    : `Approve to deploy this exact commit to the ${app ? app.name : "connected app"} environment. Cue verifies the deployed change afterward.`;
   const cleanValidation = stripVTControlCharacters(run.after || "");
   const tests = cleanValidation.match(/Tests\s+(\d+)\s+passed/),
     files = cleanValidation.match(/Test Files\s+(\d+)\s+passed/);
@@ -249,6 +255,7 @@ export function approvalMessage(
       header("Ready for review"),
       reviewerBlock(reviewerIds, "Engineering"),
       section(title.slice(0, 3000)),
+      ...(app ? [context(`App · ${app.name}`)] : []),
       fields("Status\nApproval required", `Commit\n${short}`),
       section(
         `What changed\n${(run.rootCause || "Review the recorded investigation in Cue.").slice(0, 1200)}`,
@@ -272,7 +279,7 @@ export function approvalMessage(
               text: plain(
                 prOnly
                   ? `Approve commit ${short} for the repository release process. No code is deployed. This decision is recorded under your Slack member ID.`
-                  : `Deploy commit ${short} to Bloom. This decision is recorded under your Slack member ID.`,
+                  : `Deploy commit ${short} to ${app ? app.name : "the connected app"}. This decision is recorded under your Slack member ID.`,
               ),
               confirm: plain(prOnly ? "Approve change" : "Approve & deploy"),
               deny: plain("Cancel"),
@@ -306,9 +313,10 @@ export function runMessage(
   run: Run,
   issue: Issue,
   reviewerIds: string[] = [],
+  app?: AppRef,
 ): SlackMessage {
   if (run.status === "awaiting_approval")
-    return approvalMessage(run, issue.title, reviewerIds);
+    return approvalMessage(run, issue.title, reviewerIds, app);
   const featureVerified = replyFacts({ issue, run }).featureVerified;
   const verified = verifiedSlackFix(issue, run) || featureVerified;
   const failed = ["failed", "cancelled", "rejected"].includes(run.status);
@@ -348,6 +356,7 @@ export function runMessage(
     blocks: [
       header(heading),
       section(issue.title.slice(0, 3000)),
+      ...(app ? [context(`App · ${app.name}`)] : []),
       fields(`Status\n${status}`, "Agent\nCodex"),
       section(detail),
       ...(run.commit ? [context(`Commit · ${run.commit}`)] : []),

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { operator, sameOrigin } from "@/lib/access";
-import { readIntegrations } from "@/lib/integration-config";
+import { requireActivePack } from "@/lib/app-pack";
 import { api, db, secret } from "@/lib/server-store";
 import { KNOWLEDGE_WORKSPACE } from "@/lib/knowledge-policy";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -26,8 +26,11 @@ const input = z.discriminatedUnion("action", [
     .strict(),
 ]);
 async function scope(appId: string) {
-  if (!(await readIntegrations()).apps.some((a) => a.id === appId))
+  try {
+    await requireActivePack(appId);
+  } catch {
     throw new Error("Select a registered application");
+  }
   return { secret: secret(), workspaceId: KNOWLEDGE_WORKSPACE, appId };
 }
 export async function GET(request: Request) {

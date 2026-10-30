@@ -39,6 +39,28 @@ beforeEach(() => {
   state.gemini = true;
   vi.stubEnv("LITELLM_API_KEY", "isolated-test-key");
 });
+vi.mock("../lib/app-pack", async () => {
+  const pack = { appId: 'registered', name: 'Bloom', status: "active", origins: [] };
+  const actual = await vi.importActual<typeof import("../lib/app-pack")>(
+    "../lib/app-pack",
+  );
+  const known = (appId?: string) => appId === pack.appId;
+  return {
+    ...actual,
+    packContext: async (appId: string) => (known(appId) ? pack : null),
+    requireSessionPack: async (appId: string) => {
+      if (!known(appId)) throw new Error("App origin is not allowed");
+      return pack;
+    },
+    requireActivePack: async (appId: string) => {
+      if (!known(appId)) throw new Error("Register the application in Setup first");
+      return pack;
+    },
+    listPacks: async () => [pack],
+    resolveAppPack: async (appId?: string) => (known(appId) ? pack : null),
+  };
+});
+
 afterEach(() => vi.unstubAllEnvs());
 test("Growth health reports the configured writer separately from qualification", async () => {
   const snapshot = await workspaceSnapshot("registered", {

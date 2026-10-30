@@ -97,6 +97,48 @@ export default defineSchema({
     version: v.number(),
     updatedAt: v.number(),
   }).index("by_key", ["key"]),
+  appPacks: defineTable({
+    appId: v.string(),
+    name: v.string(),
+    status: v.union(
+      v.literal("draft"),
+      v.literal("active"),
+      v.literal("suspended"),
+    ),
+    origins: v.array(v.string()),
+    aliases: v.optional(v.array(v.string())),
+    widget: v.optional(
+      v.object({
+        answers: v.boolean(),
+        voice: v.boolean(),
+        screenshots: v.boolean(),
+      }),
+    ),
+    engineering: v.optional(
+      v.object({
+        repository: v.string(),
+        baseBranch: v.string(),
+        allowedPaths: v.array(v.string()),
+        testCommands: v.array(
+          v.object({
+            program: v.string(),
+            args: v.array(v.string()),
+          }),
+        ),
+      }),
+    ),
+    routing: v.optional(
+      v.object({
+        label: v.optional(v.string()),
+        engineeringChannel: v.optional(v.string()),
+      }),
+    ),
+    installCheckedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_appId", ["appId"])
+    .index("by_status", ["status"]),
   triageReceipts: defineTable({
     caseId: v.id("cases"),
     messageId: v.id("messages"),
@@ -187,6 +229,10 @@ export default defineSchema({
     deploymentMode: v.optional(v.string()),
     releaseEvidence: v.optional(v.string()),
     releaseCommit: v.optional(v.string()),
+    reproduction: v.optional(v.string()),
+    reproductionStatus: v.optional(
+      v.union(v.literal("reproduced"), v.literal("not_reproduced")),
+    ),
   }).index("by_issueId_and_createdAt", ["issueId", "createdAt"]),
   events: defineTable({
     runId: v.optional(v.id("runs")),

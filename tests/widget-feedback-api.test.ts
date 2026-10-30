@@ -48,6 +48,28 @@ beforeEach(() => {
   vi.resetAllMocks();
   mocks.mutation.mockResolvedValue({ duplicate: false, outcome: "needs_help" });
 });
+vi.mock("../lib/app-pack", async () => {
+  const pack = { appId: 'app-a', name: 'App A', status: "active", origins: ['https://app-a.test'] };
+  const actual = await vi.importActual<typeof import("../lib/app-pack")>(
+    "../lib/app-pack",
+  );
+  const known = (appId?: string) => appId === pack.appId;
+  return {
+    ...actual,
+    packContext: async (appId: string) => (known(appId) ? pack : null),
+    requireSessionPack: async (appId: string) => {
+      if (!known(appId)) throw new Error("App origin is not allowed");
+      return pack;
+    },
+    requireActivePack: async (appId: string) => {
+      if (!known(appId)) throw new Error("Register the application in Setup first");
+      return pack;
+    },
+    listPacks: async () => [pack],
+    resolveAppPack: async (appId?: string) => (known(appId) ? pack : null),
+  };
+});
+
 test("widget feedback verifies the signed session and derives its owner before writing", async () => {
   const token = issueWidgetSession(app, "https://app-a.test");
   const body = {

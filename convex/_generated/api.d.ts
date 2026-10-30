@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as appPacks from "../appPacks.js";
 import type * as background from "../background.js";
 import type * as bloom from "../bloom.js";
 import type * as companyContext from "../companyContext.js";
@@ -50,6 +51,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  appPacks: typeof appPacks;
   background: typeof background;
   bloom: typeof bloom;
   companyContext: typeof companyContext;
