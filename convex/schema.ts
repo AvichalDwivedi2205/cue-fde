@@ -15,6 +15,7 @@ import { feedbackTables } from "./feedbackSchema";
 import { signalTables } from "./signalSchema";
 import { engineeringHandoff } from "./engineeringHandoffValidators";
 import { previewAcceptance, previewDeployment } from "./previewAcceptanceValidators";
+import { notificationEmail, supportIntent } from "./supportDeliveryValidators";
 
 export const triageGeneration = generationReceipt;
 
@@ -166,6 +167,7 @@ export default defineSchema({
     appId: v.optional(v.string()),
     externalId: v.optional(v.string()),
     providerAuthorId: v.optional(v.string()),
+    notificationEmail: v.optional(notificationEmail),
     body: v.string(),
     status: v.string(),
     priority: v.string(),
@@ -320,8 +322,11 @@ export default defineSchema({
     actor: v.string(),
     status: v.string(),
     receipt: v.optional(v.string()),
+    supportIntent: v.optional(supportIntent),
     createdAt: v.number(),
-  }).index("by_key", ["key"]),
+  })
+    .index("by_key", ["key"])
+    .index("by_supportCaseId_and_supportRunId", ["supportIntent.review.caseId", "supportIntent.review.runId"]),
   externalEvents: defineTable({
     key: v.string(),
     messageKey: v.optional(v.string()),

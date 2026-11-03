@@ -9,11 +9,7 @@ import {
 import { z } from "zod";
 import { api, db, secret } from "./server-store";
 import { membersInput } from "./roles";
-import {
-  appInput,
-  codingInput,
-  widgetOptionsInput,
-} from "./app-pack-schema";
+import { appInput, codingInput, widgetOptionsInput } from "./app-pack-schema";
 
 // App identity, widget-option, and coding-binding schemas live in
 // lib/app-pack-schema.ts so the Convex pack module validates operator input
@@ -96,6 +92,9 @@ export type EmailConfig = z.infer<typeof emailInput> & {
 };
 export const xInput = z.object({
   appId: z.string().trim().min(1).max(200).optional(),
+  // OAuth 2.0 user context with tweet.read, tweet.write and users.read.
+  // App-only bearer credentials remain read-only intake configuration.
+  userAccessToken: z.string().min(20).max(3000).regex(/^[A-Za-z0-9%._~+\/-]+$/).optional(),
   bearerToken: z
     .string()
     .min(20)
