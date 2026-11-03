@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { api, db, secret } from "@/lib/server-store";
 import { operator, sameOrigin, workosReady } from "@/lib/access";
-import { geminiReady, draft, generateSpec } from "@/lib/gemini";
+import { geminiReady, generateSpec } from "@/lib/gemini";
+import { prepareSupportReply } from "@/lib/support-reply";
+import { openEngineeringHandoff } from "@/lib/engineering-slack";
+import { prepareCustomerUpdate, approveCustomerUpdate, sendCustomerUpdate, reconcileCustomerUpdate } from "@/lib/customer-updates";
 import { z } from "zod";
 import { saveAttachment } from "@/lib/attachment";
 import { triage } from "@/lib/triage";
@@ -186,6 +189,36 @@ export async function POST(request: NextRequest) {
               : {}),
           }),
         });
+      case "engineeringHandoff":
+        return NextResponse.json({ handoff: await openEngineeringHandoff(
+          z.string().parse(body.issueId) as Id<"issues">,
+          z.string().trim().min(20).max(4000).parse(body.reproduction),
+          actor.name,
+        ) });
+      case "previewAcceptance":
+        return NextResponse.json({ acceptance: await store.mutation(api.previewAcceptance.record, {
+          secret: auth, runId: z.string().parse(body.runId) as Id<"runs">,
+          commit: z.string().regex(/^[a-f0-9]{40}$/).parse(body.commit),
+          deploymentId: z.string().regex(/^dpl_[A-Za-z0-9]+$/).parse(body.deploymentId),
+          observations: z.string().trim().min(80).max(8000).parse(body.observations), actor: actor.name,
+        }) });
+      case "customerUpdatePrepare": {
+        const review = await prepareCustomerUpdate({ caseId: z.string().parse(body.caseId) as Id<"cases">, runId: z.string().parse(body.runId) as Id<"runs">, actor: actor.name });
+        return NextResponse.json({ delivery: await store.query(api.supportDeliveries.get, { secret: auth, id: review.id }) });
+      }
+      case "customerUpdateReview":
+        return NextResponse.json({ delivery: await store.query(api.supportDeliveries.get, { secret: auth, id: z.string().parse(body.id) as Id<"deliveries"> }) });
+      case "customerUpdateSend": {
+        const review = { id: z.string().parse(body.id) as Id<"deliveries">, reviewHash: z.string().regex(/^[a-f0-9]{64}$/).parse(body.reviewHash) };
+        await approveCustomerUpdate({ ...review, actor: actor.name });
+        await sendCustomerUpdate(review);
+        return NextResponse.json({ delivery: await store.query(api.supportDeliveries.get, { secret: auth, id: review.id }) });
+      }
+      case "customerUpdateReconcile": {
+        const id = z.string().parse(body.id) as Id<"deliveries">;
+        await reconcileCustomerUpdate({ id, providerId: z.string().trim().min(1).max(200).optional().parse(body.providerId) });
+        return NextResponse.json({ delivery: await store.query(api.supportDeliveries.get, { secret: auth, id }) });
+      }
       case "implementFeature": {
         const s = await store.query(api.cue.snapshot, { secret: auth });
         const issue = s.issues.find((i) => i._id === body.issueId);
@@ -231,16 +264,21 @@ export async function POST(request: NextRequest) {
         const s = await store.query(api.cue.snapshot, { secret: auth });
         const c = s.cases.find((c) => c._id === body.caseId);
         if (!c) throw new Error("Case not found");
-        return NextResponse.json({
-          text: await draft({
+        const reply = await prepareSupportReply({
             case: c,
             messages: s.messages.filter((m) => m.caseId === c._id),
             issue: s.issues.find((i) => i._id === c.issueId),
             run: s.runs
               .filter((r) => r.issueId === c.issueId)
               .sort((a, b) => b.createdAt - a.createdAt)[0],
-          }),
-        });
+          });
+        if (reply.model !== "none")
+          await store.mutation(api.cue.event, { secret: auth, issueId: c.issueId,
+            title: "Support reply generated",
+            detail: JSON.stringify({ provider: reply.provider, model: reply.model, inputTokens: reply.inputTokens, outputTokens: reply.outputTokens, status: reply.status, citedSources: reply.citedIds.length, brandVersion: reply.brandVersion || null }),
+            kind: "model",
+          });
+        return NextResponse.json({ text: reply.text, status: reply.status });
       }
       case "generateSpec": {
         const s = await store.query(api.cue.snapshot, { secret: auth });

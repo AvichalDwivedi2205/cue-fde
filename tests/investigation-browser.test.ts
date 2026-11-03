@@ -15,13 +15,13 @@ class Control {
   constructor(readonly tag: string, readonly attributes: Record<string, string>) {}
   get dataset() { return Object.fromEntries(Object.entries(this.attributes).filter(([key]) => key.startsWith("data-")).map(([key, value]) => [key.slice(5), value])); }
 }
-async function browser(options: { apps?: string[]; allowed?: boolean; fingerprint?: string; title?: string; runs?: BrowserRun[] } = {}) {
+async function browser(options: { apps?: string[]; allowed?: boolean; fingerprint?: string; title?: string; runs?: BrowserRun[]; slack?: boolean } = {}) {
   const source = await readFile("lib/browser/cue.js", "utf8");
   const shell = await readFile("lib/browser/product-shell.js", "utf8");
   const issue = { _id: "issue-generic", appId: "app-a", kind: "bug", title: options.title || "Keyboard deletion returns", fingerprint: options.fingerprint || "app-a:report:keyboard-note" };
   const escapeSource = (await readFile("design/cue.html", "utf8")).split("\n").find((line) => line.startsWith("const esc = "));
   if (!escapeSource) throw new Error("Missing actual product escaping helper");
-  const integration = { engineeringApps: options.apps ?? ["app-a"], permissions: { investigate: options.allowed ?? true } };
+  const integration = { engineeringApps: options.apps ?? ["app-a"], slackSend: options.slack, permissions: { investigate: options.allowed ?? true } };
   const state = { sec: "issues", id: "ISS-56", activeIssueId: "ISS-56", issues: { "ISS-56": { id: "ISS-56", _backend: issue._id, title: issue.title, priority: "P2", cases: [] } }, features: [], integrations: integration };
   let controls: Control[] = [];
   let dialog: { title: string; body: string; footer: string } | undefined;
@@ -54,7 +54,7 @@ async function browser(options: { apps?: string[]; allowed?: boolean; fingerprin
     if (ts.isVariableStatement(node)) return node.declarationList.declarations.some((declaration) => ts.isIdentifier(declaration.name) && declaration.name.text === "liveSnapshot");
     if (!ts.isExpressionStatement(node) || !ts.isBinaryExpression(node.expression)) return false;
     const left = node.expression.left;
-    return ts.isIdentifier(left) ? ["startRun", "issueDetail", "changes", "timeline"].includes(left.text) : ts.isPropertyAccessExpression(left) && ts.isIdentifier(left.expression) && left.expression.text === "A" && ["start", "submitInvestigation", "cancelInvestigation"].includes(left.name.text);
+    return ts.isIdentifier(left) ? ["startRun", "issueDetail", "changes", "timeline"].includes(left.text) : ts.isPropertyAccessExpression(left) && ts.isIdentifier(left.expression) && left.expression.text === "A" && ["start", "submitInvestigation", "submitEngineeringHandoff", "cancelInvestigation"].includes(left.name.text);
   }).map((node) => node.getText(file)).join("\n");
   vm.runInContext(selected + "\nliveSnapshot = snapshot;", context);
   const shellFile = ts.createSourceFile("product-shell.js", shell, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
@@ -87,6 +87,25 @@ test("the actual issue action opens a labelled reproduction dialog and sends exa
   await b.click("submitInvestigation");
   expect(b.fetch).toHaveBeenCalledExactlyOnceWith("/api/demo", expect.objectContaining({ method: "POST" }));
   expect(JSON.parse(b.fetch.mock.calls[0][1].body)).toEqual({ action: "investigate", issueId: "issue-generic", reproduction: "Select the saved Note and press Backspace; reload brings it back." });
+});
+test("the reproduction dialog hands off without starting the run itself", async () => {
+  const b = await browser({ slack: true });
+  await b.open();
+  b.field().value = "Save a note, delete it with Backspace, reload and observe it returns.";
+  b.fetch.mockResolvedValueOnce(Response.json({ handoff: { kind: "ready" } }));
+  await b.click("submitEngineeringHandoff");
+  expect(b.fetch).toHaveBeenCalledTimes(1);
+  expect(JSON.parse(b.fetch.mock.calls[0][1].body)).toMatchObject({ action: "engineeringHandoff", issueId: "issue-generic" });
+  expect(b.toast).toHaveBeenCalledWith(expect.stringContaining("assigned engineer"), "ok");
+});
+test("an uncertain handoff receipt never claims delivery or retries", async () => {
+  const b = await browser({ slack: true });
+  await b.open();
+  b.field().value = "Save a note, delete it with Backspace, reload and observe it returns.";
+  b.fetch.mockResolvedValueOnce(Response.json({ handoff: { kind: "posting" } }));
+  await b.click("submitEngineeringHandoff");
+  expect(b.toast).toHaveBeenCalledWith(expect.stringContaining("uncertain"), "info");
+  expect(b.fetch).toHaveBeenCalledTimes(1);
 });
 test.each([{ label: "empty", text: "" }, { label: "short", text: "short" }, { label: "too long", text: "x".repeat(4001) }])("invalid reproduction cannot start work: $label", async ({ text }) => {
   const b = await browser(); await b.open(); b.field().value = text;

@@ -122,6 +122,10 @@ export function actionPermission(action: string): Permission {
       "emailSend",
       "slackSend",
       "link",
+      "customerUpdatePrepare",
+      "customerUpdateReview",
+      "customerUpdateSend",
+      "customerUpdateReconcile",
     ].includes(action)
   )
     return "support";
