@@ -90,6 +90,7 @@ test("Meta implements through validated tools and records exact aggregate model 
     .mockResolvedValueOnce(response([], "Changed the synthetic value."));
   const result = await runMetaCodingAgent(input);
   expect(result.edits.get("src/value.ts")).toBe("export const value = 2;");
+  expect(result.termination).toBe("model_summary");
   expect(result.receipt).toEqual({
     requestedModel: "muse-wonder-1.0",
     model: "muse-wonder-1.0",
@@ -245,6 +246,120 @@ test("a model summary without source changes cannot establish implementation", a
     response([], "Everything is fixed and deployed."),
   );
   await expect(runMetaCodingAgent(setup())).rejects.toThrow("must change");
+});
+test("natural call exhaustion returns only a scoped candidate and exact last receipt without another model call", async () => {
+  const input = setup();
+  let turn = 0;
+  transport.create.mockImplementation(async () => {
+    turn++;
+    return response([
+      turn === 1
+        ? edit()
+        : turn === 20
+          ? call("run_check", "last-check", { index: 0 })
+          : call("read_file", `read-${turn}`, { path: "src/value.ts" }),
+    ]);
+  });
+  const result = await runMetaCodingAgent(input);
+  expect(result.termination).toBe("call_limit");
+  expect(result.summary).toMatch(
+    /Supervisor:.*20-call limit.*independent verification/,
+  );
+  expect(result.edits).toEqual(
+    new Map([["src/value.ts", "export const value = 2;"]]),
+  );
+  expect(result.receipt).toEqual({
+    requestedModel: "muse-wonder-1.0",
+    model: "muse-wonder-1.0",
+    inputTokens: 200,
+    outputTokens: 100,
+    modelCalls: 20,
+  });
+  expect(input.receipt).toHaveBeenLastCalledWith(result.receipt);
+  expect(transport.create).toHaveBeenCalledTimes(20);
+  expect(input.workspace.check).toHaveBeenCalledExactlyOnceWith(0);
+  expect(input.event).toHaveBeenCalledWith(
+    "Scoped candidate returned at model call limit",
+    expect.stringContaining('"verification":"pending"'),
+    "system",
+  );
+});
+test.each(["no edits", "unchanged edit"])(
+  "call-limit %s cannot become a candidate",
+  async (mode) => {
+    const input = setup();
+    let turn = 0;
+    transport.create.mockImplementation(async () => {
+      turn++;
+      return response([
+        turn === 1 && mode === "unchanged edit"
+          ? call("replace_text", "noop", {
+              path: "src/value.ts",
+              oldText: "value = 1",
+              newText: "value = 1",
+            })
+          : call("read_file", `read-${turn}`, { path: "src/value.ts" }),
+      ]);
+    });
+    await expect(runMetaCodingAgent(input)).rejects.toThrow("must change");
+    expect(transport.create).toHaveBeenCalledTimes(20);
+    expect(
+      input.event.mock.calls.some(
+        ([title]) => title === "Scoped candidate returned at model call limit",
+      ),
+    ).toBe(false);
+  },
+);
+test.each([
+  "incomplete",
+  "failed",
+  "model mismatch",
+  "token limit",
+  "tool limit",
+  "abort",
+])("an existing patch is not salvaged after %s", async (failure) => {
+  const input = setup(),
+    controller = new AbortController();
+  if (failure === "abort")
+    input.workspace.check.mockImplementationOnce(async () => {
+      controller.abort();
+      return { passed: true, output: "check ended" };
+    });
+  let turn = 0;
+  transport.create.mockImplementation(async () => {
+    turn++;
+    if (turn === 1) return response([edit()]);
+    const normal = response([
+      call("read_file", `read-${turn}`, { path: "src/value.ts" }),
+    ]);
+    if (turn !== 20) return normal;
+    if (failure === "incomplete" || failure === "failed")
+      return { ...normal, status: failure };
+    if (failure === "model mismatch")
+      return { ...normal, model: "muse-spark-1.3" };
+    if (failure === "token limit")
+      return {
+        ...normal,
+        usage: { input_tokens: 1_000_000, output_tokens: 0 },
+      };
+    if (failure === "tool limit")
+      return response(
+        Array.from({ length: 42 }, (_, n) =>
+          call("read_file", `extra-${n}`, { path: "src/value.ts" }),
+        ),
+      );
+    return response([call("run_check", "last-check", { index: 0 })]);
+  });
+  await expect(
+    runMetaCodingAgent({ ...input, signal: controller.signal }),
+  ).rejects.toThrow();
+  expect(input.workspace.write).toHaveBeenCalledOnce();
+  expect(transport.create).toHaveBeenCalledTimes(20);
+  expect(
+    input.event.mock.calls.some(
+      ([title]) => title === "Scoped candidate returned at model call limit",
+    ),
+  ).toBe(false);
 });
 test("cancellation reaches the Responses request and prevents another tool call", async () => {
   const input = setup(),

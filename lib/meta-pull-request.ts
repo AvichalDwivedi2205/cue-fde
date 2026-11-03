@@ -74,7 +74,11 @@ export async function implementMetaPullRequest(input: {
     return {
       before: before.output,
       after: after.output,
-      summary: result.summary,
+      summary:
+        result.termination === "call_limit"
+          ? "Supervisor: the model reached its 20-call limit without a final model summary. Its scoped patch candidate was independently verified against all fixed repository checks in a fresh workspace. No model-authored completion or root-cause summary is available."
+          : result.summary,
+      termination: result.termination,
     };
   });
 }

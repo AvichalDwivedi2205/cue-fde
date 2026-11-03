@@ -305,7 +305,12 @@ export async function runMetaCodingAgent(input: {
   signal: AbortSignal;
   event: ExecutionEvent;
   receipt: (receipt: CodingReceipt) => Promise<void>;
-}): Promise<{ summary: string; edits: SourceEdits; receipt: CodingReceipt }> {
+}): Promise<{
+  summary: string;
+  edits: SourceEdits;
+  receipt: CodingReceipt;
+  termination: "model_summary" | "call_limit";
+}> {
   const model = input.model ?? codingModel();
   const client = metaClient();
   const codingTools = createCodingTools(input);
@@ -391,7 +396,12 @@ export async function runMetaCodingAgent(input: {
       if (!summary)
         throw new Error("Meta coding returned no implementation summary");
       validateEdits(codingTools.edits, input.source, input.policy);
-      return { summary, edits: codingTools.edits, receipt: total };
+      return {
+        summary,
+        edits: codingTools.edits,
+        receipt: total,
+        termination: "model_summary",
+      };
     }
     for (const item of response.output) {
       if (
@@ -419,6 +429,31 @@ export async function runMetaCodingAgent(input: {
         call_id: call.call_id,
         output: JSON.stringify(result),
       });
+    }
+    if (turn === MAX_CALLS) {
+      input.signal.throwIfAborted();
+      const edits: SourceEdits = new Map(
+        [...codingTools.edits].filter(([file, content]) =>
+          content === null
+            ? input.source.has(file)
+            : !input.source.get(file)?.bytes.equals(Buffer.from(content)),
+        ),
+      );
+      validateEdits(edits, input.source, input.policy);
+      const summary =
+        "Supervisor: the model reached its 20-call limit without a final model summary. This scoped patch candidate requires independent verification; no model-authored completion or root-cause summary is available.";
+      await input.event(
+        "Scoped candidate returned at model call limit",
+        JSON.stringify({
+          termination: "call_limit",
+          modelCalls: total.modelCalls,
+          editFiles: edits.size,
+          verification: "pending",
+        }),
+        "system",
+      );
+      input.signal.throwIfAborted();
+      return { summary, edits, receipt: total, termination: "call_limit" };
     }
   }
   throw new Error("Meta coding turn budget exhausted");

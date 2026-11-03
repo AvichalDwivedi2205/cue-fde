@@ -56,6 +56,10 @@ A real Wonder component candidate eventually passed its original two acceptance 
 
 The response-boundary follow-up passed 680 tests across 98 files, TypeScript, lint, and the production build. Five new regression cases verify that incomplete, failed, null, missing, or unknown status cannot execute partial tools, while valid reported usage is retained. Unknown status/reason text, reasoning, partial edits, and provider error bodies are excluded from the diagnostic event. No retry policy or resource limit changed.
 
+The second hosted investigation reached 20 completed Meta responses after proposing a scoped source change, then stopped because another response would have been needed for a final summary. Private forensic verification reconstructed only its accepted edits through the same source validators. A fresh isolated verifier passed TypeScript, all 238 default tests, and all seven protected acceptance checks; this did not change the failed product run or create a PR. Domain review remains a separate gate.
+
+The completion follow-up retains the 20-call limit. Only natural exhaustion after completed responses may return a nonempty, validated candidate, explicitly labelled as a supervisor handoff without a final model summary. Incomplete responses, wrong models, token/tool limits, and cancellation remain errors. Every candidate still enters a fresh verifier running all fixed checks before source import or a draft PR. The follow-up passes 703 tests across 98 files, TypeScript, lint, and the production build. A new live product run remains necessary; forensic checks alone do not complete delivery.
+
 ## Generic investigation UI
 
 The first failed product run exposed a missing recovery control. Eligible failed, rejected, and canceled investigations now offer an explicit retry using the same reproduction drawer, while retaining the old evidence and timeline. Running, review-pending, approved, or resolved work cannot be retried. Rendered-handler regressions cover exact-issue submission, withdrawn capability, and an older blocking run; all 692 tests across 98 files pass. Hosted retry validation remains pending.
