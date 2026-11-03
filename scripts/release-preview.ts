@@ -164,6 +164,10 @@ async function main() {
       await new Promise((resolve) => setTimeout(resolve, 5000));
     }
     if (!ready || ready.phase !== "ready") throw new Error("Preview readiness timed out; reuse the saved deployment on retry");
+    await store.mutation(api.previewAcceptance.registerDeployment, {
+      secret: auth, runId: initial.run._id,
+      deployment: { id: ready.deployment.id, url: ready.deployment.url, commit: plan.commit, policyDigest: plan.policyDigest },
+    });
     const detail = JSON.stringify({
       ...ready, repository: plan.repository, prUrl: plan.prUrl,
       acceptance: "Browser acceptance pending; preview only; customer case remains unresolved",

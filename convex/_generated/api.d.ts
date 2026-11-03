@@ -35,6 +35,8 @@ import type * as jobs from "../jobs.js";
 import type * as knowledge from "../knowledge.js";
 import type * as knowledgeInternal from "../knowledgeInternal.js";
 import type * as knowledgeSchema from "../knowledgeSchema.js";
+import type * as previewAcceptance from "../previewAcceptance.js";
+import type * as previewAcceptanceValidators from "../previewAcceptanceValidators.js";
 import type * as prospectResearch from "../prospectResearch.js";
 import type * as prospectSchema from "../prospectSchema.js";
 import type * as prospects from "../prospects.js";
@@ -85,6 +87,8 @@ declare const fullApi: ApiFromModules<{
   knowledge: typeof knowledge;
   knowledgeInternal: typeof knowledgeInternal;
   knowledgeSchema: typeof knowledgeSchema;
+  previewAcceptance: typeof previewAcceptance;
+  previewAcceptanceValidators: typeof previewAcceptanceValidators;
   prospectResearch: typeof prospectResearch;
   prospectSchema: typeof prospectSchema;
   prospects: typeof prospects;

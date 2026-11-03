@@ -14,6 +14,7 @@ import { companyContextTables } from "./companyContextSchema";
 import { feedbackTables } from "./feedbackSchema";
 import { signalTables } from "./signalSchema";
 import { engineeringHandoff } from "./engineeringHandoffValidators";
+import { previewAcceptance, previewDeployment } from "./previewAcceptanceValidators";
 
 export const triageGeneration = generationReceipt;
 
@@ -261,6 +262,8 @@ export default defineSchema({
     reproductionStatus: v.optional(
       v.union(v.literal("reproduced"), v.literal("not_reproduced")),
     ),
+    previewDeployment: v.optional(previewDeployment),
+    previewAcceptance: v.optional(previewAcceptance),
   }).index("by_issueId_and_createdAt", ["issueId", "createdAt"]),
   events: defineTable({
     runId: v.optional(v.id("runs")),
