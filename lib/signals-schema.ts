@@ -201,6 +201,19 @@ export type ValidatedAnalysis = {
   };
 };
 
+export function signalsPersistenceOutput(analysis: ValidatedAnalysis): SignalsAnalysisOutput {
+  return {
+    dispositions: analysis.dispositions,
+    clusters: analysis.clusters.map(({ id, need, rationale, sentiment, proposal }) => ({
+      id,
+      need,
+      rationale,
+      ...(sentiment === undefined ? {} : { sentiment }),
+      proposal,
+    })),
+  };
+}
+
 export class SignalsValidationError extends Error {
   constructor(message: string) {
     super(message);
@@ -250,7 +263,12 @@ export function validateSignalsAnalysis(
     throw new SignalsValidationError(
       `No disposition for input posts: ${missing.map((p) => p.id).join(", ")}`,
     );
-  const clusterIds = new Set(parsed.clusters.map((c) => c.id));
+  const clusterIds = new Set<string>();
+  for (const cluster of parsed.clusters) {
+    if (clusterIds.has(cluster.id))
+      throw new SignalsValidationError(`Duplicate cluster ID: ${cluster.id}`);
+    clusterIds.add(cluster.id);
+  }
   for (const disposition of parsed.dispositions) {
     if (
       disposition.outcome === "evidence" &&
@@ -448,17 +466,29 @@ export const runExportSchema = z
   .strict();
 export type RunExport = z.infer<typeof runExportSchema>;
 
-// Check output can carry operator-local filesystem paths or URLs (test
-// runners print them). The export never ships them raw: paths and URLs are
-// redacted and the summary is compacted before run.json is written.
+export function redactPublicText(text: string): string {
+  return text
+    .replace(/https?:\/\/[^\s<>"']+/gi, "[url]")
+    .replace(/\b[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9-]+(?:\.[A-Z0-9-]+)+\b/gi, "[email]")
+    .replace(/(?:\/(?:[A-Za-z0-9._-]+\/)+[A-Za-z0-9._-]+)/g, "[path]")
+    .replace(/\b[A-Za-z]:\\(?:[^\\/\s]+\\)*[^\\/\s]+/g, "[path]")
+    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, "[id]")
+    .replace(/\b[0-9a-f]{40}\b/gi, "[commit]")
+    .replace(/\b[a-z0-9]{32}\b/g, "[id]")
+    .replace(/\b(?:req(?:uest)?|run|trace)[_-][A-Za-z0-9_-]+\b/gi, "[id]")
+    .replace(/\b((?:run|request|trace)[ _-]?id)\s*(?:[:=]\s*)?[A-Za-z0-9_-]+\b/gi, "$1 [id]");
+}
+
+export function assertPublicText(text: string): string {
+  if (redactPublicText(text) !== text)
+    throw new Error("Export text contains a private identifier or location");
+  return text;
+}
+
 export function sanitizeCheckSummary(
   text: string | null | undefined,
 ): string | null {
   if (typeof text !== "string" || !text.trim()) return null;
-  const redacted = text
-    .replace(/https?:\/\/\S+/g, "[url]")
-    .replace(/(?:\/(?:[A-Za-z0-9._-]+\/)+[A-Za-z0-9._-]+)/g, "[path]")
-    .replace(/[A-Za-z]:\\(?:[^\\/\s]+\\)+/g, "[path]");
-  const compact = redacted.replace(/\s+/g, " ").trim();
+  const compact = redactPublicText(text).replace(/\s+/g, " ").trim();
   return compact.length > 600 ? compact.slice(0, 597) + "…" : compact;
 }

@@ -6,6 +6,7 @@ import { listPacks } from "@/lib/app-pack";
 import { z } from "zod";
 import {
   signalsProvenanceSchema,
+  signalsPersistenceOutput,
   signalPostInputSchema,
 } from "@/lib/signals-schema";
 import {
@@ -119,6 +120,7 @@ export async function POST(request: NextRequest) {
         // proves the completion belongs to this attempt. Everything after the
         // claim that can fail must stay inside this try so a failure is
         // always recorded instead of wedging the claim.
+        let receipt: Awaited<ReturnType<typeof analyzeSignalPosts>>["receipt"] | undefined;
         try {
           const packs = await listPacks();
           const appName =
@@ -128,16 +130,20 @@ export async function POST(request: NextRequest) {
             provenance: signalsProvenanceSchema.parse(batch.provenance),
             posts: batch.posts,
           });
-          await store.mutation(api.signals.completeSignalAttempt, {
+          receipt = result.receipt;
+          const completion = await store.mutation(api.signals.completeSignalAttempt, {
             secret: auth,
             batchId: batchId as Id<"signalBatches">,
             token: claim.token,
-            output: {
-              dispositions: result.analysis.dispositions,
-              clusters: result.analysis.clusters,
-            },
+            output: signalsPersistenceOutput(result.analysis),
             receipt: result.receipt,
           });
+          if (completion.outcome === "rejected")
+            return NextResponse.json({
+              state: "failed",
+              attemptNumber: claim.attemptNumber,
+              error: completion.error,
+            });
           return NextResponse.json({
             state: "analyzed",
             attemptNumber: claim.attemptNumber,
@@ -146,16 +152,16 @@ export async function POST(request: NextRequest) {
           // Persist the honest failure with any paid receipt, then report it.
           const message =
             error instanceof Error ? error.message : "Analysis failed";
-          const receipt =
+          const failureReceipt =
             error instanceof SignalsGenerationError
               ? error.receipt
-              : undefined;
+              : receipt;
           await store.mutation(api.signals.failSignalAttempt, {
             secret: auth,
             batchId: batchId as Id<"signalBatches">,
             token: claim.token,
             error: message.slice(0, 900),
-            ...(receipt ? { receipt } : {}),
+            ...(failureReceipt ? { receipt: failureReceipt } : {}),
           });
           return NextResponse.json({
             state: "failed",

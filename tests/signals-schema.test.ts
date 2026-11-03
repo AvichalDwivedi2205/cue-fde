@@ -2,6 +2,8 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, test } from "vitest";
 import {
   MAX_ATTEMPTS,
+  assertPublicText,
+  redactPublicText,
   sanitizeCheckSummary,
   MAX_POSTS,
   outcomeLabels,
@@ -309,6 +311,25 @@ describe("public-safe export schema", () => {
 });
 
 describe("public check summaries", () => {
+  test.each([
+    "avi@example.test", "https://private.example.test/proof", "/Users/operator/private-proof.json",
+    "C:\\Users\\operator\\private-proof.json", "C:\\private.txt",
+    "a4e5499e9e0fc02dff88ceb75c8aeb401526333c", "b".repeat(32),
+    "123e4567-e89b-12d3-a456-426614174000", "req_private_receipt", "run_private_123", "trace_private_456",
+    "requestId opaque-private-value", "run id=opaque-private-value",
+  ])("rejects sensitive export text without echoing %s", (value) => {
+    expect(redactPublicText(value)).not.toContain(value);
+    expect(() => assertPublicText(value)).toThrow("Export text contains a private identifier or location");
+    try { assertPublicText(value); } catch (error) {
+      expect(String(error)).not.toContain(value);
+    }
+  });
+
+  test("keeps neutral evidence and check counts unchanged", () => {
+    const text = "Please restore cleared boards. Baseline 0/8, verifier failed. Tests 238 passed.";
+    expect(assertPublicText(text)).toBe(text);
+  });
+
   test("redacts private identifiers without changing observed check counts", () => {
     const summary = sanitizeCheckSummary(
       "0/8 passed; SHA a4e5499e9e0fc02dff88ceb75c8aeb401526333c; runId run-private-123; email avi@example.test; requestId req-private-456; traceId trace-private-789",

@@ -133,6 +133,20 @@ describe("signals HTTP boundary", () => {
     expect(state.store.mutation).toHaveBeenCalledTimes(2);
   });
 
+  test("an unexpected completion error keeps the paid receipt when recording failure", async () => {
+    state.store.query.mockResolvedValue(batch);
+    state.store.mutation
+      .mockResolvedValueOnce({ token: "tok" + "0".repeat(29), attemptNumber: 1 })
+      .mockRejectedValueOnce(new Error("Completion unavailable"))
+      .mockResolvedValueOnce(null);
+    state.analyze.mockResolvedValueOnce({
+      analysis: { dispositions: [], clusters: [], stats: {} }, receipt, promptVersion: "signals-v1",
+    });
+    const response = await POST(request({ action: "analyze", batchId, expectedFingerprint: fingerprint }));
+    expect(await response.json()).toMatchObject({ state: "failed", error: "Completion unavailable" });
+    expect(state.store.mutation.mock.calls[2][1]).toMatchObject({ receipt, error: "Completion unavailable" });
+  });
+
   test("a failed analysis is recorded with its paid receipt and reported honestly", async () => {
     state.store.query.mockResolvedValue(batch);
     state.store.mutation

@@ -132,7 +132,7 @@ describe("Spark batch analysis service", () => {
 
   test("nullable absent provider fields normalize before evidence validation", async () => {
     const value = {
-      dispositions: goodValue.dispositions.map((d) => ({ clusterId: null, quote: null, ...d })),
+      dispositions: goodValue.dispositions,
       clusters: goodValue.clusters.map((c) => ({ ...c, sentiment: null })),
     };
     state.completion.mockResolvedValueOnce(metaOutput(value));
@@ -140,6 +140,16 @@ describe("Spark batch analysis service", () => {
     expect(result.analysis.dispositions[2]).toEqual({ postId: "p03", outcome: "spam", reason: "Promotional." });
     expect(result.analysis.clusters[0]).not.toHaveProperty("sentiment");
     expect(result.analysis.clusters[0].distinctAuthors).toBe(2);
+  });
+
+  test("an excluded post cannot smuggle evidence through nullable fields", async () => {
+    const value = structuredClone(goodValue);
+    value.dispositions[0].outcome = "spam";
+    state.completion.mockResolvedValueOnce(metaOutput(value));
+    await expect(analyzeSignalPosts({ appName: "LatchGrid", provenance, posts })).rejects.toMatchObject({
+      stage: "schema", receipt: { inputTokens: 320 },
+      message: expect.stringContaining("Excluded post p01 cannot reference a cluster"),
+    });
   });
 
   test("invalid JSON fails as a paid schema-stage failure with the receipt", async () => {

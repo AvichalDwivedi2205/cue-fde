@@ -327,6 +327,21 @@ describe("signal batch persistence", () => {
     expect(batch!.attempts[0].receipt).toEqual(receipt);
   });
 
+  test("duplicate proposal IDs fail the attempt and preserve the paid receipt", async () => {
+    const { t, appId } = await setup();
+    const { batchId } = await importBatch(t, appId);
+    const output = structuredClone(goodOutput);
+    output.clusters.push({ ...structuredClone(output.clusters[0]), need: "Another need with an ambiguous ID" });
+    const result = await t.mutation(api.signals.completeSignalAttempt, {
+      secret, batchId, token: tokenOf(await claim(t, batchId)), output, receipt,
+    });
+    expect(result).toMatchObject({ outcome: "rejected", error: expect.stringContaining("Duplicate cluster ID") });
+    const batch = await getBatch(t, batchId);
+    expect(batch!.state).toBe("failed");
+    expect(batch!.analysis).toBeUndefined();
+    expect(batch!.attempts[0]).toMatchObject({ status: "failed", receipt });
+  });
+
   test("an all-noise batch analyzes with zero clusters and cannot promote", async () => {
     const { t, appId } = await setup();
     const { batchId } = await importBatch(t, appId, {
