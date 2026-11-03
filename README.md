@@ -27,6 +27,8 @@ The coding policy freezes the repository, base branch, allowed files, package di
 
 At public checkpoint [02c5421](https://github.com/AvichalDwivedi2205/cue-fde/commit/02c5421), checked November 3, 2026, all 785 tests across 100 files, TypeScript, lint, and the production build pass. Lint has zero errors and six existing warnings. The hosted gateway runs the verified [8f3b3aa review UI](https://github.com/AvichalDwivedi2205/cue-fde/commit/8f3b3aa); the internal commit-provenance follow-up is deployed.
 
+As of November 4, 2026, the `feat/meta-latchgrid` branch adds the Quiet signals implementation through commit `93ff20a`: 855 tests across 108 files pass, with TypeScript, lint (zero errors), and the production build green. Hosted verification of this branch has not happened yet; the hosted-gateway claim above still refers to the previously verified build.
+
 The real preview workflow is verified: an installed-widget report and screenshot received a Spark reply and classification, then Muse Wonder produced a scoped private draft PR in 17 completed calls. A fresh isolated verifier passed TypeScript, 238 default tests, and all eight protected acceptance checks before import. The patch changes one Canvas file with 49 added lines. Independent review found no new P1 or P2 issues. Human exact-commit approval and authenticated preview build receipts are recorded. A requested author correction preserved the exact tree and parent; original test provenance remains intact, with a separate approval for the replacement commit.
 
 Browser checks confirm that Note keyboard and menu deletion stay saved after reload. Group-only deletion preserves unselected Notes; explicitly selecting a group and child deletes those two while retaining other Notes. Multi-selection deletion also persisted after normal workspace navigation and a fresh reload. This observes live timing, not controlled network latency. The exact grouped-child-to-outside-Note edge fixture has protected isolated-test coverage only. All synthetic test Notes and groups were removed.
@@ -71,6 +73,12 @@ Set `CUE_DOCKER_CONTEXT=colima-cue-code` and `CUE_CODING_IMAGE=cue-coding-runtim
 Start Convex with `npm run dev:convex`. Set its server secret with `npx convex env set CUE_DEMO_SECRET`. In a second terminal, run `npm run dev` to start the web process and worker. Open `http://127.0.0.1:3000/cue#/inbox`.
 
 Register an application and its exact allowed origins in **Setup**. Install the generated `/widget.js` snippet in that application, send a real widget message, verify the install, and activate the app. Shared widget installs need a reachable HTTPS `CUE_PUBLIC_URL`. Published knowledge and conversations belong to their registered application. See [company knowledge](docs/company-knowledge.md) and [platform boundaries](docs/platform-boundaries.md) for scope and authorization details.
+
+## Quiet signals
+
+For a selected registered app, an operator can import a bounded batch of indirect customer-style posts (synthetic fixture or pasted capture, at most 40 posts) into **Requests → Quiet signals**. Cue freezes the saved input, runs one Muse Spark analysis on the configured route, and stores every post's disposition — evidence, duplicate, spam, off-topic, insufficient detail, or a different valid need — with exact quotations from the saved text. A repeated need requires at least two distinct authors before the UI calls it a pattern. Zero supported needs is a valid outcome that proposes nothing.
+
+Reviewing the dispositions and clusters, the operator can promote at most one proposal per cluster into the ordinary feature workflow. The feature opens at `spec_ready` for Product approval with its batch evidence, synthetic-author counts, and source quotes shown separately — batch evidence never counts as customer traction. Implementation stays behind the existing exact-specification approval, repository binding, and worker claim states: a queued job reads as queued until the coding worker actually claims it. Attempt and generation receipts record the requested and actually served model for every paid call; failed attempts stay failed until an explicit, single retry.
 
 ## Review, preview, release, and retry
 
