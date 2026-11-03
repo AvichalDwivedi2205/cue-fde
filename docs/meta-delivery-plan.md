@@ -58,6 +58,8 @@ The response-boundary follow-up passed 680 tests across 98 files, TypeScript, li
 
 ## Generic investigation UI
 
+The first failed product run exposed a missing recovery control. Eligible failed, rejected, and canceled investigations now offer an explicit retry using the same reproduction drawer, while retaining the old evidence and timeline. Running, review-pending, approved, or resolved work cannot be retried. Rendered-handler regressions cover exact-issue submission, withdrawn capability, and an older blocking run; all 692 tests across 98 files pass. Hosted retry validation remains pending.
+
 Live testing found the old browser gate recognized only fixture/rehearsal issues, even when a generic repository was connected. The follow-up sends active repository-bound app IDs from the authorized server, requires investigate permission, and opens a labelled reproduction-evidence drawer for generic bugs. It submits the frozen issue ID and 20–4,000 characters of operator evidence, preserves Cancel and failed-request drafts, and prevents duplicate starts. The transactional backend also blocks approved patches awaiting release. Real-handler VM tests and the full suite pass. Hosted validation now confirms the owner UI handoff: after the operator reloaded Cue, **Start investigation** appeared, the reproduction drawer submitted, the Meta coding run queued, and local Docker dependency preparation started. Safe patch completion, exact-commit review, preview deployment, and browser acceptance remain pending.
 
 ## Authentication and remaining release evidence

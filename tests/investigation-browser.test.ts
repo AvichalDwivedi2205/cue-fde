@@ -3,6 +3,9 @@ import vm from "node:vm";
 import ts from "typescript";
 import { parseFragment, type DefaultTreeAdapterMap } from "parse5";
 import { expect, test, vi } from "vitest";
+import type { Doc } from "../convex/_generated/dataModel";
+
+type BrowserRun = { issueId: string; status: string } & Partial<Omit<Doc<"runs">, "issueId" | "status">>;
 
 class Control {
   value = "";
@@ -12,14 +15,14 @@ class Control {
   constructor(readonly tag: string, readonly attributes: Record<string, string>) {}
   get dataset() { return Object.fromEntries(Object.entries(this.attributes).filter(([key]) => key.startsWith("data-")).map(([key, value]) => [key.slice(5), value])); }
 }
-async function browser(options: { apps?: string[]; allowed?: boolean; fingerprint?: string; title?: string; runs?: Array<{ issueId: string; status: string }> } = {}) {
+async function browser(options: { apps?: string[]; allowed?: boolean; fingerprint?: string; title?: string; runs?: BrowserRun[] } = {}) {
   const source = await readFile("lib/browser/cue.js", "utf8");
   const shell = await readFile("lib/browser/product-shell.js", "utf8");
   const issue = { _id: "issue-generic", appId: "app-a", kind: "bug", title: options.title || "Keyboard deletion returns", fingerprint: options.fingerprint || "app-a:report:keyboard-note" };
   const escapeSource = (await readFile("design/cue.html", "utf8")).split("\n").find((line) => line.startsWith("const esc = "));
   if (!escapeSource) throw new Error("Missing actual product escaping helper");
   const integration = { engineeringApps: options.apps ?? ["app-a"], permissions: { investigate: options.allowed ?? true } };
-  const state = { sec: "issues", id: "ISS-56", activeIssueId: "ISS-56", issues: { "ISS-56": { id: "ISS-56", _backend: issue._id } }, features: [], integrations: integration };
+  const state = { sec: "issues", id: "ISS-56", activeIssueId: "ISS-56", issues: { "ISS-56": { id: "ISS-56", _backend: issue._id, title: issue.title, priority: "P2", cases: [] } }, features: [], integrations: integration };
   let controls: Control[] = [];
   let dialog: { title: string; body: string; footer: string } | undefined;
   const select = (selector: string) => controls.find((control) => selector === "#" + control.attributes.id || selector === '[data-act="' + control.dataset.act + '"]') || null;
@@ -35,8 +38,9 @@ async function browser(options: { apps?: string[]; allowed?: boolean; fingerprin
   const fetch = vi.fn<(url: string, options: { method: string; body: string }) => Promise<Response>>(async () => Response.json({ runId: "run-created" }));
   const toast = vi.fn();
   const context = vm.createContext({
-    S: state, A: actions, snapshot: { issues: [issue], runs: options.runs || [], integration },
-    fetch, toast, STAGES: [], freshRun: () => ({}), loadCue: vi.fn(), setTab: vi.fn(),
+    S: state, A: actions, snapshot: { issues: [issue], runs: options.runs || [], integration, events: [] },
+    fetch, toast, STAGES: Array.from({ length: 11 }, () => ({})), freshRun: () => ({}), loadCue: vi.fn(), setTab: vi.fn(),
+    caseById: () => undefined, prio: () => "", issueStatusChip: () => "", ic: () => "", clock: () => "",
     $: select,
     openDrawer: (title: string, body: string, footer: string) => { dialog = { title, body, footer }; mount(body + footer); },
     closeOverlays: () => { dialog = undefined; controls = []; },
@@ -50,7 +54,7 @@ async function browser(options: { apps?: string[]; allowed?: boolean; fingerprin
     if (ts.isVariableStatement(node)) return node.declarationList.declarations.some((declaration) => ts.isIdentifier(declaration.name) && declaration.name.text === "liveSnapshot");
     if (!ts.isExpressionStatement(node) || !ts.isBinaryExpression(node.expression)) return false;
     const left = node.expression.left;
-    return ts.isIdentifier(left) ? left.text === "startRun" : ts.isPropertyAccessExpression(left) && ts.isIdentifier(left.expression) && left.expression.text === "A" && ["start", "submitInvestigation", "cancelInvestigation"].includes(left.name.text);
+    return ts.isIdentifier(left) ? ["startRun", "issueDetail", "changes", "timeline"].includes(left.text) : ts.isPropertyAccessExpression(left) && ts.isIdentifier(left.expression) && left.expression.text === "A" && ["start", "submitInvestigation", "cancelInvestigation"].includes(left.name.text);
   }).map((node) => node.getText(file)).join("\n");
   vm.runInContext(selected + "\nliveSnapshot = snapshot;", context);
   const shellFile = ts.createSourceFile("product-shell.js", shell, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
@@ -60,6 +64,12 @@ async function browser(options: { apps?: string[]; allowed?: boolean; fingerprin
     context, state, fetch, toast,
     dialog: () => dialog,
     controls: () => controls,
+    render: () => {
+      const html: unknown = vm.runInContext('issueDetail("ISS-56")', context);
+      if (typeof html !== "string") throw new Error("Expected issue markup");
+      mount(html);
+      return html;
+    },
     field: () => { const field = select("#investigation-reproduction"); if (!field) throw new Error("Missing reproduction field"); return field; },
     open: () => actions.productInvestigateIssue(new Control("button", { "data-id": "ISS-56" })),
     click: (name: string) => { const control = controls.find((item) => item.dataset.act === name); if (!control) throw new Error("Missing control " + name); return control.disabled ? undefined : actions[name](control); },
@@ -140,4 +150,47 @@ test("a server refusal preserves the operator draft and does not automatically r
 test("a generic binding cannot authorize an unregistered rehearsal fingerprint", async () => {
   const b = await browser({ fingerprint: "app-a:rehearsal:unregistered:other" }); await b.open();
   expect(b.dialog()).toBeUndefined(); expect(b.fetch).not.toHaveBeenCalled();
+});
+
+const failedRun = (status: string): BrowserRun => ({
+  issueId: "issue-generic", status, phase: "worker_error", kind: "bug", deploymentMode: "pull_request", createdAt: 20,
+  before: "Prior baseline evidence", after: "Prior check output", diff: "Prior proposed diff", error: "Prior worker failure",
+});
+test.each(["failed", "rejected", "canceled"])("rendered %s investigations offer an explicit frozen-issue retry while preserving evidence", async (status) => {
+  const b = await browser({ runs: [failedRun(status)] });
+  const html = b.render();
+  expect(html).toContain("Retry investigation");
+  expect(html).toContain("Prior baseline evidence");
+  expect(html).toContain("Prior proposed diff");
+  expect(html).toContain("Prior worker failure");
+  expect(b.fetch).not.toHaveBeenCalled();
+  await b.click("productInvestigateIssue");
+  expect(b.dialog()?.body).toContain("<strong>Keyboard deletion returns</strong>");
+  expect(b.fetch).not.toHaveBeenCalled();
+  b.state.id = "ISS-stale-route";
+  b.field().value = "Reproduced again: keyboard deletion returns after reloading the saved canvas.";
+  await b.click("submitInvestigation");
+  expect(b.fetch).toHaveBeenCalledTimes(1);
+  expect(JSON.parse(b.fetch.mock.calls[0][1].body)).toEqual({ action: "investigate", issueId: "issue-generic", reproduction: "Reproduced again: keyboard deletion returns after reloading the saved canvas." });
+});
+test.each(["running", "awaiting_approval", "approved", "resolved", "archived", "cancelled"])("rendered %s runs never offer a retry", async (status) => {
+  const b = await browser({ runs: [failedRun(status)] });
+  expect(b.render()).not.toContain("Retry investigation");
+  expect(b.fetch).not.toHaveBeenCalled();
+});
+test.each(["before click", "before submission"])("capability withdrawal %s refuses the rendered retry without an automatic request", async (when) => {
+  const b = await browser({ runs: [failedRun("failed")] }); b.render();
+  if (when === "before submission") await b.click("productInvestigateIssue");
+  b.state.integrations.engineeringApps.length = 0;
+  if (when === "before click") {
+    await b.click("productInvestigateIssue"); expect(b.dialog()).toBeUndefined();
+  } else {
+    b.field().value = "Reproduced again: the saved Note returns after keyboard deletion and reload.";
+    await b.click("submitInvestigation");
+  }
+  expect(b.fetch).not.toHaveBeenCalled();
+});
+test("another blocking run suppresses retry even when the newest run failed", async () => {
+  const b = await browser({ runs: [{ ...failedRun("approved"), createdAt: 10 }, failedRun("failed")] });
+  expect(b.render()).not.toContain("Retry investigation"); expect(b.fetch).not.toHaveBeenCalled();
 });
