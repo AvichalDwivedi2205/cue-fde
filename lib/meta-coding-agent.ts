@@ -23,7 +23,7 @@ import { annotateTelemetry } from "./observability";
 
 const MAX_CALLS = 20,
   MAX_TOOLS = 60,
-  MAX_TOKENS = 200_000;
+  MAX_TOKENS = 1_000_000;
 const BASELINE_OUTPUT_BYTES = 8 * 1024;
 const modelInput = z.enum(META_MODELS);
 export const codingModel = () =>

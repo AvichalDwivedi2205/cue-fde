@@ -130,6 +130,35 @@ test("missing reported usage cannot become invented zero usage", async () => {
   });
   await expect(runMetaCodingAgent(setup())).rejects.toThrow();
 });
+test("the cumulative million-token guard records actual usage before rejecting further edits", async () => {
+  const input = setup();
+  transport.create
+    .mockResolvedValueOnce({
+      ...response([call("read_file", "read", { path: "src/value.ts" })]),
+      usage: { input_tokens: 600_000, output_tokens: 1000 },
+    })
+    .mockResolvedValueOnce({
+      ...response([edit()]),
+      usage: { input_tokens: 399_000, output_tokens: 1 },
+    });
+  await expect(runMetaCodingAgent(input)).rejects.toThrow(
+    "token budget exhausted",
+  );
+  // The first response exceeds the old 200k cap and must still execute its read.
+  expect(transport.create).toHaveBeenCalledTimes(2);
+  const request: { input: ResponseInput } = transport.create.mock.calls[1][0];
+  expect(
+    outputs(request.input).find((item) => item.call_id === "read")?.output,
+  ).toContain("export const value = 1;");
+  expect(input.receipt).toHaveBeenLastCalledWith({
+    requestedModel: "muse-wonder-1.0",
+    model: "muse-wonder-1.0",
+    inputTokens: 999_000,
+    outputTokens: 1001,
+    modelCalls: 2,
+  });
+  expect(input.workspace.write).not.toHaveBeenCalled();
+});
 test("a model summary without source changes cannot establish implementation", async () => {
   transport.create.mockResolvedValueOnce(
     response([], "Everything is fixed and deployed."),
