@@ -24,6 +24,13 @@ type Run = Pick<
   | "deploymentMode"
   | "releaseEvidence"
   | "releaseCommit"
+  | "provider"
+  | "model"
+  | "requestedModel"
+  | "approval"
+  | "modelCalls"
+  | "inputTokens"
+  | "outputTokens"
 >;
 export type SlackMessage = { text: string; blocks: Record<string, unknown>[] };
 const plain = (text: string) => ({ type: "plain_text", text, emoji: false });
@@ -228,6 +235,7 @@ export function approvalMessage(
   title: string,
   reviewerIds: string[] = [],
   app?: AppRef,
+  handoff?: { issueId: string; revision: number; reproductionDigest: string },
 ): SlackMessage {
   if (
     run.status !== "awaiting_approval" ||
@@ -238,7 +246,11 @@ export function approvalMessage(
   const short = run.commit.slice(0, 8),
     cue = cueLink("agent"),
     pr = link(run.prUrl);
-  const value = JSON.stringify({ runId: run._id, commit: run.commit });
+  const value = JSON.stringify({
+    runId: run._id,
+    commit: run.commit,
+    ...handoff,
+  });
   const prOnly = run.deploymentMode === "pull_request";
   const approvalDetail = prOnly
     ? "Approve this exact implementation commit for your repository's release process. This does not merge, deploy, or announce the feature."
@@ -314,9 +326,10 @@ export function runMessage(
   issue: Issue,
   reviewerIds: string[] = [],
   app?: AppRef,
+  handoff?: { issueId: string; revision: number; reproductionDigest: string },
 ): SlackMessage {
   if (run.status === "awaiting_approval")
-    return approvalMessage(run, issue.title, reviewerIds, app);
+    return approvalMessage(run, issue.title, reviewerIds, app, handoff);
   const featureVerified = replyFacts({ issue, run }).featureVerified;
   const verified = verifiedSlackFix(issue, run) || featureVerified;
   const failed = ["failed", "cancelled", "rejected"].includes(run.status);
@@ -340,8 +353,8 @@ export function runMessage(
         ? "Engineering approved the exact implementation commit. The PR remains subject to your repository's merge and deployment process; customer resolution has not been claimed."
         : run.phase === "implementing"
           ? run.kind === "feature"
-            ? "Codex is implementing the approved specification in an isolated checkout. Independent checks and Engineering review follow."
-            : "Cue reproduced the issue. Codex is preparing a scoped change in an isolated checkout."
+            ? `${run.provider === "Meta" ? "Meta / Muse Wonder" : run.provider || "Coding agent"} is implementing the approved specification in an isolated checkout. Independent checks and Engineering review follow.`
+            : `${run.provider === "Meta" ? "Meta / Muse Wonder" : run.provider || "Coding agent"} is preparing a scoped change using the recorded reproduction context.`
           : run.phase === "deploying"
             ? "The exact commit was approved. Deployment is in progress; verification is still pending."
             : "Cue is investigating the reported problem. Review the timeline for current evidence.";
@@ -357,8 +370,25 @@ export function runMessage(
       header(heading),
       section(issue.title.slice(0, 3000)),
       ...(app ? [context(`App · ${app.name}`)] : []),
-      fields(`Status\n${status}`, "Agent\nCodex"),
+      fields(
+        `Status\n${status}`,
+        `Agent\n${run.provider === "Meta" ? `Meta / ${run.model || run.requestedModel || "Muse Wonder"}` : run.provider || "Coding agent"}`,
+      ),
       section(detail),
+      ...(run.modelCalls !== undefined
+        ? [
+            context(
+              `Recorded usage · ${run.modelCalls} model calls${run.inputTokens !== undefined ? ` · ${run.inputTokens} input tokens` : ""}${run.outputTokens !== undefined ? ` · ${run.outputTokens} output tokens` : ""}`,
+            ),
+          ]
+        : []),
+      ...(run.approval
+        ? [
+            context(
+              `Reviewed by ${run.approval}. Approval covers the recorded exact commit.`,
+            ),
+          ]
+        : []),
       ...(run.commit ? [context(`Commit · ${run.commit}`)] : []),
       ...(actions.length ? [{ type: "actions", elements: actions }] : []),
       context("Cue · Engineering workflow"),

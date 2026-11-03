@@ -192,7 +192,11 @@ while (!stopping) {
       await (run.kind === "feature" ? implementFeature : implementFix)(
         run._id,
         abort.signal,
-        { notify: false },
+        {
+          notify: state.issues.some(
+            (issue) => issue._id === run.issueId && !!issue.engineeringHandoff,
+          ),
+        },
       );
     } catch (error) {
       await store

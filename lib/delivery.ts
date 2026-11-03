@@ -1,3 +1,7 @@
+import {
+  publishEngineeringRun,
+  engineeringDestination,
+} from "./engineering-slack";
 import { Resend } from "resend";
 import { createHash } from "node:crypto";
 import { api, db, secret } from "./server-store";
@@ -21,9 +25,9 @@ export async function sendApproval(
   runId: Id<"runs">,
   actor: { id: string; name: string; organizationId?: string },
 ) {
+  if (await publishEngineeringRun(runId)) return;
   const config = await slackConfig();
-  const channel =
-    config?.engineeringChannel || process.env.SLACK_TEAM_CHANNEL_ID;
+  let channel = config?.engineeringChannel || process.env.SLACK_TEAM_CHANNEL_ID;
   if (!channel) throw new Error("Set the Slack engineering channel first");
   const store = db(),
     auth = secret(),
@@ -31,6 +35,9 @@ export async function sendApproval(
     run = s.runs.find((r) => r._id === runId);
   if (!run || run.status !== "awaiting_approval" || !run.commit)
     throw new Error("No pending exact-commit approval");
+  const issue = s.issues.find((i) => i._id === run.issueId);
+  const pack = await packContext(run.targetId || issue?.appId || "bloom");
+  channel = pack?.routing?.engineeringChannel || channel;
   const token =
     config?.botToken ||
     process.env.SLACK_BOT_TOKEN ||
@@ -47,7 +54,7 @@ export async function sendApproval(
   const text = message.text;
   const id = await store.mutation(api.deliveries.reserve, {
     secret: auth,
-    key: "approval:" + runId,
+    key: `approval:${runId}:${run.commit}`,
     channel: "slack",
     destination: channel,
     body: text,
@@ -233,6 +240,7 @@ export async function sendSlackReply(
 }
 
 export async function sendSlackRunUpdate(runId: Id<"runs">) {
+  if (await publishEngineeringRun(runId)) return;
   const config = await slackConfig();
   if (!config?.botToken || !config.engineeringChannel) return;
   const store = db(),
@@ -243,18 +251,22 @@ export async function sendSlackRunUpdate(runId: Id<"runs">) {
   if (!run || !issue) return;
   const pack = await packContext(run.targetId || issue.appId || "bloom");
   const app: AppRef | undefined = pack ? asAppRef(pack) : undefined;
-  const destination = pack?.routing?.engineeringChannel || config.engineeringChannel;
+  const destination =
+    pack?.routing?.engineeringChannel || config.engineeringChannel;
   if (!destination) return;
   const message = runMessage(run, issue, reviewers(config, "deploy"), app);
   if (run.status !== "awaiting_approval") {
     const review = snapshot.deliveries.find(
-      (d) => d.key === `approval:${runId}` && d.status === "sent",
+      (d) =>
+        (d.key === `approval:${runId}:${run.commit}` ||
+          d.key === `approval:${runId}`) &&
+        d.status === "sent",
     );
-    await refreshReviewCard(config, review?.receipt, message);
+    await refreshReviewCard(config, review?.receipt, message, destination);
   }
   const key =
     run.status === "awaiting_approval"
-      ? `approval:${runId}`
+      ? `approval:${runId}:${run.commit}`
       : `run-update:${runId}:${run.status}:${run.phase}`;
   // A persisted reservation prevents duplicate status messages across restarts.
   if (snapshot.deliveries.some((d) => d.key === key)) return;
@@ -302,7 +314,8 @@ export async function sendSpecApproval(issueId: Id<"issues">, actor: string) {
     throw new Error("Connect a Product or Owner Slack reviewer first");
   const pack = await packContext(issue.appId || "bloom");
   const app: AppRef | undefined = pack ? asAppRef(pack) : undefined;
-  const destination = pack?.routing?.engineeringChannel || config.engineeringChannel;
+  const destination =
+    pack?.routing?.engineeringChannel || config.engineeringChannel;
   const message = specApprovalMessage(issue, ids, app);
   const key = `spec-approval:${issueId}:${specVersion(issue.spec)}`;
   if (snapshot.deliveries.some((d) => d.key === key)) return;
@@ -357,6 +370,9 @@ export async function sendSpecDecision(
       issue.specApprovedBy !== decision.actor)
   )
     return;
+  const pack = await packContext(issue.appId || "bloom");
+  const destination =
+    pack?.routing?.engineeringChannel || config.engineeringChannel;
   const key = `spec-decision:${issue._id}:${decision.version}`;
   const approved = released || issue.status === "approved";
   const heading = released
@@ -401,20 +417,20 @@ export async function sendSpecDecision(
       d.key === `spec-approval:${issue._id}:${decision.version}` &&
       d.status === "sent",
   );
-  await refreshReviewCard(config, review?.receipt, message);
+  await refreshReviewCard(config, review?.receipt, message, destination);
   if (snapshot.deliveries.some((d) => d.key === key)) return;
   const id = await db().mutation(api.deliveries.reserve, {
     secret: secret(),
     key,
     channel: "slack",
-    destination: config.engineeringChannel,
+    destination,
     body: text,
     actor: decision.actor,
   });
   try {
     const receipt = await slackPost(
       config.botToken,
-      config.engineeringChannel,
+      destination,
       text,
       message.blocks,
       threadTs && /^\d+\.\d+$/.test(threadTs) ? threadTs : undefined,
@@ -443,6 +459,7 @@ export async function sendSlackDecision(
   threadTs?: string,
 ) {
   if ("issueId" in decision) return sendSpecDecision(decision, threadTs);
+  if (await publishEngineeringRun(decision.runId)) return;
   const config = await slackConfig();
   if (!config) return;
   const snapshot = await db().query(api.cue.snapshot, { secret: secret() });
@@ -455,6 +472,12 @@ export async function sendSlackDecision(
     run.approval !== decision.actor
   )
     return;
+  const pack = await packContext(run.targetId || issue.appId || "bloom");
+  const destination = engineeringDestination(
+    config,
+    issue,
+    pack?.routing?.engineeringChannel,
+  ).channel;
   const key = `run-decision:${run._id}:${run.commit}`;
   const message = runMessage(run, issue);
   message.text += `\nReviewed by ${decision.actor}.`;
@@ -468,22 +491,25 @@ export async function sendSlackDecision(
     ],
   });
   const review = snapshot.deliveries.find(
-    (d) => d.key === `approval:${run._id}` && d.status === "sent",
+    (d) =>
+      (d.key === `approval:${run._id}:${run.commit}` ||
+        d.key === `approval:${run._id}`) &&
+      d.status === "sent",
   );
-  await refreshReviewCard(config, review?.receipt, message);
+  await refreshReviewCard(config, review?.receipt, message, destination);
   if (snapshot.deliveries.some((d) => d.key === key)) return;
   const id = await db().mutation(api.deliveries.reserve, {
     secret: secret(),
     key,
     channel: "slack",
-    destination: config.engineeringChannel,
+    destination,
     body: message.text,
     actor: decision.actor,
   });
   try {
     const receipt = await slackPost(
       config.botToken,
-      config.engineeringChannel,
+      destination,
       message.text,
       message.blocks,
       threadTs && /^\d+\.\d+$/.test(threadTs) ? threadTs : undefined,
@@ -510,9 +536,10 @@ async function refreshReviewCard(
   config: NonNullable<Awaited<ReturnType<typeof slackConfig>>>,
   receipt: string | undefined,
   message: ReturnType<typeof runMessage>,
+  destination = config.engineeringChannel,
 ) {
   const target = receipt?.match(/^(C[A-Z0-9]+):(\d+\.\d+)$/);
-  if (!target || target[1] !== config.engineeringChannel) return;
+  if (!target || target[1] !== destination) return;
   try {
     await slackUpdate(
       config.botToken,

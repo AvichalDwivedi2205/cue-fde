@@ -248,18 +248,24 @@ export const setRouting = mutation({
     appId: v.string(),
     label: v.optional(v.string()),
     engineeringChannel: v.optional(v.string()),
+    engineeringMemberId: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, a) => {
     authorize(a.secret);
     const pack = await requirePack(ctx, a.appId);
     const label = a.label?.trim();
+    if (a.engineeringMemberId && !/^[UW][A-Z0-9]+$/.test(a.engineeringMemberId))
+      throw new ConvexError("Use a Slack member ID");
     if (a.engineeringChannel !== undefined && a.engineeringChannel !== "")
       if (!/^[CG][A-Z0-9]+$/.test(a.engineeringChannel))
         throw new ConvexError("Use a Slack channel ID");
     await ctx.db.patch(pack._id, {
       routing: {
         label: label && label.length > 0 ? label.slice(0, 60) : undefined,
+        engineeringMemberId: a.engineeringMemberId === undefined
+          ? pack.routing?.engineeringMemberId
+          : a.engineeringMemberId || undefined,
         engineeringChannel:
           a.engineeringChannel && a.engineeringChannel.length > 0
             ? a.engineeringChannel

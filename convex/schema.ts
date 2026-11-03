@@ -13,6 +13,7 @@ import { knowledgeTables } from "./knowledgeSchema";
 import { companyContextTables } from "./companyContextSchema";
 import { feedbackTables } from "./feedbackSchema";
 import { signalTables } from "./signalSchema";
+import { engineeringHandoff } from "./engineeringHandoffValidators";
 
 export const triageGeneration = generationReceipt;
 
@@ -129,6 +130,7 @@ export default defineSchema({
       v.object({
         label: v.optional(v.string()),
         engineeringChannel: v.optional(v.string()),
+        engineeringMemberId: v.optional(v.string()),
       }),
     ),
     installCheckedAt: v.optional(v.number()),
@@ -185,6 +187,7 @@ export default defineSchema({
     kind: v.string(),
     fingerprint: v.string(),
     appId: v.optional(v.string()),
+    engineeringHandoff: v.optional(engineeringHandoff),
     status: v.string(),
     priority: v.string(),
     tags: v.array(v.string()),

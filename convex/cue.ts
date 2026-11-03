@@ -1,3 +1,7 @@
+import {
+  engineeringSlackContext,
+  verifyHandoff,
+} from "./engineeringHandoffState";
 import { engineeringInput } from "../lib/app-pack-schema";
 import schema, { triageGeneration } from "./schema";
 import {
@@ -568,6 +572,7 @@ export const startRun = mutation({
     secret: v.string(),
     issueId: v.id("issues"),
     reproduction: v.optional(v.string()),
+    slack: v.optional(engineeringSlackContext),
   },
   returns: v.id("runs"),
   handler: async (ctx, args) => {
@@ -575,7 +580,31 @@ export const startRun = mutation({
     const issue = await ctx.db.get("issues", args.issueId);
     const rehearsal = issue ? await registeredRehearsal(ctx, issue) : null;
     if (!issue) throw new ConvexError("Issue not found.");
-    const fixture = issue.fingerprint === "bloom:upload:413";
+    if (issue.engineeringHandoff && !args.slack)
+      throw new ConvexError("Start this fix from its assigned Slack handoff");
+    const handoff = args.slack
+      ? await verifyHandoff(ctx, issue, args.slack)
+      : undefined;
+    if (
+      handoff &&
+      (args.reproduction !== handoff.reproduction ||
+        args.slack?.cardTs !== handoff.rootTs)
+    )
+      throw new ConvexError("Reproduction or handoff card changed");
+    if (handoff?.kind === "started") {
+      const run = await ctx.db.get("runs", handoff.runId);
+      if (
+        !run ||
+        run.issueId !== issue._id ||
+        run.targetId !== handoff.appId ||
+        run.reproduction !== handoff.reproduction ||
+        run.deploymentMode !== "pull_request" ||
+        JSON.stringify(run.codingPolicy) !== JSON.stringify(handoff.policy)
+      )
+        throw new ConvexError("Engineering run context changed");
+      return handoff.runId;
+    }
+    const fixture = !handoff && issue.fingerprint === "bloom:upload:413";
     const previous = await ctx.db
       .query("runs")
       .withIndex("by_issueId_and_createdAt", (q) =>
@@ -592,7 +621,7 @@ export const startRun = mutation({
       throw new ConvexError(
         "An active or completed run already exists. Reset the demo to run again.",
       );
-    if (!fixture && !rehearsal) {
+    if (handoff || (!fixture && !rehearsal)) {
       // Generic bug on a registered app with a repository binding. The pack
       // is read in this transaction: legality lives where runs are born.
       if (issue.fingerprint.includes(":rehearsal:"))
@@ -627,7 +656,12 @@ export const startRun = mutation({
         createdAt: stamp(),
         updatedAt: stamp(),
       });
-      await ctx.db.patch(issue._id, { status: "investigating" });
+      await ctx.db.patch(issue._id, {
+        status: "investigating",
+        ...(handoff
+          ? { engineeringHandoff: { ...handoff, kind: "started", runId } }
+          : {}),
+      });
       await ctx.db.insert("jobs", {
         runId,
         kind: "investigate",

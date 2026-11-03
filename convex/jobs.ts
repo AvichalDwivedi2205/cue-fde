@@ -1,3 +1,8 @@
+import {
+  engineeringSlackContext,
+  verifyHandoff,
+  currentHandoff,
+} from "./engineeringHandoffState";
 import { runExecutionMode } from "../lib/coding-policy";
 import { engineeringInput } from "../lib/app-pack-schema";
 import { packByAppId } from "./appPacks";
@@ -106,6 +111,8 @@ export const decide = mutation({
     actor: v.string(),
     approve: v.boolean(),
     reason: v.optional(v.string()),
+    slack: v.optional(engineeringSlackContext),
+    legacySlack: v.optional(v.boolean()),
   },
   returns: v.null(),
   handler: async (ctx, a) => {
@@ -113,6 +120,43 @@ export const decide = mutation({
     const r = await ctx.db.get("runs", a.runId);
     if (!r || r.status !== "awaiting_approval" || r.commit !== a.commit)
       throw new ConvexError("Approval must match the pending commit");
+    const issue = await ctx.db.get("issues", r.issueId);
+    if (a.slack && !issue?.engineeringHandoff)
+      throw new ConvexError("Engineering handoff missing");
+    if (issue?.engineeringHandoff) {
+      if (!a.slack) throw new ConvexError("Decide this fix in its assigned Slack thread");
+      if (a.legacySlack)
+        throw new ConvexError("Engineering handoff card context required");
+      const h = a.slack
+        ? await verifyHandoff(ctx, issue, a.slack)
+        : await currentHandoff(ctx, issue);
+      if (
+        h.kind !== "started" ||
+        h.runId !== r._id ||
+        r.targetId !== h.appId ||
+        r.repository !== h.policy.repository ||
+        r.reproduction !== h.reproduction ||
+        JSON.stringify(r.codingPolicy) !== JSON.stringify(h.policy)
+      )
+        throw new ConvexError("Engineering run context changed");
+      if (a.slack) {
+        const delivery = await ctx.db
+          .query("deliveries")
+          .withIndex("by_key", (q) =>
+            q.eq("key", `approval:${r._id}:${a.commit}`),
+          )
+          .unique();
+        if (
+          !delivery ||
+          delivery.status !== "sent" ||
+          delivery.destination !== h.channel ||
+          delivery.receipt !== `${h.channel}:${a.slack.cardTs}`
+        )
+          throw new ConvexError("Approval card context changed");
+      }
+      if (r.deploymentMode !== "pull_request")
+        throw new ConvexError("Handoff approval cannot deploy production");
+    }
     if (a.approve && r.codingPolicy) {
       const pack = await packByAppId(ctx, r.targetId || "bloom");
       if (
