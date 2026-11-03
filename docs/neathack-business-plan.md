@@ -1,4 +1,4 @@
-# Cue business plan — neatHack 2026
+# Cue business plan
 
 Cue helps small consumer-app teams turn customer reports into investigated,
 reviewed, and verified product changes. The first customer is a founder or a
@@ -68,50 +68,6 @@ any protected-file change or approval bypass. Pivot to support investigation
 and draft preparation if median human savings are below 20%, or if fewer than
 two founders want to pay. Add complexity only after this baseline succeeds.
 
-## Current evidence and limits
+## Evidence and limits
 
-The inspected application retains a real scoped Codex investigation, protected
-tests, a reviewed commit, and deployed acceptance evidence. A fresh replay of
-the upload fixture produces three failed acceptance checks before the limit
-fix and eight passing HTTP checks afterward. This replay applies the existing
-one-line correction in a temporary copy; it is not a new autonomous coding run.
-Fresh Gemini support, classification, specification, and Growth calls have
-neatlogs traces. Their controlled drafts were not sent to customers.
-
-Growth has a previously verified controlled publication-to-Bloom activation
-journey. Organic acquisition, retention, paid customers, and revenue are
-unmeasured. Generic arbitrary-repository bug fixing and unattended releases
-are outside the demonstrated scope.
-
-## cfo.ai evidence
-
-On October 11, 2026, cfo.ai saved **Cue neatHack — pilot economics and runway**
-in the Cue workspace. It contains the business plan, editable assumptions,
-formula-linked customer-volume economics, a separate $12/run coding-cost
-stress scenario, hypothetical infrastructure-only runway, and pilot criteria.
-The base table, stress results, margins, break-even counts and runway were
-checked against the supplied formulas. This document summarizes the inputs
-and inspected output; it is not a record of achieved commercial results.
-
-- [Public view-only cfo.ai plan](https://cfo.ai/s/IfzpWk2LZv2xR34C)
-- [Editable workspace page](https://app.cfo.ai/cue-f814c9dc/pages/12d35fbf-ff88-4762-9f57-227404be9da5)
-- [Plan screenshot](evidence/cfo-business-plan.jpg) and
-  [scenario tables](evidence/cfo-scenarios.jpg), including the
-  [coding-cost stress comparison](evidence/cfo-stress-scenario.jpg)
-
-Billing was inspected separately: Startup is **Canceled**, the trial **won't
-renew**, access ends October 25, 2026, and the October 11 invoice is $0.
-Organiser-allocated cfo.ai credits have not been verified; trial access and
-credits are different evidence.
-
-## Optional acquisition research
-
-Crustdata now provides a bounded company-research shortlist for Cue. The first
-successful five-company search and enrichment reported 11.15 provider credits;
-two successful searches found ten unique company records using 22.30 credits.
-Credits are not converted to dollars in this model: a reliable paid dollar rate
-and eventual acquisition cost have not been established. Sponsor-credit usage
-does not prove zero long-term cost. The base/stress tables exclude acquisition
-spend; add measured research and founder-conversation costs before treating the
-pilot economics as commercially complete. No contact or conversion is claimed.
-See [implementation and validation](crustdata-customer-research.md).
+Earlier claims of completed investigations, provider traces, publication, and activation are withdrawn. Organic acquisition, retention, paid customers, and revenue are unmeasured. Validate the actual workflow and current release before presenting any outcome as verified. See [repository and build provenance](repository-and-build-provenance.md).

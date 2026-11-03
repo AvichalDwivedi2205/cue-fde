@@ -1,6 +1,6 @@
 # Deferred platform work
 
-This backlog is separate from the approved configured-workspace Agent and Bloom Growth release. Its presence does not close any pending acceptance check in [implementation progress](implementation-progress.md).
+This backlog is separate from the configured-workspace Agent and Bloom Growth work. Its presence does not close any pending acceptance check in [implementation progress](implementation-progress.md).
 
 The inspected boundaries and migration order remain in [platform boundaries](platform-boundaries.md).
 
@@ -11,7 +11,7 @@ The inspected boundaries and migration order remain in [platform boundaries](pla
 | Company-owned provider connections                  | Encrypted connections per company; verified provider identities route webhooks; independent cursors, leases, deduplication and receipts                   |
 | Self-service onboarding and invitations             | A real second company joins, registers an app, connects its own accounts and receives widget intake without manual database/environment edits             |
 | Scoped repository installation and coding execution | Company-owned installation/worker credentials, repository/path policy, exact specification and commit validation, independent credentials and budgets     |
-| General investigation and release adapters          | Real supported execution, tests, review and deployed acceptance for each adapter; the existing Bloom upload fixture is not a generic runner               |
+| General investigation and release adapters          | Validate the general app-bound bug and feature pipeline for each supported repository policy; add and verify separate release adapters               |
 | Consumer account, sync and migration                | Explicit ownership model and cross-host migration; current anonymous journals and legacy memories remain separate                                         |
 | Lifecycle, referrals and Cue-buyer campaigns        | Separate opt-in policy, participants, measurement and delivery permissions; no implied authorization to contact strangers                                 |
 | Voice and agent extensions                          | Real-time consumer voice, operator-agent voice, custom agents, separate Slack identities/DMs and canvas require independent scope and acceptance          |
@@ -21,4 +21,4 @@ The platform release gate is **two independently owned test companies**, each wi
 
 The activation experiment is also deferred validation: at least 20 eligible opt-in visitors per arm, matched distribution budgets and seven-day observation. Compare a fixed supported answer with the grounded answer and proof. Exclude internal/controlled/returning browsers; report publication, visit, first save, caption match and return separately. Stop increasing distribution if visitors fail to activate; improve onboarding first. This is not a revenue claim or recruitment authorization.
 
-Resource estimates for this backlog require separate planning after the configured-workspace release. The historical 7.5–11-hour estimate covered Growth alone and is not an estimate for multi-company SaaS.
+Estimate this backlog separately from configured-workspace Growth work.
