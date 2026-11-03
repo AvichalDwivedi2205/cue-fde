@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, test } from "vitest";
 import {
   MAX_ATTEMPTS,
+  sanitizeCheckSummary,
   MAX_POSTS,
   outcomeLabels,
   postsFingerprint,
@@ -175,6 +176,15 @@ describe("analysis validation", () => {
       posts.find((p) => p.id === s.postId)!.text.includes(s.quote),
     )).toBe(true);
   });
+  test("duplicate cluster IDs cannot identify different proposals", () => {
+    const output = structuredClone(validOutput);
+    output.clusters.push({
+      ...structuredClone(output.clusters[0]),
+      need: "A different proposal sharing the same selection ID",
+    });
+    expect(() => validateSignalsAnalysis(posts, output)).toThrow(/Duplicate cluster ID/);
+  });
+
   test("a single-author cluster cannot claim a repeated pattern", () => {
     const single: SignalsAnalysisOutput = {
       dispositions: validOutput.dispositions.map((d) =>
@@ -295,5 +305,16 @@ describe("public-safe export schema", () => {
   });
   test("attempt ledger is capped at one explicit retry", () => {
     expect(MAX_ATTEMPTS).toBe(2);
+  });
+});
+
+describe("public check summaries", () => {
+  test("redacts private identifiers without changing observed check counts", () => {
+    const summary = sanitizeCheckSummary(
+      "0/8 passed; SHA a4e5499e9e0fc02dff88ceb75c8aeb401526333c; runId run-private-123; email avi@example.test; requestId req-private-456; traceId trace-private-789",
+    );
+    expect(summary).toContain("0/8 passed");
+    for (const value of ["a4e5499e9e0fc02dff88ceb75c8aeb401526333c", "run-private-123", "avi@example.test", "req-private-456", "trace-private-789"])
+      expect(summary).not.toContain(value);
   });
 });

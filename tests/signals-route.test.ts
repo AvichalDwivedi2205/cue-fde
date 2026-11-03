@@ -96,7 +96,7 @@ describe("signals HTTP boundary", () => {
     state.store.query.mockResolvedValue(batch);
     state.store.mutation
       .mockResolvedValueOnce({ token: "tok" + "0".repeat(29), attemptNumber: 1 })
-      .mockResolvedValueOnce(null);
+      .mockResolvedValueOnce({ outcome: "completed" });
     state.analyze.mockResolvedValueOnce({
       analysis: {
         dispositions: [],
@@ -116,11 +116,28 @@ describe("signals HTTP boundary", () => {
     expect(complete.output).toEqual({ dispositions: [], clusters: [] });
   });
 
+  test("a committed persistence rejection reports failed without failing the cleared claim again", async () => {
+    state.store.query.mockResolvedValue(batch);
+    state.store.mutation
+      .mockResolvedValueOnce({ token: "tok" + "0".repeat(29), attemptNumber: 1 })
+      .mockResolvedValueOnce({ outcome: "rejected", error: "Model output rejected" });
+    state.analyze.mockResolvedValueOnce({
+      analysis: { dispositions: [], clusters: [], stats: {} },
+      receipt,
+      promptVersion: "signals-v1",
+    });
+    const response = await POST(request({ action: "analyze", batchId, expectedFingerprint: fingerprint }));
+    expect(await response.json()).toEqual({
+      state: "failed", attemptNumber: 1, error: "Model output rejected",
+    });
+    expect(state.store.mutation).toHaveBeenCalledTimes(2);
+  });
+
   test("a failed analysis is recorded with its paid receipt and reported honestly", async () => {
     state.store.query.mockResolvedValue(batch);
     state.store.mutation
       .mockResolvedValueOnce({ token: "tok" + "0".repeat(29), attemptNumber: 1 })
-      .mockResolvedValueOnce(null);
+      .mockResolvedValueOnce({ outcome: "completed" });
     state.analyze.mockRejectedValueOnce(
       new SignalsGenerationError(receipt, "json", "Model output was not valid JSON"),
     );

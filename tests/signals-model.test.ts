@@ -54,7 +54,7 @@ const goodValue = {
       quote: "we need a way to restore cleared boards",
       reason: "Same need from another author.",
     },
-    { postId: "p03", outcome: "spam", reason: "Promotional." },
+    { postId: "p03", outcome: "spam", clusterId: null, quote: null, reason: "Promotional." },
   ],
   clusters: [
     {
@@ -110,6 +110,36 @@ describe("Spark batch analysis service", () => {
     expect(result.analysis.clusters[0].repeatedEvidence).toBe(true);
     // The call is exactly one request; no fallback provider ever runs.
     expect(state.completion).toHaveBeenCalledTimes(1);
+  });
+
+  test("the serialized strict provider schema requires every property", async () => {
+    state.completion.mockResolvedValueOnce(metaOutput(goodValue));
+    await analyzeSignalPosts({ appName: "LatchGrid", provenance, posts });
+    const schema = state.completion.mock.calls[0][0].response_format.json_schema.schema;
+    function inspect(value: unknown): void {
+      if (!value || typeof value !== "object") return;
+      if ("properties" in value && value.properties && typeof value.properties === "object") {
+        expect(value).toMatchObject({ additionalProperties: false });
+        expect("required" in value ? value.required : []).toEqual(Object.keys(value.properties));
+      }
+      for (const child of Object.values(value)) {
+        if (Array.isArray(child)) child.forEach(inspect);
+        else inspect(child);
+      }
+    }
+    inspect(schema);
+  });
+
+  test("nullable absent provider fields normalize before evidence validation", async () => {
+    const value = {
+      dispositions: goodValue.dispositions.map((d) => ({ clusterId: null, quote: null, ...d })),
+      clusters: goodValue.clusters.map((c) => ({ ...c, sentiment: null })),
+    };
+    state.completion.mockResolvedValueOnce(metaOutput(value));
+    const result = await analyzeSignalPosts({ appName: "LatchGrid", provenance, posts });
+    expect(result.analysis.dispositions[2]).toEqual({ postId: "p03", outcome: "spam", reason: "Promotional." });
+    expect(result.analysis.clusters[0]).not.toHaveProperty("sentiment");
+    expect(result.analysis.clusters[0].distinctAuthors).toBe(2);
   });
 
   test("invalid JSON fails as a paid schema-stage failure with the receipt", async () => {

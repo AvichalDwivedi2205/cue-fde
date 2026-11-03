@@ -26,12 +26,13 @@ function feature(options: {
   runs?: Record<string, unknown>[];
   features?: Record<string, unknown>;
   generation?: Record<string, unknown> | null;
+  issue?: Record<string, unknown>;
 } ) {
   const context = vm.createContext({
     S: { integrations: { engineeringApps: ["app-a"], codingApps: ["app-a"], permissions: { investigate: true }, slackSend: false } },
     liveSnapshot: { runs: options.runs || [], events: [], jobs: options.jobs || [] },
     loadedFeatureDetail: () => options.stub,
-    liveIssue: () => ({ appId: "app-a", status: "spec_ready", spec: "spec text", specGeneration: options.generation ?? undefined }),
+    liveIssue: () => ({ appId: "app-a", status: "spec_ready", spec: "spec text", specGeneration: options.generation ?? undefined, ...(options.issue || {}) }),
     providerName: (p: string) => (p === "meta" ? "Meta" : p),
     approvalData: () => "",
     esc: undefined as unknown as (s: string) => string,
@@ -140,4 +141,17 @@ test("runs without job records keep the honest raw status line", () => {
     jobs: [],
   });
   expect(html).toContain("running · preparing");
+});
+
+
+test("an approved signals handoff stays ready without queueing on an unverified future binding", () => {
+  const html = feature({ stub: baseStub, issue: { status: "approved", sourceSignals: { batchId: "batch", inputFingerprint: "digest", analysisRevision: 1, clusterId: "need" } } });
+  expect(html).toContain("Handoff ready");
+  expect(html).toContain("verified future-work binding");
+  expect(html).not.toContain('data-act="implementFeature"');
+});
+
+test("an ordinary approved feature retains the existing implementation action", () => {
+  const html = feature({ stub: baseStub, issue: { status: "approved" } });
+  expect(html).toContain('data-act="implementFeature"');
 });

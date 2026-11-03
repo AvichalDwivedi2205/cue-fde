@@ -264,3 +264,73 @@ test("buttons match saved roles: a support role cannot import, analyze, or promo
     'data-act="signalsPromote" data-id="c-recover" disabled',
   );
 });
+
+
+test("switching apps immediately clears the previous app's batch and controls", async () => {
+  const b = await browser();
+  b.setBatch(analyzedBatch);
+  b.state.scopeApp = "app-b";
+  b.run("renderSignals()");
+  expect(b.html()).not.toContain("Any recovery path?");
+  expect(b.html()).not.toContain("Create build handoff");
+  await b.run<Promise<void>>("loadSignals()");
+  expect(b.run("signalsBatch")).toBeNull();
+});
+
+test("a new app load does not wait for or accept the previous app's in-flight list", async () => {
+  const b = await browser();
+  const oldResponse = Promise.withResolvers<Response>();
+  b.fetch.mockImplementationOnce(() => oldResponse.promise);
+  const oldLoad = b.run<Promise<void>>("loadSignals()");
+  b.state.scopeApp = "app-b";
+  b.fetch.mockImplementationOnce(async () => Response.json({ batches: [] }));
+  await b.run<Promise<void>>("loadSignals()");
+  oldResponse.resolve(Response.json({ batches: [{ batchId: analyzedBatch._id, requestKey: "old-app", state: "analyzed" }] }));
+  await oldLoad;
+  expect(b.fetch.mock.calls.some(([url]) => url.includes("appId=app-b"))).toBe(true);
+  expect(b.html()).not.toContain("old-app");
+  expect(b.run("signalsSnapshot.batches.length")).toBe(0);
+});
+
+test("batch selections are saved per application", async () => {
+  const b = await browser({ batch: analyzedBatch });
+  await b.run<Promise<void>>(`loadSignalsBatch(${JSON.stringify(analyzedBatch._id)})`);
+  expect(b.run('sessionStorage.getItem("cue-signals-batch:cue_app_test")')).toBe(analyzedBatch._id);
+  expect(b.run('sessionStorage.getItem("cue-signals-batch")')).toBeNull();
+});
+
+test("a late detail response cannot reopen a batch after switching applications", async () => {
+  const b = await browser();
+  const oldResponse = Promise.withResolvers<Response>();
+  b.fetch.mockImplementationOnce(() => oldResponse.promise);
+  const oldLoad = b.run<Promise<void>>(`loadSignalsBatch(${JSON.stringify(analyzedBatch._id)})`);
+  b.state.scopeApp = "app-b";
+  b.run("renderSignals()");
+  oldResponse.resolve(Response.json({ batch: analyzedBatch }));
+  await oldLoad;
+  b.run("renderSignals()");
+  expect(b.run("signalsBatch")).toBeNull();
+  expect(b.html()).not.toContain("Any recovery path?");
+});
+
+test("an expired attempt offers explicit recovery and an active attempt cannot retry", async () => {
+  const b = await browser();
+  b.setBatch({ ...analyzedBatch, state: "analyzing", analysis: undefined, attempt: { number: 1, token: "test", expiresAt: Date.now() - 1000 }, attempts: [{ number: 1, status: "running", startedAt: 1 }] });
+  b.run("renderSignals()");
+  expect(b.html()).toContain("Recovery available");
+  expect(b.html()).toContain('data-act="signalsRecover"');
+  b.setBatch({ ...analyzedBatch, state: "analyzing", analysis: undefined, attempt: { number: 1, token: "test", expiresAt: Date.now() + 60000 }, attempts: [{ number: 1, status: "running", startedAt: 1 }] });
+  b.run("renderSignals()");
+  expect(b.html()).toContain("Analysis running");
+  expect(b.html()).not.toContain('data-act="signalsRecover"');
+  await b.run<Promise<void>>("A.signalsRetry({ disabled: false })");
+  expect(b.fetch).not.toHaveBeenCalled();
+});
+
+test("an expired final attempt exposes reconciliation without promising another model call", async () => {
+  const b = await browser();
+  b.setBatch({ ...analyzedBatch, state: "analyzing", analysis: undefined, attempt: { number: 2, token: "test", expiresAt: Date.now() - 1000 }, attempts: [{ number: 1, status: "failed", startedAt: 1 }, { number: 2, status: "running", startedAt: 2 }] });
+  b.run("renderSignals()");
+  expect(b.html()).toContain("Reconcile expired attempt");
+  expect(b.html()).toContain("No new model call");
+});
