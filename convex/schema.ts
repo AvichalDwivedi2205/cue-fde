@@ -197,6 +197,9 @@ export default defineSchema({
     spec: v.optional(v.string()),
     specApprovedAt: v.optional(v.number()),
     specApprovedBy: v.optional(v.string()),
+    // Additive receipt for the generation that produced the current spec text.
+    // Cleared whenever the spec text is saved without a new receipt.
+    specGeneration: v.optional(triageGeneration),
   }).index("by_fingerprint", ["fingerprint"]),
   messages: defineTable({
     caseId: v.id("cases"),

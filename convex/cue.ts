@@ -811,6 +811,7 @@ export const spec = mutation({
     spec: v.string(),
     approved: v.optional(v.boolean()),
     actor: v.optional(v.string()),
+    generation: v.optional(triageGeneration),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -839,6 +840,11 @@ export const spec = mutation({
       throw new ConvexError(
         "Use a specification with two to ten acceptance criteria",
       );
+    // The receipt describes how the current spec text was produced. A save
+    // without a new receipt is a human revision, so the old receipt would
+    // otherwise mislabel edited text as model output. Re-saving identical
+    // text (for example approving the displayed spec) keeps the receipt.
+    const specUnchanged = issue.spec === args.spec;
     await ctx.db.patch("issues", args.issueId, {
       spec: args.spec,
       status: args.approved ? "approved" : "spec_ready",
@@ -846,6 +852,8 @@ export const spec = mutation({
       specApprovedBy: args.approved
         ? (args.actor?.trim() || "Operator").slice(0, 100)
         : undefined,
+      specGeneration:
+        args.generation || (specUnchanged ? issue.specGeneration : undefined),
     });
     await ctx.db.insert("events", {
       issueId: args.issueId,

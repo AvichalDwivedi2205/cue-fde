@@ -165,7 +165,9 @@ async function generateSpecImpl(context: unknown) {
     temperature: 0.2,
     maxOutputTokens: 2000,
   });
-  return result.value;
+  // The receipt names the requested and actually served model for this
+  // specification. Callers must store it outside the three-field spec payload.
+  return { spec: result.value, generation: result.generation };
 }
 const classification = z
   .object({

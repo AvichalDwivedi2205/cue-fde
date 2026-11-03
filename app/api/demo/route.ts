@@ -247,7 +247,7 @@ export async function POST(request: NextRequest) {
         const issue = s.issues.find((i) => i._id === body.issueId);
         if (!issue || issue.kind !== "feature")
           throw new Error("Feature not found");
-        const spec = await generateSpec({
+        const { spec, generation } = await generateSpec({
           issue: { title: issue.title, description: issue.description },
           requests: s.cases
             .filter(
@@ -262,8 +262,9 @@ export async function POST(request: NextRequest) {
           secret: auth,
           issueId: issue._id,
           spec: JSON.stringify(spec),
+          generation,
         });
-        return NextResponse.json({ spec });
+        return NextResponse.json({ spec, generation });
       }
       case "tags":
         await store.mutation(api.cue.tags, {
