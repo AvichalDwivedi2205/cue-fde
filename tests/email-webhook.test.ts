@@ -7,6 +7,7 @@ import schema from "../convex/schema";
 import { api as convexApi } from "../convex/_generated/api";
 const modules = import.meta.glob("../convex/**/*.{ts,js}");
 const state = vi.hoisted(() => ({
+  appId: "",
   receive: vi.fn(),
   mutation: vi.fn(),
   triage: vi.fn(),
@@ -14,6 +15,7 @@ const state = vi.hoisted(() => ({
 const key = "01234567890123456789012345678901";
 vi.mock("../lib/integration-config", () => ({
   emailConfig: async () => ({
+    ...(state.appId ? { appId: state.appId } : {}),
     apiKey: "re_test",
     from: "support@example.com",
     notificationImport: true,
@@ -90,6 +92,7 @@ function request(
 }
 beforeEach(() => {
   vi.clearAllMocks();
+  state.appId = "";
   state.receive.mockResolvedValue({
     data: {
       ...routing(),
@@ -328,4 +331,50 @@ describe("Inbound email verification", () => {
       vi.unstubAllEnvs();
     }
   });
+});
+
+test("signed email gateway applies its saved app route and rejects inactive replay", async () => {
+  vi.stubEnv("CUE_DEMO_SECRET", "test-server-secret");
+  state.appId = "app-a";
+  const t = convexTest(schema, modules);
+  const packId = await t.run((ctx) =>
+    ctx.db.insert("appPacks", {
+      appId: "app-a",
+      name: "App A",
+      status: "active",
+      origins: [],
+      createdAt: 1,
+      updatedAt: 1,
+    }),
+  );
+  state.mutation.mockImplementation(
+    (_name: string, args: FunctionArgs<typeof convexApi.intake.receive>) =>
+      t.mutation(convexApi.intake.receive, args),
+  );
+  state.receive.mockResolvedValue({
+    data: {
+      ...routing(),
+      id: "received-1",
+      text: "Search is broken",
+      appId: "app-b",
+      providerAuthorId: "forged",
+    },
+  });
+  try {
+    expect((await POST(request())).status).toBe(200);
+    expect(await (await POST(request())).json()).toEqual({
+      ok: true,
+      imported: 0,
+    });
+    const stored = await t.run((ctx) => ctx.db.query("cases").take(10));
+    expect(stored).toHaveLength(1);
+    expect(stored[0]).toMatchObject({ appId: "app-a", channel: "email" });
+    expect(stored[0].providerAuthorId).toBeUndefined();
+    await t.run((ctx) =>
+      ctx.db.patch("appPacks", packId, { status: "suspended" }),
+    );
+    expect((await POST(request())).status).toBe(400);
+  } finally {
+    vi.unstubAllEnvs();
+  }
 });

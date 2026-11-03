@@ -45,6 +45,7 @@ export async function POST(request: Request) {
       const result = await store.mutation(api.intake.receive, {
         secret: auth,
         ...report,
+        ...(config.appId !== undefined ? { appId: config.appId } : {}),
       });
       if (!result.duplicate) {
         imported++;

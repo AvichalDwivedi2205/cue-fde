@@ -297,3 +297,62 @@ test("polling configuration cannot bypass opt-in or inject activation times", ()
       .pollStartedAt,
   ).toBe(start + 1000);
 });
+
+test("polled email uses the saved app binding after parsing and restarts on rebinding", async () => {
+  vi.stubEnv("CUE_DEMO_SECRET", "poll-test-secret");
+  const t = convexTest(schema, modules),
+    s = setup();
+  await t.run(async (ctx) => {
+    await ctx.db.insert("appPacks", {
+      appId: "app-a",
+      name: "App A",
+      status: "active",
+      origins: [],
+      createdAt: 1,
+      updatedAt: 1,
+    });
+  });
+  const bound = {
+    ...config,
+    appId: "app-a",
+    supportReceivingAddress: "support@test.resend.app",
+    supportPollStartedAt: start,
+  };
+  const mail = {
+    ...x,
+    from: "alice@example.test",
+    to: [bound.supportReceivingAddress],
+    text: "Search is broken",
+    appId: "app-b",
+    providerAuthorId: "forged",
+    message_id: "<support@example.test>",
+  };
+  s.list.mockResolvedValue({ data: [mail], has_more: false });
+  s.get.mockResolvedValue(mail);
+  s.receive.mockImplementation((report) =>
+    t.mutation(api.intake.receive, { ...report, secret: "poll-test-secret" }),
+  );
+  const poller = createNotificationPoller({ ...s, config: async () => bound });
+  await poller.poll();
+  const stored = await t.run((ctx) => ctx.db.query("cases").take(10));
+  expect(stored).toHaveLength(1);
+  expect(stored[0]).toMatchObject({ appId: "app-a", channel: "email" });
+  expect(stored[0].providerAuthorId).toBeUndefined();
+  await poller.poll();
+  expect(s.receive).toHaveBeenCalledTimes(1);
+  expect(emailInput.parse(bound).appId).toBe("app-a");
+  const rebound = emailConfigForSave(
+    { ...bound, appId: "app-b" },
+    bound,
+    start + 2000,
+  );
+  expect(rebound).toMatchObject({
+    pollStartedAt: start + 2000,
+    supportPollStartedAt: start + 2000,
+  });
+  await createNotificationPoller({ ...s, config: async () => rebound }).poll();
+  expect(s.get).toHaveBeenCalledTimes(1);
+  expect(
+    JSON.parse(await fs.readFile(s.checkpointFile, "utf8")).processed,
+  ).toEqual([]);
+});

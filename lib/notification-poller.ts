@@ -80,6 +80,7 @@ export function createNotificationPoller(deps: {
       const fingerprint = createHash("sha256")
         .update(
           JSON.stringify([
+            config.appId ?? null,
             config.apiKey,
             config.receivingAddress?.toLowerCase() ?? null,
             config.notificationImport ?? false,
@@ -124,7 +125,16 @@ export function createNotificationPoller(deps: {
           for (const report of result.reports) {
             if (intakeMode === "notification" && report.channel === "email")
               throw new Error("Unexpected email channel");
-            if (!(await deps.receive(report)).duplicate) {
+            if (
+              !(
+                await deps.receive({
+                  ...report,
+                  ...(config.appId !== undefined
+                    ? { appId: config.appId }
+                    : {}),
+                })
+              ).duplicate
+            ) {
               checkpoint.imported++;
               await save(checkpoint);
             }

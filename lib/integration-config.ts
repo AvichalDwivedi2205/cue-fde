@@ -43,6 +43,7 @@ export const slackInput = z.object({
 });
 export const emailInput = z
   .object({
+    appId: z.string().trim().min(1).max(200).optional(),
     apiKey: z.string().regex(/^re_[A-Za-z0-9_]+$/),
     from: z.email().max(200),
     webhookSecret: z
@@ -94,6 +95,7 @@ export type EmailConfig = z.infer<typeof emailInput> & {
   supportPollStartedAt?: number;
 };
 export const xInput = z.object({
+  appId: z.string().trim().min(1).max(200).optional(),
   bearerToken: z
     .string()
     .min(20)
@@ -110,6 +112,7 @@ export function xConfigForSave(
   now = Date.now(),
 ): XConfig {
   const sameBrand =
+    old?.appId === input.appId &&
     old?.userId === input.userId &&
     old.username.toLowerCase() === input.username.toLowerCase();
   return {
@@ -129,6 +132,7 @@ export function emailConfigForSave(
       ? {
           pollStartedAt:
             old?.pollReceiving &&
+            old.appId === input.appId &&
             old.apiKey === input.apiKey &&
             old.receivingAddress?.toLowerCase() ===
               input.receivingAddress?.toLowerCase()
@@ -138,6 +142,7 @@ export function emailConfigForSave(
             ? {
                 supportPollStartedAt:
                   old?.pollReceiving &&
+                  old.appId === input.appId &&
                   old.apiKey === input.apiKey &&
                   old.supportReceivingAddress?.toLowerCase() ===
                     input.supportReceivingAddress.toLowerCase()

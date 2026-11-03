@@ -67,6 +67,7 @@ export function createXPoller(deps: {
     const fingerprint = createHash("sha256")
       .update(
         JSON.stringify([
+          config.appId ?? null,
           config.bearerToken,
           config.userId,
           config.username.toLowerCase(),

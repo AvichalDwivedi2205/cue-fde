@@ -162,6 +162,7 @@ export default defineSchema({
     channel: v.string(),
     appId: v.optional(v.string()),
     externalId: v.optional(v.string()),
+    providerAuthorId: v.optional(v.string()),
     body: v.string(),
     status: v.string(),
     priority: v.string(),
