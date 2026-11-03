@@ -644,3 +644,13 @@ for (const version of ["v1", "v2-heldout", "v3-all-noise"]) {
     expect(result.posts.every((post) => /^Author [0-9]+$/.test(post.author))).toBe(true);
   });
 }
+
+test("generated prose preserves slash alternatives and aliases referenced posts", async () => {
+  const output = structuredClone(goodOutput);
+  output.dispositions[1].reason = "Same need as p01.";
+  output.clusters[0].proposal.specification.acceptanceCriteria[0] = "Restore board/workspace/card with its contents intact";
+  const { t, batchId } = await seedAnalyzedBatch(posts, output);
+  const result = await t.query(api.demoEvidence.signalEvidence, { secret, batchId });
+  expect(result.posts[1].disposition.reason).toBe("Same need as post-1.");
+  expect(result.clusters[0].proposal.specification.acceptanceCriteria[0]).toBe("Restore board/workspace/card with its contents intact");
+});
