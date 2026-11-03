@@ -25,12 +25,13 @@ function feature(options: {
   jobs?: { runId: string; status: string; worker?: string }[];
   runs?: Record<string, unknown>[];
   features?: Record<string, unknown>;
+  generation?: Record<string, unknown> | null;
 } ) {
   const context = vm.createContext({
     S: { integrations: { engineeringApps: ["app-a"], codingApps: ["app-a"], permissions: { investigate: true }, slackSend: false } },
     liveSnapshot: { runs: options.runs || [], events: [], jobs: options.jobs || [] },
     loadedFeatureDetail: () => options.stub,
-    liveIssue: () => ({ appId: "app-a", status: "spec_ready", specGeneration: undefined }),
+    liveIssue: () => ({ appId: "app-a", status: "spec_ready", spec: "spec text", specGeneration: options.generation ?? undefined }),
     providerName: (p: string) => (p === "meta" ? "Meta" : p),
     approvalData: () => "",
     esc: undefined as unknown as (s: string) => string,
@@ -45,9 +46,35 @@ function feature(options: {
   return html;
 }
 
+// The specification section uses the real design/cue.html heading markup, so
+// a changed template in the base design breaks these tests instead of silently
+// dropping the receipt line.
 const baseStub =
   '<div class="fr-sec"><h4>Requesting customers · 0</h4></div>' +
-  '<div class="fr-sec"><h4>Suggested specification</h4><div class="spec">spec text</div></div>';
+  '<div class="fr-sec"><h4>Suggested specification <span style="text-transform:none;letter-spacing:0">· drafted by Cue</span></h4><div class="spec">spec text</div></div>';
+
+const generation = {
+  provider: "meta",
+  requestedModel: "muse-spark-1.3",
+  model: "muse-spark-1.3",
+  inputTokens: 900,
+  outputTokens: 420,
+};
+
+test("a generated specification renders its served-model receipt", () => {
+  const html = feature({ stub: baseStub, generation });
+  expect(html).toContain(
+    "Model receipt · requested muse-spark-1.3 · served muse-spark-1.3 via Meta · 900+420 tokens",
+  );
+});
+
+test("an operator-saved specification says there is no model receipt for it", () => {
+  const html = feature({ stub: baseStub, generation: null });
+  expect(html).toContain(
+    "Specification text saved by the operator · no model receipt for the current text",
+  );
+  expect(html).not.toContain("Model receipt · requested");
+});
 
 test("a promoted signal feature shows batch evidence instead of an empty requester list", () => {
   const html = feature({

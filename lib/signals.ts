@@ -147,7 +147,9 @@ export async function analyzeSignalPosts(args: {
         error.stage,
         error.stage === "schema"
           ? "Model output did not match the analysis schema"
-          : "Model output was not valid JSON",
+          : error.stage === "json"
+            ? "Model output was not valid JSON"
+            : "Model completion was rejected before output could be parsed",
       );
     throw error;
   }

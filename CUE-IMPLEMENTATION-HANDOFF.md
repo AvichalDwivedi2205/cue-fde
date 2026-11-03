@@ -18,7 +18,8 @@ Status: **Units B–H complete and committed. All local checks are green (number
 | `308daa4` | G | Batch-evidence projection, honest queued/claimed job states, batch-based spec regeneration |
 | `e71abee` | B/F | Unused import cleanup |
 | `e7c84d0` | G | syncCue keeps promoted signal features visible (regression fix + test; also carries the Unit H events index line) |
-| (HEAD) | H | `demoEvidence.ts` + export CLI + sanitizer (run/signal evidence exports) |
+| `e71abee` / `93ff20a` | B/F/docs | Unused import cleanup; handoff doc; README Quiet signals + fresh checkpoint |
+| (HEAD) | H+review | Evidence export CLI + sanitizer; fresh-eyes review fixes (expired-claim reconciliation, receipt replace target, picker sync, rejection receipts) |
 
 - All commits authored as `AvichalDwivedi2205 <150160561+AvichalDwivedi2205@users.noreply.github.com>`.
 - The working tree at handback contains only `CUE-IMPLEMENTATION-HANDOFF.md` (this file) if uncommitted; product code is fully committed.
@@ -33,8 +34,8 @@ Status: **Units B–H complete and committed. All local checks are green (number
 ### Units C–E — Quiet signals core
 - One bounded `signalBatches` aggregate per batch (Convex): immutable posts, provenance (`synthetic-fixture` with fixture+version, or `operator-capture` with a note), app-scoped `requestKey`, canonical input fingerprint (order-independent, pure FNV-1a over a canonical form — recomputable in the Convex runtime without Node crypto), append-only attempt ledger, one analysis revision.
 - Integrity: the same app/key with identical content reopens the same batch; a reused key with different content is a conflict. Inputs are frozen at import. The browser supplies intent (`expectedFingerprint`, `expectedAnalysisRevision`); the server re-derives everything from saved records.
-- Exactly one analysis attempt owns the batch (`ready → analyzing → analyzed|failed`). The server mints an attempt token; completion must present it, match the fingerprint, and not be expired. Late results cannot replace a newer attempt. `analyzed` is terminal; one explicit retry is enforced server-side; expired claims must be failed explicitly before retrying.
-- Analysis runs **outside** database mutations (`app/api/signals` claims → calls `lib/signals.ts` → completes/fails with the token). Model output is validated against saved posts before it can be stored: every input ID dispositioned exactly once, evidence needs a cluster + exact-substring quote, excluded posts can't carry quotes or clusters, invented IDs/fabricated quotes/cross-references are rejected, counts and `repeatedEvidence` (≥2 distinct authors) are derived, not trusted. A completed-but-invalid answer commits as a **failed attempt** with the rejection reason and preserves the paid receipt.
+- Exactly one analysis attempt owns the batch (`ready → analyzing → analyzed|failed`). The server mints an attempt token; completion must present it, match the fingerprint, and not be expired. Late results cannot replace a newer attempt. `analyzed` is terminal; one explicit retry is enforced server-side. An expired claim is reconciled automatically by the next claim: its ledger entry is marked failed (the provider call may have been paid) and either the one explicit retry is minted in the same transaction, or — when the retry budget is exhausted — the batch settles into an honest `failed` state. An interrupted analysis can never wedge the batch.
+- Analysis runs **outside** database mutations (`app/api/signals` claims → calls `lib/signals.ts` → completes/fails with the token). Model output is validated against saved posts before it can be stored: every input ID dispositioned exactly once, evidence needs a cluster + exact-substring quote, excluded posts can't carry quotes or clusters, invented IDs/fabricated quotes/cross-references are rejected, counts and `repeatedEvidence` (≥2 distinct authors) are derived, not trusted. A completed-but-invalid answer commits as a **failed attempt** with the rejection reason and preserves the paid receipt — at both the service layer (SignalsGenerationError carries the receipt) and the Convex-side defense-in-depth check.
 - The single model call uses `configuredRoute({ purpose: "triage" })` (so `CUE_AGENT_MODEL` governs it, same as specification generation), fails loudly when the route is unconfigured, never falls back to another provider, and treats post text as untrusted evidence (the prompt forbids following in-post instructions; the payload never names a target feature).
 
 ### Unit F — operator surface
@@ -55,7 +56,7 @@ Status: **Units B–H complete and committed. All local checks are green (number
 | --- | --- |
 | `npm run ui:build` | PASS (Tailwind + landing bundle build cleanly) |
 | `npm run typecheck` | PASS (0 errors) |
-| `npm run test:backend` | **855 passed / 0 failed** across 108 files (prior public checkpoint: 785 — new tests account for the difference; no old test was weakened or deleted) |
+| `npm run test:backend` | **857 passed / 0 failed** across 108 files (prior public checkpoint: 785 — new tests account for the difference; no old test was weakened or deleted) |
 | `npm run lint` | 0 errors; 6 pre-existing warnings in untouched files |
 | `npm run build` | PASS (Next.js production build) |
 
@@ -124,7 +125,10 @@ npm run dev            # web + worker only (existing hosted Convex)
 
 ## 10. Known defects and omitted checks
 
-- The analysis attempt TTL (10 minutes) is enforced at completion time only; there is no background reconciler that flips an expired `analyzing` batch to `failed` automatically — the operator must fail it explicitly (by design; no unknown-outcome replay).
+- The analysis attempt TTL (10 minutes) is enforced at completion time, and an expired claim is reconciled by the next claim (see §2); there is no background reconciler, so a batch stays `analyzing` on screen until someone retries or reopens it — by design (no unknown-outcome replay).
+- `getSignalBatch` returns the full batch document including the current attempt token. The token is useless without the backend secret, but a future projection should strip it.
+- `runEvents` returns raw event documents (event `detail` for non-model-call events can contain PR URLs or commit SHAs). It is currently consumed only by tests; narrow or sanitize it before any external consumer exists. The export CLI uses `runEvidence`, which is allowlist-projected, and redacts paths/URLs from check summaries.
+- Snapshot projections (`jobs`, `signals`) use bounded unindexed scans (`take(100)` / `take(20)`); fine at demo scale, indexed queries exist if it grows.
 - `getSignalBatch` is workspace-scoped (single-company boundary, like the existing snapshot); it does not take an appId argument. If multi-tenant onboarding ever lands, this needs app-scoping.
 - Timeout-specific model failures are exercised via the completion-stage error path, not a literal timed-out socket test.
 - The signals page assumes the selected app scope (`S.scopeApp`); with no app selected it falls back to the workspace app — acceptable for the single-company pilot.

@@ -91,14 +91,22 @@ export const createSignalBatch = mutation({
 });
 
 // Claims the single analysis slot. The model call itself happens outside the
-// database in lib/signals; completion must present the minted token.
+// database in lib/signals; completion must present the minted token. A claim
+// whose TTL has expired is reconciled here: its ledger entry is marked failed
+// (the provider call may have been paid) and either a fresh attempt — the one
+// explicit retry — is minted in the same transaction, or, when the retry
+// budget is exhausted, the batch settles into an honest failed state. An
+// interrupted run can therefore never wedge the batch.
 export const analyzeSignalBatch = mutation({
   args: {
     secret: v.string(),
     batchId: v.id("signalBatches"),
     expectedFingerprint: v.string(),
   },
-  returns: v.object({ token: v.string(), attemptNumber: v.number() }),
+  returns: v.union(
+    v.object({ token: v.string(), attemptNumber: v.number() }),
+    v.object({ outcome: v.literal("rejected"), error: v.string() }),
+  ),
   handler: async (ctx, args) => {
     authorize(args.secret);
     const batch = await requireBatch(ctx, args.batchId);
@@ -110,14 +118,52 @@ export const analyzeSignalBatch = mutation({
       throw new ConvexError(
         "This batch is already analyzed. Import a new batch for another analysis.",
       );
-    if (batch.state === "analyzing")
-      throw new ConvexError("An analysis attempt is already running");
-    if (batch.attempts.length >= MAX_ATTEMPTS)
-      throw new ConvexError(
-        "The one explicit retry has been used for this batch",
+    let ledger = batch.attempts;
+    if (batch.state === "analyzing") {
+      if (!batch.attempt || batch.attempt.expiresAt >= stamp())
+        throw new ConvexError("An analysis attempt is already running");
+      const reapedAt = stamp();
+      const expired = batch.attempt.number;
+      ledger = batch.attempts.map((a) =>
+        a.number === expired
+          ? {
+              ...a,
+              status: "failed" as const,
+              finishedAt: reapedAt,
+              error: "Analysis claim expired without a result",
+            }
+          : a,
       );
+      if (ledger.length >= MAX_ATTEMPTS) {
+        // Reconcile to an honest failed state and report the refusal as a
+        // committed result — throwing here would roll the reconciliation back.
+        await ctx.db.patch("signalBatches", batch._id, {
+          state: "failed",
+          attempt: undefined,
+          attempts: ledger,
+          updatedAt: reapedAt,
+        });
+        return {
+          outcome: "rejected" as const,
+          error:
+            "The analysis claim expired and the one explicit retry has been used",
+        };
+      }
+      await ctx.db.patch("signalBatches", batch._id, {
+        attempts: ledger,
+        updatedAt: reapedAt,
+      });
+    } else if (
+      batch.state === "failed" &&
+      batch.attempts.length >= MAX_ATTEMPTS
+    ) {
+      return {
+        outcome: "rejected" as const,
+        error: "The one explicit retry has been used for this batch",
+      };
+    }
     const token = mintToken();
-    const number = batch.attempts.length + 1;
+    const number = ledger.length + 1;
     const now = stamp();
     await ctx.db.patch("signalBatches", batch._id, {
       state: "analyzing",
@@ -128,7 +174,7 @@ export const analyzeSignalBatch = mutation({
         expiresAt: now + ATTEMPT_TTL_MS,
       },
       attempts: [
-        ...batch.attempts,
+        ...ledger,
         { number, status: "running" as const, startedAt: now },
       ],
       updatedAt: now,
@@ -184,6 +230,8 @@ export const completeSignalAttempt = mutation({
     try {
       validated = validateSignalsAnalysis(batch.posts, args.output);
     } catch (error) {
+      // A completed-but-invalid model answer is a failed attempt, not output.
+      // The rejection commits with the paid receipt preserved.
       const message = `Model output rejected: ${error instanceof Error ? error.message : "invalid"}`;
       const now = stamp();
       const number = batch.attempt.number;
@@ -197,6 +245,7 @@ export const completeSignalAttempt = mutation({
                 status: "failed" as const,
                 finishedAt: now,
                 error: message.slice(0, 900),
+                ...(args.receipt ? { receipt: args.receipt } : {}),
               }
             : a,
         ),
@@ -348,7 +397,7 @@ export const promoteSignalProposal = mutation({
     await ctx.db.insert("events", {
       issueId,
       title: "Build handoff created from Quiet signals",
-      detail: `${batch.creator} promoted a proposal inferred from ${cluster.sources.length} ${batch.provenance.kind === "synthetic-fixture" ? "synthetic" : "operator-supplied"} posts (${cluster.distinctAuthors} ${cluster.distinctAuthors === 1 ? "author" : "authors"}). The handoff needs Product approval before any implementation.`,
+      detail: `${args.actor.slice(0, 100)} promoted a proposal inferred from ${cluster.sources.length} ${batch.provenance.kind === "synthetic-fixture" ? "synthetic" : "operator-supplied"} posts (${cluster.distinctAuthors} ${cluster.distinctAuthors === 1 ? "author" : "authors"}). The handoff needs Product approval before any implementation.`,
       kind: "intake",
       createdAt: now,
     });

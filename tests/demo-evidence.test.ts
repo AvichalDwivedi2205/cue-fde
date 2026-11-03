@@ -206,7 +206,7 @@ const seedAnalyzedBatch = async () => {
     posts,
     actor: "Avi Dwivedi",
   });
-  const { token } = await t.mutation(api.signals.analyzeSignalBatch, {
+  const claim = await t.mutation(api.signals.analyzeSignalBatch, {
     secret,
     batchId: batchId as never,
     expectedFingerprint: (
@@ -216,6 +216,9 @@ const seedAnalyzedBatch = async () => {
       })
     )!.inputFingerprint,
   });
+  if (!("token" in claim) || typeof claim.token !== "string")
+    throw new Error("Claim unexpectedly rejected");
+  const token: string = claim.token;
   await t.mutation(api.signals.completeSignalAttempt, {
     secret,
     batchId: batchId as never,

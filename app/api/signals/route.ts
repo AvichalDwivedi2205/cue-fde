@@ -113,12 +113,16 @@ export async function POST(request: NextRequest) {
           batchId: batchId as Id<"signalBatches">,
           expectedFingerprint,
         });
+        if ("outcome" in claim && claim.outcome === "rejected")
+          return NextResponse.json({ state: "failed", error: claim.error });
         // The model call runs outside database mutations; the claim token
-        // proves the completion belongs to this attempt.
-        const packs = await listPacks();
-        const appName =
-          packs.find((p) => p.appId === batch.appId)?.name || batch.appId;
+        // proves the completion belongs to this attempt. Everything after the
+        // claim that can fail must stay inside this try so a failure is
+        // always recorded instead of wedging the claim.
         try {
+          const packs = await listPacks();
+          const appName =
+            packs.find((p) => p.appId === batch.appId)?.name || batch.appId;
           const result = await analyzeSignalPosts({
             appName,
             provenance: signalsProvenanceSchema.parse(batch.provenance),

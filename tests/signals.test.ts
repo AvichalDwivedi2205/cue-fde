@@ -109,6 +109,12 @@ const claim = async (t: TestConvex, batchId: string) =>
     expectedFingerprint: await fingerprintOf(t, batchId),
   });
 
+const tokenOf = (result: Awaited<ReturnType<typeof claim>>) => {
+  if (!("token" in result) || typeof result.token !== "string")
+    throw new Error("Claim unexpectedly rejected");
+  return result.token;
+};
+
 const getBatch = (t: TestConvex, batchId: string) =>
   t.query(api.signals.getSignalBatch, { secret, batchId: batchId as never });
 
@@ -117,7 +123,7 @@ describe("signal batch persistence", () => {
     const { t, appId } = await setup();
     const { batchId, created } = await importBatch(t, appId);
     expect(created).toBe(true);
-    const { token } = await claim(t, batchId);
+    const token = tokenOf(await claim(t, batchId));
     await t.mutation(api.signals.completeSignalAttempt, {
       secret,
       batchId: batchId as never,
@@ -179,15 +185,15 @@ describe("signal batch persistence", () => {
     await t.mutation(api.signals.completeSignalAttempt, {
       secret,
       batchId: batchId as never,
-      token: first.token,
+      token: tokenOf(first),
       output: goodOutput,
     });
   });
 
-  test("an expired claim cannot complete and must be failed explicitly before retry", async () => {
+  test("an expired claim cannot complete, is reconciled by the next claim, and never wedges the batch", async () => {
     const { t, appId } = await setup();
     const { batchId } = await importBatch(t, appId);
-    const { token } = await claim(t, batchId);
+    const token = tokenOf(await claim(t, batchId));
     await t.run((ctx) =>
       ctx.db.patch("signalBatches", batchId as never, {
         attempt: {
@@ -198,6 +204,7 @@ describe("signal batch persistence", () => {
         },
       }),
     );
+    // Completion after expiry is refused and does not reconcile by itself.
     await expect(
       t.mutation(api.signals.completeSignalAttempt, {
         secret,
@@ -206,17 +213,44 @@ describe("signal batch persistence", () => {
         output: goodOutput,
       }),
     ).rejects.toThrow(/claim expired/);
-    await t.mutation(api.signals.failSignalAttempt, {
-      secret,
-      batchId: batchId as never,
-      token,
-      error: "Operator reconciled the expired claim",
+    // The next claim reconciles the expired attempt (which may have been
+    // paid) and mints the one explicit retry in the same transaction.
+    const second = await claim(t, batchId);
+    expect(second.attemptNumber).toBe(2);
+    const afterReap = await getBatch(t, batchId);
+    expect(afterReap!.attempts[0]).toMatchObject({
+      status: "failed",
+      error: "Analysis claim expired without a result",
     });
-    const batch = await getBatch(t, batchId);
-    expect(batch!.state).toBe("failed");
-    expect(batch!.attempt).toBeUndefined();
+    await expect(
+      t.mutation(api.signals.completeSignalAttempt, {
+        secret,
+        batchId: batchId as never,
+        token,
+        output: goodOutput,
+      }),
+    ).rejects.toThrow(/older attempt/);
+    // A second expiry with the retry budget exhausted settles the batch into
+    // an honest failed state instead of wedging it in analyzing.
+    await t.run((ctx) =>
+      ctx.db.patch("signalBatches", batchId as never, {
+        attempt: {
+          token: tokenOf(second),
+          number: 2,
+          startedAt: Date.now() - 60_000,
+          expiresAt: Date.now() - 1000,
+        },
+      }),
+    );
+    const refused = await claim(t, batchId);
+    if (!("outcome" in refused)) throw new Error("Expected a rejected result");
+    expect(refused.outcome).toBe("rejected");
+    expect(refused.error).toContain("one explicit retry");
+    const settled = await getBatch(t, batchId);
+    expect(settled!.state).toBe("failed");
+    expect(settled!.attempt).toBeUndefined();
+    expect(settled!.attempts).toHaveLength(2);
   });
-
   test("a late result cannot replace a newer attempt and analyzed is terminal", async () => {
     const { t, appId } = await setup();
     const { batchId } = await importBatch(t, appId);
@@ -224,7 +258,7 @@ describe("signal batch persistence", () => {
     await t.mutation(api.signals.failSignalAttempt, {
       secret,
       batchId: batchId as never,
-      token: first.token,
+      token: tokenOf(first),
       error: "Provider timeout",
     });
     const second = await claim(t, batchId);
@@ -233,14 +267,14 @@ describe("signal batch persistence", () => {
       t.mutation(api.signals.completeSignalAttempt, {
         secret,
         batchId: batchId as never,
-        token: first.token,
+        token: tokenOf(first),
         output: goodOutput,
       }),
     ).rejects.toThrow(/older attempt/);
     await t.mutation(api.signals.completeSignalAttempt, {
       secret,
       batchId: batchId as never,
-      token: second.token,
+      token: tokenOf(second),
       output: goodOutput,
     });
     await expect(claim(t, batchId)).rejects.toThrow(/already analyzed/);
@@ -250,7 +284,7 @@ describe("signal batch persistence", () => {
     const { t, appId } = await setup();
     const { batchId } = await importBatch(t, appId);
     for (let attempt = 0; attempt < 2; attempt++) {
-      const { token } = await claim(t, batchId);
+      const token = tokenOf(await claim(t, batchId));
       await t.mutation(api.signals.failSignalAttempt, {
         secret,
         batchId: batchId as never,
@@ -262,13 +296,16 @@ describe("signal batch persistence", () => {
     const batch = await getBatch(t, batchId);
     expect(batch!.attempts).toHaveLength(2);
     expect(batch!.attempts[0].receipt).toEqual(receipt);
-    await expect(claim(t, batchId)).rejects.toThrow(/one explicit retry/);
+    const refused = await claim(t, batchId);
+    if (!("outcome" in refused)) throw new Error("Expected a rejected result");
+    expect(refused.outcome).toBe("rejected");
+    expect(refused.error).toContain("one explicit retry");
   });
 
   test("model output that fails validation is stored as a failed attempt", async () => {
     const { t, appId } = await setup();
     const { batchId } = await importBatch(t, appId);
-    const { token } = await claim(t, batchId);
+    const token = tokenOf(await claim(t, batchId));
     const fabricated = structuredClone(goodOutput) as typeof goodOutput & {
       dispositions: { quote: string }[];
     };
@@ -286,7 +323,8 @@ describe("signal batch persistence", () => {
     expect(batch!.state).toBe("failed");
     expect(batch!.analysis).toBeUndefined();
     expect(batch!.attempts[0].error).toContain("Model output rejected");
-    expect(batch!.attempts[0].receipt).toBeUndefined();
+    // Even a Convex-side rejection preserves the paid receipt.
+    expect(batch!.attempts[0].receipt).toEqual(receipt);
   });
 
   test("an all-noise batch analyzes with zero clusters and cannot promote", async () => {
@@ -295,7 +333,7 @@ describe("signal batch persistence", () => {
       requestKey: "all-noise",
       posts: [{ id: "n1", author: "Spam", text: "buy now" }],
     });
-    const { token } = await claim(t, batchId);
+    const token = tokenOf(await claim(t, batchId));
     await t.mutation(api.signals.completeSignalAttempt, {
       secret,
       batchId: batchId as never,
@@ -326,7 +364,7 @@ describe("promotion into ordinary feature governance", () => {
   test("promotion creates one spec_ready feature with lineage and receipt, idempotently", async () => {
     const { t, appId } = await setup();
     const { batchId } = await importBatch(t, appId);
-    const { token } = await claim(t, batchId);
+    const token = tokenOf(await claim(t, batchId));
     await t.mutation(api.signals.completeSignalAttempt, {
       secret,
       batchId: batchId as never,
@@ -392,7 +430,7 @@ describe("promotion into ordinary feature governance", () => {
   test("promotion is refused against a stale analysis revision or unknown cluster", async () => {
     const { t, appId } = await setup();
     const { batchId } = await importBatch(t, appId);
-    const { token } = await claim(t, batchId);
+    const token = tokenOf(await claim(t, batchId));
     await t.mutation(api.signals.completeSignalAttempt, {
       secret,
       batchId: batchId as never,
