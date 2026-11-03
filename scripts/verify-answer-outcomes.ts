@@ -6,11 +6,11 @@ import { readFile, writeFile } from "node:fs/promises";
 import type { Id } from "../convex/_generated/dataModel";
 nextEnv.loadEnvConfig(process.cwd());
 const { synthesizeReply } = await import("../lib/google-speech");
-const { readIntegrations } = await import("../lib/integration-config");
 const { api, db, secret } = await import("../lib/server-store");
 const { shutdownObservability } = await import("../lib/observability");
 const base = process.env.CUE_VERIFY_ORIGIN || "https://cue.latchgrid.in";
-const app = (await readIntegrations()).apps.find(
+const { listPacks } = await import("../lib/app-pack");
+const app = (await listPacks()).find(
   (a) =>
     a.name === "Bloom" &&
     a.origins.includes("https://bloom-with-cue.vercel.app"),
@@ -37,10 +37,10 @@ async function call(path: string, body: object) {
   return result.data;
 }
 const token = (
-  await call("/api/widget", { action: "session", app: app.id, origin })
+  await call("/api/widget", { action: "session", app: app.appId, origin })
 ).token;
 const auth = {
-  app: app.id,
+  app: app.appId,
   origin,
   token,
   name: "Synthetic answer-outcome verification",
@@ -123,7 +123,7 @@ try {
     "Negative feedback persists after a fresh read and retry is idempotent",
   );
   const otherToken = (
-    await call("/api/widget", { action: "session", app: app.id, origin })
+    await call("/api/widget", { action: "session", app: app.appId, origin })
   ).token;
   assert.notEqual(
     (await post("/api/widget", { ...feedback, token: otherToken })).status,
@@ -144,7 +144,7 @@ try {
   const args = {
     secret: secret(),
     workspaceId: "cue-configured-workspace",
-    appId: app.id,
+    appId: app.appId,
   };
   const gaps = await db().query(api.feedbackGaps.snapshot, args);
   const linked = gaps.find((g) =>
@@ -211,7 +211,7 @@ try {
         secret: secret(),
         caseId: typedCaseId,
         expectedOwner: typed.owner,
-        expectedAppId: app.id,
+        expectedAppId: app.appId,
         expectedQuestion: "What is the photo upload limit?",
         expectedOrigin: origin,
       });

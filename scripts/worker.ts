@@ -30,13 +30,47 @@ const notifications = startNotificationListener();
 const { startXListener } = await import("../lib/x-listener");
 const x = startXListener();
 const { sendSlackRunUpdate } = await import("../lib/delivery");
-const { implementFeature } = await import("../lib/feature-runner");
+const { implementFeature, implementFix } = await import(
+  "../lib/feature-runner"
+);
+const { runExecutionMode } = await import("../lib/coding-policy");
 const {
   ensureRehearsal,
   readRehearsalConfig,
   sameRehearsal,
   shutdownRehearsals,
 } = await import("../lib/rehearsal-runtime");
+const { getMetaConnection, META_WONDER_MODEL } = await import("../lib/meta");
+const { localCodingReadiness } = await import("../lib/local-coding-runtime");
+let runtime = { ready: false, detail: "Local Docker runtime has not been checked" };
+let checkingRuntime = false;
+async function refreshRuntime() {
+  if (checkingRuntime) return;
+  checkingRuntime = true;
+  try {
+    runtime = await localCodingReadiness();
+  } catch {
+    runtime = { ready: false, detail: "Local Docker runtime check failed" };
+  } finally {
+    checkingRuntime = false;
+  }
+}
+await refreshRuntime();
+const codingStatus = () => {
+  let meta = false;
+  try {
+    getMetaConnection();
+    meta = true;
+  } catch {}
+  return {
+    provider: "meta",
+    model: process.env.CUE_CODING_MODEL || META_WONDER_MODEL,
+    backend: "local",
+    configured: meta && runtime.ready,
+    workerOnline: !stopping,
+    detail: meta ? runtime.detail : "Meta connection is not configured",
+  };
+};
 const control = createServer(async (req, res) => {
   if (req.headers.authorization !== `Bearer ${auth}`) {
     res.writeHead(403);
@@ -48,6 +82,7 @@ const control = createServer(async (req, res) => {
       JSON.stringify({
         ok: true,
         busy,
+        coding: codingStatus(),
         slack: slack.status(),
         notifications: notifications.status(),
         x: x.status(),
@@ -95,7 +130,10 @@ const control = createServer(async (req, res) => {
   res.writeHead(409);
   res.end("worker busy");
 });
-control.listen(4319, "127.0.0.1");
+const controlPort = process.env.PORT ? Number(process.env.PORT) : 4319;
+if (!Number.isInteger(controlPort) || controlPort < 1 || controlPort > 65535)
+  throw new Error("Invalid worker control port");
+control.listen(controlPort, process.env.PORT ? "0.0.0.0" : "127.0.0.1");
 console.log("Cue worker ready · persistent Convex jobs · Bloom :4318");
 const { checkCodex } = await import("../lib/integration-checks");
 const workerIdentity = await checkCodex(true);
@@ -114,6 +152,7 @@ async function publishStatus() {
       expectedVersion: row?.version ?? 0,
       value: JSON.stringify({
         busy,
+        coding: codingStatus(),
         slack: slack.status(),
         notifications: notifications.status(),
         x: x.status(),
@@ -132,9 +171,11 @@ async function publishStatus() {
 }
 await publishStatus();
 const statusTimer = setInterval(() => void publishStatus(), 8000);
+const runtimeTimer = setInterval(() => void refreshRuntime(), 15000);
 const stop = async () => {
   stopping = true;
   clearInterval(statusTimer);
+  clearInterval(runtimeTimer);
   currentAbort?.abort();
   control.close();
   await slack.stop();
@@ -162,7 +203,9 @@ while (!stopping) {
     const abort = new AbortController(),
       deadline = setTimeout(
         () => abort.abort(),
-        job.kind === "feature" ? 900000 : 300000,
+        job.kind === "feature" || run.deploymentMode === "pull_request"
+          ? 900000
+          : 300000,
       );
     currentAbort = abort;
     const heartbeat = setInterval(
@@ -181,9 +224,18 @@ while (!stopping) {
     );
     try {
       await sendSlackRunUpdate(run._id).catch(() => {});
-      if (job.kind === "investigate")
-        await investigate(run._id, run.issueId, abort.signal);
-      else if (job.kind === "feature")
+      if (job.kind === "investigate") {
+        // Dispatch by the run's mode (single source in coding-policy): the
+        // Bloom fixture and rehearsals keep their local runner; pull-request
+        // runs go through the shared PR pipeline for features and bugs.
+        const mode = runExecutionMode(run);
+        if (mode === "pull_request")
+          await (run.kind === "feature" ? implementFeature : implementFix)(
+            run._id,
+            abort.signal,
+          );
+        else await investigate(run._id, run.issueId, abort.signal);
+      } else if (job.kind === "feature")
         await implementFeature(run._id, abort.signal);
       else if (job.kind === "deploy") await approveAndDeploy(run._id);
       else throw new Error("Unsupported worker job kind");

@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   sameOrigin: vi.fn(),
   readIntegrations: vi.fn(),
   updateIntegrations: vi.fn(),
+  workerStatus: vi.fn(),
 }));
 vi.mock("../lib/access", () => ({
   operator: mocks.operator,
@@ -19,11 +20,14 @@ vi.mock("../lib/knowledge-answer", () => ({
     "nova-lite",
     "claude-haiku",
     "claude-sonnet-4.6",
+    "muse-spark-1.3",
   ],
 }));
+vi.mock("../lib/integration-checks", () => ({ sharedWorkerStatus: mocks.workerStatus }));
 import { GET, POST } from "../app/api/settings/route";
 beforeEach(() => {
   vi.resetAllMocks();
+  mocks.workerStatus.mockRejectedValue(new Error("Worker offline"));
   mocks.operator.mockResolvedValue({
     name: "Owner",
     email: "owner@example.com",
@@ -36,6 +40,16 @@ beforeEach(() => {
   vi.stubEnv("CUE_SUPPORT_MODEL", "gemini-2.5-flash");
   vi.stubEnv("CUE_GROWTH_MODEL", "");
   vi.stubEnv("LITELLM_API_KEY", "");
+  for (const name of [
+    "META_API_KEY",
+    "META_BASE_URL",
+    "CUE_AGENT_MODEL",
+    "CUE_CODING_MODEL",
+    "GEMINI_MODEL",
+    "GEMINI_API_KEY",
+    "GOOGLE_CLOUD_PROJECT",
+  ])
+    vi.stubEnv(name, "");
 });
 afterEach(() => vi.unstubAllEnvs());
 const request = (body: object) =>
@@ -51,9 +65,62 @@ test("settings reads show real configuration without leaking credentials", async
   expect(data.models.support).toBe("gemini-2.5-flash");
   expect(data.models.litellm).toBe(false);
   expect(data.models.growth).toBe("gemini-2.5-flash");
-  expect(data.models.coding).toBe("Codex");
+  expect(data.models.coding).toBe("muse-wonder-1.0");
+  expect(data.models.codingConfigured).toBe(false);
+  expect(data.models.legacyCoding).toBe("Codex");
   expect(data.models.litellmCreditsRemaining).toBeNull();
   expect(JSON.stringify(data)).not.toContain("private-token");
+});
+test("Meta selections require the actual Meta connection and expose no key", async () => {
+  const support = { action: "model", supportModel: "muse-spark-1.3" };
+  const growth = { action: "growth-model", growthModel: "muse-spark-1.3" };
+  vi.stubEnv("LITELLM_API_KEY", "unrelated-proxy-key");
+  expect((await POST(request(support))).status).toBe(400);
+  expect((await POST(request(growth))).status).toBe(400);
+  expect(mocks.updateIntegrations).not.toHaveBeenCalled();
+  vi.stubEnv("META_API_KEY", "private-meta-test-key");
+  vi.stubEnv("CUE_AGENT_MODEL", "muse-spark-1.3");
+  expect((await POST(request(support))).status).toBe(200);
+  expect((await POST(request(growth))).status).toBe(200);
+  const data = await (
+    await GET(new Request("https://cue.test/api/settings"))
+  ).json();
+  expect(data.models).toMatchObject({
+    meta: true,
+    qualification: "muse-spark-1.3",
+  });
+  expect(JSON.stringify(data)).not.toContain("private-meta-test-key");
+});
+test("coding settings use the verified local worker's model and runtime status", async () => {
+  mocks.workerStatus.mockResolvedValue({
+    coding: {
+      provider: "meta",
+      model: "muse-spark-1.3",
+      backend: "local",
+      configured: true,
+      workerOnline: true,
+      detail: "Local Docker runtime ready",
+    },
+  });
+  const data = await (await GET(new Request("https://cue.test/api/settings"))).json();
+  expect(data.models).toMatchObject({
+    coding: "muse-spark-1.3",
+    codingConfigured: true,
+    codingBackend: "local",
+    codingWorkerOnline: true,
+    codingDetail: "Local Docker runtime ready",
+  });
+});
+test.each([
+  { backend: "modal", configured: true, workerOnline: true },
+  { backend: "local", configured: true, workerOnline: false },
+  { backend: "local", configured: false, workerOnline: true },
+])("coding settings do not claim readiness for an unavailable worker: %j", async (runtime) => {
+  mocks.workerStatus.mockResolvedValue({
+    coding: { provider: "meta", model: "muse-wonder-1.0", ...runtime },
+  });
+  const data = await (await GET(new Request("https://cue.test/api/settings"))).json();
+  expect(data.models.codingConfigured).toBe(false);
 });
 test("Growth model is independently configurable and requires its actual provider", async () => {
   const body = { action: "growth-model", growthModel: "claude-sonnet-4.6" };

@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 /// <reference types="node" />
 import { convexTest } from "convex-test";
+import { makeFunctionReference } from "convex/server";
 import workpool from "@convex-dev/workpool/test";
 import { beforeEach, afterEach, expect, test, vi } from "vitest";
 import { createHash } from "node:crypto";
@@ -319,11 +320,16 @@ test("new generation receipts cannot replace the metadata of an already saved ex
       ?.generation,
   ).toEqual(generation);
   await expect(
-    s.t.mutation(api.growth.saveDraft, {
-      ...args,
-      generation: { ...generation, provider: "google" },
-    }),
-  ).rejects.toThrow("Invalid draft generation receipt");
+    s.t.mutation(
+      makeFunctionReference<"mutation", Record<string, unknown>>(
+        "growth:saveDraft",
+      ),
+      {
+        ...args,
+        generation: { ...generation, provider: "google" },
+      },
+    ),
+  ).rejects.toThrow();
   await expect(
     s.t.mutation(api.growth.saveDraft, {
       ...args,

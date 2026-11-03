@@ -4,7 +4,7 @@ Cue is the company-facing platform. Bloom is a consumer photo-journal app that u
 
 ## Current implementation
 
-Cue is hosted at `cue.latchgrid.in`. The standalone Bloom consumer app is hosted on Vercel at `bloom-with-cue.vercel.app`, with its own Convex project `bloom` and production deployment `accurate-pony-820`. Cue uses project `cue` and production deployment `tangible-kiwi-777`.
+The configuration describes separate Cue and Bloom applications. Verify hosting and backend configuration before making a deployment claim.
 
 Bloom owns journal entries and photo storage. It connects to Cue's public widget and voice gateways as a registered application, with an allowed origin and visitor-scoped support sessions. Cue owns cases, investigations and provider connections. Bloom receives none of Cue's private provider credentials. Its anonymous journal cookie is host-only and signed with a different server secret.
 
@@ -17,7 +17,7 @@ The inspected implementation is a configured single-company workspace:
 - `convex/schema.ts` has app-bound cases and issues, but no company/workspace membership table or workspace ID on support and engineering records.
 - `convex/cue.ts` authenticates the trusted server through its secret. Its operator snapshot returns this workspace's records; it does not implement company-scoped authorization.
 - The registered-app widget has separate visitor sessions, allowed-origin checks and app-specific grouping. These protect customer conversations within the configured workspace; they do not provide company isolation.
-- Coding work uses the owner's local Codex companion and trusted repository policies. Generic bug execution beyond the scoped Bloom upload fixture is not implemented.
+- Coding work uses the owner's local Codex companion and trusted repository policies. Repository policies and application packs define the supported coding scope; inspect the active configuration before running a job.
 
 Consequently, arbitrary company signup and independent connection management are not ready. Opening registration alone would not create a safe multi-company platform.
 
@@ -50,7 +50,7 @@ Migrate existing records into the current owner's workspace through a widen/back
 
 **Second: connection ownership.** Replace the singleton integration settings with encrypted per-workspace connections. Bind Slack team IDs, X brand IDs, email receiving routes and GitHub installations to the owning workspace. Webhook dispatch resolves the workspace from verified provider identity, not untrusted text or user-selected routing. Namespace cursors, leases, delivery receipts and deduplication by connection. Bound polling and retry budgets per workspace.
 
-**Third: onboarding.** Add create/join workspace, invite acceptance, application registration and connection flows. Bloom's separate host and journal backend are deployed; company onboarding and isolation remain unimplemented. Keep all operator redirects on the configured Cue origin.
+**Third: onboarding.** Add create/join workspace, invite acceptance, application registration and connection flows. Verify separate hosting and the journal backend before claiming deployment. Company onboarding and isolation require separate implementation and checks. Keep all operator redirects on the configured Cue origin.
 
 **Fourth: coding-provider execution.** Keep the local companion as an explicit option. Add scoped installation and worker credentials for companies; do not reuse the founder's Codex login. Jobs must carry workspace, application, repository policy and exact approved specification/commit. Validate these again before execution and release confirmation.
 

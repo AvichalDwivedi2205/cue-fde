@@ -1,0 +1,1 @@
+Superseded draft. Earlier claims that Cue was submitted or published for neatHack are withdrawn. This file is not a submission or publication record. See docs/repository-and-build-provenance.md.

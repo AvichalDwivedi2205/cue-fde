@@ -1,27 +1,35 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import {
-  init,
-  trace,
-  flush,
-  shutdown,
-  wrapGoogleGenAI,
-  wrapVertexAI,
-  type TraceSpanKind,
-} from "neatlogs";
+import { randomBytes } from "node:crypto";
 
-const active = new AsyncLocalStorage<{
-  failure?: string;
+type TraceKind = "WORKFLOW" | "AGENT" | "TOOL";
+export type LocalTrace = {
   traceId: string;
-  annotate: (attributes: Record<string, string | number>) => void;
+  spanId: string;
+  parentSpanId?: string;
+  name: string;
+  kind: TraceKind;
+  startedAt: number;
+  durationMs: number;
+  attributes: Record<string, string | number>;
+  status:
+    | { kind: "running" }
+    | { kind: "completed" }
+    | { kind: "failed"; message: string };
+  input?: unknown;
+  output?: unknown;
+};
+const active = new AsyncLocalStorage<{
+  record: LocalTrace;
+  failure?: string;
 }>();
-let initialization: Promise<boolean> | undefined;
-let tracingEnabled = false;
+const localRecords: LocalTrace[] = [];
+const maxRecords = 128;
 
 // Mask at the final export boundary, including JSON embedded in span attributes.
 // Keep the numeric usage fields intact so cost and latency remain inspectable.
 export function redactTelemetry(value: unknown, key = ""): unknown {
   if (
-    /^((api|private)[_-]?key|authorization|secret|password|cookie|(access|refresh|bearer|api)[_-]?token|audioContent|inlineData|fileData|groundingDocuments|knowledgeContext)$/i.test(
+    /^((api|private)[_-]?key|authorization|secret|password|cookie|(access|refresh|bearer|api)[_-]?token|audioContent|inlineData|fileData|image_url|images|groundingDocuments|knowledgeContext)$/i.test(
       key,
     )
   )
@@ -36,6 +44,10 @@ export function redactTelemetry(value: unknown, key = ""): unknown {
       }
     }
     let text = value
+      .replace(
+        /data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+/gi,
+        "[image redacted]",
+      )
       .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[email]")
       .replace(/Bearer\s+[^\s"']+/gi, "Bearer [redacted]");
     for (const [name, secret] of Object.entries(process.env))
@@ -60,88 +72,91 @@ export function redactTelemetry(value: unknown, key = ""): unknown {
   return value;
 }
 
+// Metadata stays in this process. Detailed payload capture is an explicit local diagnostic mode.
 export async function initializeObservability() {
-  if (!process.env.NEATLOGS_API_KEY && process.env.CUE_TELEMETRY_LOCAL !== "1")
-    return false;
-  initialization ??= init({
-    workflowName: "Cue",
-    tags: ["neathack-2026", process.env.NODE_ENV || "development"],
-    pii: "redact",
-    captureLogs: false,
-    mask: (data) => redactTelemetry(data) as Record<string, unknown>,
-    ...(process.env.CUE_TELEMETRY_LOCAL === "1"
-      ? { disableExport: true, diagnosticCapture: true }
-      : {}),
-  })
-    .then(() => {
-      tracingEnabled = true;
-      return true;
-    })
-    .catch(() => {
-      console.error(
-        "Cue tracing initialization unavailable; workflow will continue",
-      );
-      return false;
-    });
-  return initialization;
+  return true;
+}
+
+export function readLocalTelemetry(): LocalTrace[] {
+  return structuredClone(localRecords);
 }
 
 export function instrumentModel<T extends object>(
   client: T,
-  vertex: boolean,
+  _vertex: boolean,
 ): T {
-  // Each provider call has one owner: the appropriate official SDK wrapper.
-  if (!tracingEnabled) return client;
-  return vertex ? wrapVertexAI(client) : wrapGoogleGenAI(client);
+  return client;
+}
+
+function capture(project: () => unknown) {
+  try {
+    return structuredClone(redactTelemetry(project()));
+  } catch {
+    return { unavailable: true };
+  }
 }
 
 export function observed<Args extends unknown[], Result>(
   name: string,
   operation: (...args: Args) => Promise<Result>,
   options: {
-    kind?: TraceSpanKind;
+    kind?: TraceKind;
     input?: (...args: Args) => unknown;
     output?: (result: Result) => unknown;
   } = {},
 ) {
   return async (...args: Args): Promise<Result> => {
-    if (!(await initializeObservability())) return operation(...args);
-    const nested = active.getStore();
-    return trace(
-      {
-        name,
-        kind: options.kind || (nested ? "AGENT" : "WORKFLOW"),
-        input: redactTelemetry(options.input ? options.input(...args) : args),
-        attributes: { "neatlogs.workflow.name": name },
-      },
-      (span) => {
-        const state = {
-          traceId: span.spanContext().traceId,
-          failure: undefined as string | undefined,
-          annotate: (attributes: Record<string, string | number>) =>
-            span.setAttributes(attributes),
-        };
-        return active.run(state, async () => {
-          const result = await operation(...args);
-          span.setStatus(
-            state.failure ? { code: 2, message: state.failure } : { code: 1 },
-          );
-          span.setAttribute(
-            "output.value",
-            JSON.stringify(
-              redactTelemetry(
-                state.failure
-                  ? { status: "failed", error: state.failure }
-                  : options.output
-                    ? options.output(result)
-                    : (result ?? { completed: true }),
-              ),
+    const parent = active.getStore();
+    const detailed = process.env.CUE_TELEMETRY_LOCAL === "1";
+    const record: LocalTrace = {
+      traceId: parent?.record.traceId || randomBytes(16).toString("hex"),
+      spanId: randomBytes(8).toString("hex"),
+      ...(parent ? { parentSpanId: parent.record.spanId } : {}),
+      name,
+      kind: options.kind || (parent ? "AGENT" : "WORKFLOW"),
+      startedAt: Date.now(),
+      durationMs: 0,
+      attributes: {},
+      status: { kind: "running" },
+      ...(detailed
+        ? {
+            input: capture(() =>
+              options.input ? options.input(...args) : args,
             ),
+          }
+        : {}),
+    };
+    localRecords.push(record);
+    if (localRecords.length > maxRecords) localRecords.shift();
+    return active.run({ record }, async () => {
+      try {
+        const result = await operation(...args);
+        const failure = active.getStore()?.failure;
+        record.status = failure
+          ? { kind: "failed", message: failure }
+          : { kind: "completed" };
+        if (detailed)
+          record.output = capture(() =>
+            failure
+              ? { status: "failed", error: failure }
+              : options.output
+                ? options.output(result)
+                : (result ?? { completed: true }),
           );
-          return result;
-        });
-      },
-    );
+        return result;
+      } catch (error) {
+        const message = String(
+          redactTelemetry(
+            error instanceof Error ? error.message : String(error),
+          ),
+        );
+        record.status = { kind: "failed", message };
+        if (detailed) record.output = { status: "failed", error: message };
+        throw error;
+      } finally {
+        record.durationMs = Date.now() - record.startedAt;
+      }
+    });
   };
 }
 
@@ -154,19 +169,25 @@ export function recordWorkflowFailure(error: unknown) {
 }
 
 export function annotateTelemetry(attributes: Record<string, string | number>) {
-  active.getStore()?.annotate(attributes);
+  const state = active.getStore();
+  if (!state) return;
+  for (const [name, value] of Object.entries(attributes)) {
+    const redacted = redactTelemetry(value, name);
+    state.record.attributes[name] =
+      typeof redacted === "string" || typeof redacted === "number"
+        ? redacted
+        : "[redacted]";
+  }
 }
 
 export function currentTraceId() {
-  return active.getStore()?.traceId;
+  return active.getStore()?.record.traceId;
 }
 
 export async function flushObservability() {
-  return initialization ? flush() : true;
+  return true;
 }
 
 export async function shutdownObservability() {
-  if (initialization) await shutdown();
-  initialization = undefined;
-  tracingEnabled = false;
+  localRecords.length = 0;
 }

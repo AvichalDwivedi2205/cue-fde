@@ -111,7 +111,7 @@ for (let offset = 0; offset < args.length; offset += 3) {
   assert(
     messages.some(
       (m) =>
-        m.role === "note" && m.body.startsWith("Gemini triage suggestion:"),
+        m.role === "note" && m.body.startsWith("AI triage suggestion:"),
     ),
   );
   assert(
@@ -122,7 +122,7 @@ for (let offset = 0; offset < args.length; offset += 3) {
   const issue = snapshot.issues.find((i) => i._id === c.issueId);
   assert.equal(issue?.kind, "feature");
   pass(
-    `${channel}: caption-search request retains classification, tags and Gemini triage without duplicate customer messages`,
+    `${channel}: caption-search request retains classification, tags and AI triage without duplicate customer messages`,
   );
   evidence.push({
     channel,

@@ -87,7 +87,7 @@ assert.equal(
 );
 assert(
   messages.some(
-    (m) => m.role === "note" && m.body.startsWith("Gemini triage suggestion:"),
+    (m) => m.role === "note" && m.body.startsWith("AI triage suggestion:"),
   ),
 );
 assert.equal(snapshot.issues.find((i) => i._id === c.issueId)?.kind, kind);

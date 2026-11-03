@@ -140,7 +140,7 @@ export function replyFacts(c: ReplyContext) {
     verificationScope: featureVerified
       ? "deployed feature acceptance checks, not this customer's outcome"
       : fixVerified
-        ? "regression tests, not this customer's photo"
+        ? "deployed regression checks, not this customer's own retry"
         : "none",
     customerSpokeAfterVerification:
       verified &&
@@ -189,6 +189,8 @@ export function fallbackReply(c: ReplyContext) {
   }
   if (facts.status === "awaiting_approval")
     return `A proposed fix${subject ? " for " + subject : ""} is awaiting engineering approval. It hasn't been deployed yet.`;
+  if (facts.status === "implemented" && facts.kind !== "feature")
+    return `A change${subject ? " for " + subject : ""} passed engineering review and is moving through the release process. There is no verified fix to share yet.`;
   if (facts.status === "investigating")
     return `We're investigating${subject ? " " + subject : " your report"}. There isn't a verified fix yet.`;
   return `Your report${subject ? " about " + subject : ""} is saved and awaits review.`;

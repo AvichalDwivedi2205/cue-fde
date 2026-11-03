@@ -401,7 +401,7 @@ export const post = mutation({
               !(await registeredRehearsal(ctx, issue))
             )
               blocker =
-                "Generic bug execution is unsupported. Use scoped investigation policy.";
+                "Generic bug fixes start from the Cue dashboard with an operator reproduction note; the app's repository binding is checked there.";
             else {
               runId =
                 a.action === "delegate"

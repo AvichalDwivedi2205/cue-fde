@@ -44,6 +44,20 @@ async function setup(approved = true) {
         : {}),
     }),
   );
+  // The pack, not the caller, decides the repository; tests bind it here.
+  await t.mutation(api.appPacks.ensure, {
+    ...auth,
+    appId: "bloom",
+    name: "Bloom",
+    origins: ["https://bloom.test"],
+    status: "active",
+    engineering: {
+      repository: policy.repository,
+      baseBranch: policy.baseBranch,
+      allowedPaths: policy.allowedPaths,
+      testCommands: policy.testCommands,
+    },
+  });
   return {
     t,
     issueId,
@@ -71,9 +85,15 @@ describe("Approved feature implementation", () => {
     await expect(
       t.mutation(api.cue.startFeature, { ...args, expectedSpec: "{}" }),
     ).rejects.toThrow("approved specification");
-    await expect(
-      t.mutation(api.cue.startFeature, { ...args, targetId: "other" }),
-    ).rejects.toThrow("connected app");
+    // The pack, not the caller, decides the repository: a spoofed targetId
+    // is ignored and the run still lands on the issue's own app.
+    const spoofed = await t.mutation(api.cue.startFeature, {
+      ...args,
+      targetId: "other",
+    });
+    const spoofedRun = await t.run((ctx) => ctx.db.get("runs", spoofed));
+    expect(spoofedRun?.targetId).toBe("bloom");
+    expect(spoofedRun?.repository).toBe(policy.repository);
   });
   test("concurrent delegation creates one run and one durable job", async () => {
     const { t, args } = await setup();
@@ -100,6 +120,7 @@ describe("Approved feature implementation", () => {
         phase: "awaiting_approval",
         commit,
         after: "checks passed",
+        reproductionStatus: "reproduced",
       },
     });
     await expect(
@@ -204,4 +225,123 @@ test("repository policies constrain paths and preserve existing validation", () 
   expect(() =>
     codingInput.parse({ ...policy, allowedPaths: ["../"] }),
   ).toThrow();
+});
+
+test("new generic runs freeze nested package policy and reject stale policy approval", async () => {
+  const { t, args } = await setup();
+  await t.mutation(api.appPacks.bindEngineering, {
+    ...auth,
+    ...policy,
+    packageDirectory: "packages/web",
+    packageManager: "bun",
+  });
+  const runId = await t.mutation(api.cue.startFeature, args);
+  const created = await t.run((ctx) => ctx.db.get("runs", runId));
+  expect(created?.provider).toBe("Meta");
+  expect(created?.codingPolicy?.packageDirectory).toBe("packages/web");
+  expect(created?.codingPolicy?.packageManager).toBe("bun");
+  const commit = "e".repeat(40);
+  await t.mutation(api.cue.updateRun, {
+    ...auth,
+    runId,
+    fields: { status: "awaiting_approval", commit },
+  });
+  await t.mutation(api.appPacks.bindEngineering, {
+    ...auth,
+    ...policy,
+    packageDirectory: "other",
+    packageManager: "npm",
+  });
+  await expect(
+    t.mutation(api.jobs.decide, {
+      ...auth,
+      runId,
+      commit,
+      actor: "Engineering",
+      approve: true,
+    }),
+  ).rejects.toThrow("policy changed");
+});
+
+test("a Meta PR worker leaves earlier fixture, deploy and Codex jobs unleased", async () => {
+  const { t, args } = await setup();
+  const earlier = await t.run(async (ctx) => {
+    const legacyIssue = await ctx.db.insert("issues", {
+      title: "Earlier fixture",
+      description: "Independent synthetic report",
+      kind: "bug",
+      fingerprint: "synthetic:earlier",
+      status: "investigating",
+      priority: "P3",
+      tags: [],
+      createdAt: Date.now(),
+    });
+    const fixture = await ctx.db.insert("runs", {
+      issueId: legacyIssue,
+      provider: "Codex",
+      status: "running",
+      phase: "reproducing",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+    const codex = await ctx.db.insert("runs", {
+      issueId: legacyIssue,
+      provider: "Codex",
+      deploymentMode: "pull_request",
+      kind: "bug",
+      status: "running",
+      phase: "reproducing",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+    const ids = [];
+    for (const [runId, kind] of [
+      [fixture, "investigate"],
+      [fixture, "deploy"],
+      [codex, "investigate"],
+    ] as const)
+      ids.push(
+        await ctx.db.insert("jobs", {
+          runId,
+          kind,
+          status: "queued",
+          worker: undefined,
+          leaseUntil: 0,
+          cancel: false,
+          createdAt: Date.now(),
+        }),
+      );
+    return ids;
+  });
+  const runId = await t.mutation(api.cue.startFeature, args);
+  const claimed = await t.mutation(api.jobs.claim, {
+    ...auth,
+    worker: "meta-only",
+    executionMode: "pull_request",
+    provider: "Meta",
+  });
+  expect(claimed?.runId).toBe(runId);
+  expect(claimed?.kind).toBe("feature");
+  for (const id of earlier) {
+    const job = await t.run((ctx) => ctx.db.get("jobs", id));
+    expect(job?.status).toBe("queued");
+    expect(job?.worker).toBeUndefined();
+  }
+  expect(
+    await t.mutation(api.jobs.claim, { ...auth, worker: "legacy" }),
+  ).toBeNull();
+  await t.mutation(api.jobs.finish, {
+    ...auth,
+    worker: "meta-only",
+    jobId:
+      claimed?._id ??
+      (() => {
+        throw new Error("Expected a claimed PR job");
+      })(),
+  });
+  const legacy = await t.mutation(api.jobs.claim, {
+    ...auth,
+    worker: "legacy",
+  });
+  expect(legacy?._id).toBe(earlier[0]);
 });

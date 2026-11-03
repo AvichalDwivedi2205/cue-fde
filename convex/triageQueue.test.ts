@@ -7,6 +7,16 @@ import schema from "./schema";
 import { api, internal } from "./_generated/api";
 const modules = import.meta.glob(["./**/*.{ts,js}", "!./**/*.test.ts"]);
 const auth = { secret: "background-test-secret" };
+const generation = {
+  provider: "meta",
+  model: "muse-spark-1.3",
+  requestedModel: "muse-spark-1.3",
+  inputTokens: 213,
+  outputTokens: 75,
+  durationMs: 84,
+  requestId: "synthetic-meta-request",
+  traceId: "synthetic-meta-trace",
+};
 beforeEach(() => {
   vi.useFakeTimers();
   vi.stubEnv("CUE_DEMO_SECRET", auth.secret);
@@ -91,7 +101,7 @@ test("late classification for an older message cannot overwrite a follow-up", as
     title: "Text",
     body: "Use that size when reading and writing",
   });
-  await t.mutation(api.cue.triage, { ...triage, tags: ["Stale"] });
+  await t.mutation(api.cue.triage, { ...triage, tags: ["Stale"], generation });
   expect(
     (
       await t.query(api.triageQueue.receipt, {
@@ -100,6 +110,14 @@ test("late classification for an older message cannot overwrite a follow-up", as
       })
     )?.status,
   ).toBe("superseded");
+  expect(
+    (
+      await t.query(api.triageQueue.receipt, {
+        ...auth,
+        receiptId: receipt._id,
+      })
+    )?.generation,
+  ).toBeUndefined();
   const nextId = await t.mutation(api.triageQueue.request, { ...auth, caseId });
   await t.mutation(api.cue.triage, { ...triage, receiptId: nextId! });
   expect((await t.query(api.cue.snapshot, auth)).cases[0].tags).not.toContain(
@@ -210,4 +228,105 @@ test("workpool retries a transient hosted failure then commits exactly once", as
       (m) => m.role === "note",
     ),
   ).toHaveLength(1);
+});
+
+test("a current successful receipt retains actual model evidence exactly once", async () => {
+  const { t, triage, receipt } = await setup();
+  await t.mutation(api.cue.triage, { ...triage, generation });
+  await t.mutation(api.cue.triage, {
+    ...triage,
+    generation: { ...generation, model: "different-retry-model" },
+  });
+  const row = await t.query(api.triageQueue.receipt, {
+    ...auth,
+    receiptId: receipt._id,
+  });
+  expect(row).toMatchObject({ status: "completed", generation });
+  const notes = (await t.query(api.cue.snapshot, auth)).messages.filter(
+    (m) => m.role === "note",
+  );
+  expect(notes).toHaveLength(1);
+  expect(notes[0].body).toContain("AI triage suggestion:");
+  expect(notes[0].body).toContain("Serving model: muse-spark-1.3 (meta).");
+  expect(notes[0].body).not.toContain("Gemini");
+});
+
+test("legacy triage remains valid without invented provider evidence", async () => {
+  const { t, triage, receipt } = await setup();
+  await t.mutation(api.cue.triage, triage);
+  const row = await t.query(api.triageQueue.receipt, {
+    ...auth,
+    receiptId: receipt._id,
+  });
+  expect(row?.status).toBe("completed");
+  expect(row?.generation).toBeUndefined();
+  const note = (await t.query(api.cue.snapshot, auth)).messages.find(
+    (m) => m.role === "note",
+  );
+  expect(note?.body).toMatch(/^AI triage suggestion:/);
+  expect(note?.body).not.toContain("Serving model:");
+  expect(note?.body).not.toContain("Gemini");
+});
+
+test.each(["failed", "superseded"] as const)(
+  "a %s receipt cannot gain completed model evidence",
+  async (status) => {
+    const { t, triage, receipt } = await setup();
+    await t.run((ctx) =>
+      ctx.db.patch("triageReceipts", receipt._id, { status }),
+    );
+    await t.mutation(api.cue.triage, { ...triage, generation });
+    const row = await t.query(api.triageQueue.receipt, {
+      ...auth,
+      receiptId: receipt._id,
+    });
+    expect(row?.status).toBe(status);
+    expect(row?.generation).toBeUndefined();
+    expect(
+      (await t.query(api.cue.snapshot, auth)).messages.filter(
+        (m) => m.role === "note",
+      ),
+    ).toHaveLength(0);
+  },
+);
+
+test.each([
+  { inputTokens: -1 },
+  { outputTokens: NaN },
+  { durationMs: Infinity },
+  { model: "" },
+])(
+  "invalid model evidence does not complete a queued receipt (%j)",
+  async (invalid) => {
+    const { t, triage, receipt } = await setup();
+    await expect(
+      t.mutation(api.cue.triage, {
+        ...triage,
+        generation: { ...generation, ...invalid },
+      }),
+    ).rejects.toThrow("Invalid triage generation");
+    const row = await t.query(api.triageQueue.receipt, {
+      ...auth,
+      receiptId: receipt._id,
+    });
+    expect(row?.status).toBe("queued");
+    expect(row?.generation).toBeUndefined();
+  },
+);
+
+test("classification validation failure rolls back completion and model evidence", async () => {
+  const { t, triage, receipt } = await setup();
+  await expect(
+    t.mutation(api.cue.triage, {
+      ...triage,
+      generation,
+      tags: Array.from({ length: 7 }, (_, i) => `tag-${i}`),
+    }),
+  ).rejects.toThrow("Invalid tags");
+  const row = await t.query(api.triageQueue.receipt, {
+    ...auth,
+    receiptId: receipt._id,
+  });
+  expect(row?.status).toBe("queued");
+  expect(row?.generation).toBeUndefined();
 });

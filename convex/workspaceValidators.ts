@@ -40,3 +40,17 @@ export const actor = v.object({
     v.literal("support"),
   ),
 });
+
+// Coding policy is frozen onto each run; app-pack writes use the same shape.
+export const engineeringBinding = v.object({
+  repository: v.string(),
+  baseBranch: v.string(),
+  allowedPaths: v.array(v.string()),
+  testCommands: v.array(
+    v.object({ program: v.string(), args: v.array(v.string()) }),
+  ),
+  packageDirectory: v.optional(v.string()),
+  packageManager: v.optional(
+    v.union(v.literal("npm"), v.literal("bun"), v.literal("none")),
+  ),
+});

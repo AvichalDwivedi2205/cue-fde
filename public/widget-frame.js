@@ -12,7 +12,11 @@
   let session,
     context = {},
     busy = false,
-    initializing = false;
+    initializing = false,
+    submissionError = "";
+  function setStatus(message) {
+    status.textContent = submissionError || message;
+  }
   async function call(action, extra = {}) {
     const response = await fetch("/api/widget", {
       method: "POST",
@@ -104,12 +108,13 @@
                 });
                 busy = false;
                 await read();
-                status.textContent =
+                setStatus(
                   outcome === "solved"
                     ? "Thanks. Your answer feedback is saved."
-                    : "The team can review your original question and reply here.";
+                    : "The team can review your original question and reply here.",
+                );
               } catch (e) {
-                status.textContent = e.message;
+                setStatus(e.message);
                 feedback
                   .querySelectorAll("button")
                   .forEach((b) => (b.disabled = false));
@@ -131,11 +136,13 @@
       p.textContent = "Tell us what happened. Add a screenshot if it helps.";
       messages.append(p);
     }
-    status.textContent = data.case
-      ? data.case.status === "resolved"
-        ? "Resolved · reply here if you still need help"
-        : "Your conversation is saved"
-      : "Support powered by Cue";
+    setStatus(
+      data.case
+        ? data.case.status === "resolved"
+          ? "Resolved · reply here if you still need help"
+          : "Your conversation is saved"
+        : "Support powered by Cue",
+    );
     if (nearBottom) messages.scrollTop = messages.scrollHeight;
   }
   async function init(data) {
@@ -157,7 +164,7 @@
       parent.postMessage({ type: "cue:session", token: session }, origin);
       await read();
     } catch (e) {
-      status.textContent = e.message;
+      setStatus(e.message);
     } finally {
       initializing = false;
       submit.disabled = !session;
@@ -172,6 +179,7 @@
       e.data.origin !== origin
     )
       return;
+    context = e.data;
     if (!session) void init(e.data);
   });
   document.getElementById("close").onclick = () =>
@@ -187,6 +195,8 @@
     if (busy || !session) return;
     busy = true;
     submit.disabled = true;
+    submissionError = "";
+    setStatus("Saving…");
     try {
       await call("message", {
         text: "I’d like to talk to a person.",
@@ -198,7 +208,8 @@
       await read();
       messages.scrollTop = messages.scrollHeight;
     } catch (e) {
-      status.textContent = e.message;
+      submissionError = e.message;
+      setStatus(submissionError);
     } finally {
       busy = false;
       submit.disabled = !session;
@@ -209,7 +220,8 @@
     if (busy || !session || !input.value.trim()) return;
     busy = true;
     submit.disabled = true;
-    status.textContent = "Saving…";
+    submissionError = "";
+    setStatus("Saving…");
     try {
       let attachment;
       if (file.files[0]) {
@@ -234,7 +246,8 @@
       await read();
       messages.scrollTop = messages.scrollHeight;
     } catch (err) {
-      status.textContent = err.message;
+      submissionError = err.message;
+      setStatus(submissionError);
     } finally {
       busy = false;
       submit.disabled = !session;
@@ -243,7 +256,7 @@
   setInterval(() => {
     if (!document.hidden && session)
       void read().catch((e) => {
-        status.textContent = e.message;
+        setStatus(e.message);
       });
   }, 5000);
   parent.postMessage({ type: "cue:ready" }, origin);

@@ -1,4 +1,4 @@
-import { readIntegrations } from "@/lib/integration-config";
+import { requireSessionPack, asWidgetApp } from "@/lib/app-pack";
 const escape = (v: string) =>
   v.replace(
     /[&<>"']/g,
@@ -11,11 +11,17 @@ export async function GET(request: Request) {
   const url = new URL(request.url),
     origin =
       process.env.CUE_PUBLIC_URL ||
-      `${url.protocol}//${request.headers.get("host") || url.host}`,
-    app = (await readIntegrations()).apps.find(
-      (a) => a.id === url.searchParams.get("app"),
+      `${url.protocol}//${request.headers.get("host") || url.host}`;
+  let app: ReturnType<typeof asWidgetApp>;
+  try {
+    app = asWidgetApp(await requireSessionPack(url.searchParams.get("app") || ""));
+  } catch {
+    return new Response(
+      "Add this Cue origin to the app's allowed origins to use this playground.",
+      { status: 403 },
     );
-  if (!app || !app.origins.includes(origin))
+  }
+  if (!app.origins.includes(origin))
     return new Response(
       "Add this Cue origin to the app's allowed origins to use this playground.",
       { status: 403 },

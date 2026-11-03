@@ -33,7 +33,6 @@ type Env = {
   readonly CRUSTDATA_API_KEY: string | undefined;
   readonly CUE_BACKGROUND_ORIGIN: string | undefined;
   readonly CUE_DEMO_SECRET: string | undefined;
-  readonly NEATLOGS_API_KEY: string | undefined;
 };
 
 /**

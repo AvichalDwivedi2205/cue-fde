@@ -7,9 +7,8 @@ import path from "node:path";
 import { photo } from "../demo/bloom/fixture.mjs";
 nextEnv.loadEnvConfig(process.cwd());
 const { api, db, secret } = await import("../lib/server-store");
-const { updateIntegrations, readIntegrations } = await import(
-  "../lib/integration-config"
-);
+const { updateIntegrations } = await import("../lib/integration-config");
+const { resolveAppPack } = await import("../lib/app-pack");
 const { validateRehearsal } = await import("../lib/rehearsal-policy");
 const { rehearsalDirectory, readRehearsalConfig } = await import(
   "../lib/rehearsal-runtime"
@@ -185,9 +184,7 @@ if (action === "prepare") {
     });
     const snapshot = await store.query(api.cue.snapshot, { secret: auth });
     const runs = snapshot.runs.filter((run) => run.targetId === config.appId);
-    const connected = (await readIntegrations()).apps.find(
-      (app) => app.id === config.appId,
-    );
+    const connected = await resolveAppPack(config.appId);
     const health = await fetch(config.frontendOrigin + "/health").then(
       (r) => r.json(),
       () => null,
@@ -198,7 +195,7 @@ if (action === "prepare") {
           metadata,
           registered,
           connected: connected && {
-            id: connected.id,
+            id: connected.appId,
             origins: connected.origins,
           },
           health,

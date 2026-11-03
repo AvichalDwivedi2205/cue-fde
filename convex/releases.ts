@@ -19,13 +19,15 @@ export const confirmFeature = mutation({
     const r = await ctx.db.get("runs", a.runId);
     if (
       !r ||
-      r.kind !== "feature" ||
+      (r.kind !== "feature" && r.kind !== "bug") ||
       r.deploymentMode !== "pull_request" ||
       !/^[a-f0-9]{40}$/.test(a.commit) ||
       r.commit !== a.commit ||
       !r.approval
     )
-      throw new ConvexError("Release must match an approved feature commit");
+      throw new ConvexError(
+        "Release must match an approved pull-request commit",
+      );
     if (
       !/^[a-f0-9]{40}$/.test(a.releaseCommit) ||
       a.evidence.trim().length < 80 ||
@@ -43,7 +45,13 @@ export const confirmFeature = mutation({
         "Engineering approval required before release verification",
       );
     const issue = await ctx.db.get("issues", r.issueId);
-    if (!issue?.specApprovedAt || issue.spec !== r.approvedSpec)
+    if (!issue) throw new ConvexError("Issue not found");
+    // Features additionally require the Product approval to still be current;
+    // bug runs have no specification, so approval + exact commit carry them.
+    if (
+      r.kind === "feature" &&
+      (!issue.specApprovedAt || issue.spec !== r.approvedSpec)
+    )
       throw new ConvexError(
         "Product approval changed after implementation review",
       );

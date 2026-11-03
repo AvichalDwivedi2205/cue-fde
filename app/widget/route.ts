@@ -1,14 +1,16 @@
-import { readIntegrations } from "@/lib/integration-config";
+import { requireSessionPack, asWidgetApp } from "@/lib/app-pack";
 import { widgetOriginAllowed } from "@/lib/widget-preview";
 import { designIcons } from "@/lib/ui/design-icons";
 export async function GET(request: Request) {
   const url = new URL(request.url),
     origin = url.searchParams.get("origin");
-  const app = (await readIntegrations()).apps.find(
-    (a) => a.id === url.searchParams.get("app"),
-  );
+  let app: ReturnType<typeof asWidgetApp>;
+  try {
+    app = asWidgetApp(await requireSessionPack(url.searchParams.get("app") || ""));
+  } catch {
+    return new Response("This app is not connected to Cue.", { status: 403 });
+  }
   if (
-    !app ||
     !origin ||
     !(await widgetOriginAllowed(
       request,

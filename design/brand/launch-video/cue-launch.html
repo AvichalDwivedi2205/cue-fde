@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cue launch</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500&display=block">
+<style>
+  html, body { margin: 0; background: #000; }
+  #stage { position: relative; width: 1920px; height: 1080px; overflow: hidden;
+    background: radial-gradient(1300px 950px at 50% 44%, #15201A 0%, #111513 48%, #0A0D0C 100%); }
+  .abs { position: absolute; }
+  #glow { width: 1200px; height: 1200px; left: 360px; top: -140px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(23,160,94,0.34) 0%, rgba(23,160,94,0.12) 32%, rgba(23,160,94,0) 64%); }
+  #particles { left: 0; top: 0; }
+  #intro { left: 0; width: 1920px; top: 520px; text-align: center; font: 500 24px 'JetBrains Mono', monospace;
+    color: #A7AEAB; text-transform: uppercase; }
+  #stack { left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 960px 500px; }
+  #mark { left: 845px; top: 355px; width: 230px; height: 230px; overflow: visible; transform-origin: 115px 115px; }
+  #word { left: 857px; top: 548px; width: 206px; height: 70px; overflow: visible; }
+  #word g { transform-box: fill-box; }
+  .tag { left: 0; width: 1920px; top: 660px; text-align: center; font: 400 50px/1.1 'Instrument Serif', Georgia, serif;
+    color: #C9CFCB; letter-spacing: -0.005em; }
+  .tag em { font-style: italic; color: #3DD68C; }
+  #lockup { left: 0; top: 0; width: 1920px; height: 1080px; }
+  #tile { left: 741px; top: 435px; width: 170px; height: 170px; overflow: visible; transform-origin: 85px 85px;
+    filter: drop-shadow(0 30px 50px rgba(0,0,0,0.55)) drop-shadow(0 0 40px rgba(23,160,94,0.22)); }
+  #lword { left: 947px; top: 448px; width: 232px; height: 79px; overflow: visible; }
+  #pill { left: 949px; top: 548px; padding: 9px 20px; border-radius: 999px; background: #3DD68C; color: #0A0D0C;
+    font: 600 22px/1.2 Inter, system-ui, sans-serif; white-space: nowrap; letter-spacing: -0.005em; }
+  #wl { left: 0; top: 676px; width: 1920px; text-align: center; }
+  #wl .k { font: 500 22px 'JetBrains Mono', monospace; letter-spacing: 0.28em; text-transform: uppercase; color: #C9CFCB; }
+  #wl .u { margin-top: 12px; font: 600 46px/1.1 Inter, system-ui, sans-serif; letter-spacing: -0.01em; color: #3DD68C; }
+  #fade { left: 0; top: 0; width: 1920px; height: 1080px; background: #000; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="glow" class="abs"></div>
+  <canvas id="particles" class="abs" width="1920" height="1080"></canvas>
+  <div id="intro" class="abs">Introducing</div>
+
+  <div id="stack" class="abs">
+    <svg id="word" class="abs" viewBox="0 -102 306.1 104" aria-hidden="true">
+      <g id="w0" fill="none" stroke="#FFFFFF" stroke-width="18.5"><path d="M81.89 -79.35A42.25 42.25 0 1 0 81.89 -20.65"></path></g>
+      <g id="w1" fill="none" stroke="#FFFFFF" stroke-width="18.5"><path d="M103.8 -100V-50A38.02 38.02 0 0 0 179.85 -50"></path><path d="M179.85 -100V0"></path></g>
+      <g id="w2" fill="none" stroke="#FFFFFF" stroke-width="18.5"><path d="M212.35 -50H296.85A42.25 42.25 0 1 0 288.78 -25.17"></path></g>
+    </svg>
+    <div id="tagA" class="abs tag">Customer problems in. <em>Verified fixes</em> out.</div>
+    <div id="tagB" class="abs tag">…and the <em>growth</em> that follows.</div>
+  </div>
+
+  <div id="lockup" class="abs">
+    <svg id="tile" class="abs" viewBox="0 0 100 100" aria-hidden="true">
+      <defs>
+        <linearGradient id="tileFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1A211D"></stop><stop offset="1" stop-color="#0E1210"></stop></linearGradient>
+      </defs>
+      <rect x="0.5" y="0.5" width="99" height="99" rx="22.5" fill="url(#tileFill)" stroke="rgba(255,255,255,0.10)" stroke-width="1"></rect>
+      <circle id="tilePing" cx="70.13" cy="33.57" r="7.5" fill="none" stroke="#3DD68C" stroke-width="1.2" opacity="0"></circle>
+    </svg>
+    <svg id="lword" class="abs" viewBox="0 -102 306.1 104" aria-hidden="true">
+      <g fill="none" stroke="#FFFFFF" stroke-width="18.5"><path d="M81.89 -79.35A42.25 42.25 0 1 0 81.89 -20.65"></path><path d="M103.8 -100V-50A38.02 38.02 0 0 0 179.85 -50"></path><path d="M179.85 -100V0"></path><path d="M212.35 -50H296.85A42.25 42.25 0 1 0 288.78 -25.17"></path></g>
+    </svg>
+    <div id="pill" class="abs">Your B2C FDE</div>
+    <div id="wl" class="abs"><div class="k">Join the waitlist</div><div class="u">cue.latchgrid.in</div></div>
+  </div>
+
+  <svg id="mark" class="abs" viewBox="0 0 100 100" aria-hidden="true">
+      <circle id="bigRing" cx="55.48" cy="49.95" r="48" fill="none" stroke="#3DD68C" stroke-width="0.8" opacity="0"></circle>
+      <circle id="ping" cx="79.52" cy="25.9" r="11" fill="none" stroke="#3DD68C" stroke-width="1.6" opacity="0"></circle>
+      <path id="arc" d="M52.79 16.05A34 34 0 1 0 79.52 73.99" pathLength="1" fill="none" stroke="#FFFFFF" stroke-width="20" stroke-linecap="round" stroke-dasharray="1 2" stroke-dashoffset="1" opacity="0"></path>
+      <circle id="dot" cx="79.52" cy="25.9" r="11" fill="#3DD68C" style="transform-box: fill-box; transform-origin: center;"></circle>
+    </svg>
+  <div id="fade" class="abs"></div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const eo = x => 1 - Math.pow(1 - x, 3);
+const eio = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const eback = x => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+
+// Deterministic particles.
+let seed = 7;
+const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+const parts = Array.from({ length: 90 }, () => ({ x: rnd() * 1920, y: rnd() * 1080, s: 0.8 + rnd() * 1.6, v: 5 + rnd() * 12,
+  a: 0.08 + rnd() * 0.22, p: rnd() * Math.PI * 2, f: 0.3 + rnd() * 0.6, g: rnd() < 0.18 }));
+const ctx = $('particles').getContext('2d');
+function drawParticles(t) {
+  ctx.clearRect(0, 0, 1920, 1080);
+  for (const q of parts) {
+    const y = ((q.y - q.v * t) % 1080 + 1080) % 1080;
+    const al = q.a * (0.55 + 0.45 * Math.sin(q.p + t * q.f * 2 * Math.PI));
+    ctx.fillStyle = q.g ? `rgba(61,214,140,${al * 1.4})` : `rgba(255,255,255,${al})`;
+    ctx.beginPath(); ctx.arc(q.x, y, q.s, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+window.seek = function (t) {
+  // Fade from and to black.
+  $('fade').style.opacity = (1 - eo(prog(t, 0, 0.45))) + eio(prog(t, 11.95, 12.7));
+  drawParticles(t);
+
+  // Glow: builds with the reveal, flashes on the drop, breathes.
+  const drop = t > 4.48 ? Math.exp(-(t - 4.48) * 3.2) : 0;
+  $('glow').style.opacity = clamp(0.45 + 0.3 * eo(prog(t, 2.4, 3.6)) + 0.55 * drop);
+  $('glow').style.transform = `scale(${0.88 + 0.12 * eo(prog(t, 0, 3.6)) + 0.015 * Math.sin(t * 1.7) + 0.06 * drop})`;
+
+  // INTRODUCING.
+  $('intro').style.opacity = eo(prog(t, 0.45, 1.25)) * (1 - prog(t, 2.0, 2.35));
+  $('intro').style.letterSpacing = (0.42 + 0.22 * eo(prog(t, 0.45, 2.35))) + 'em';
+
+  // Signal dot pops, pings, then the loop draws round from it.
+  const dk = prog(t, 2.45, 2.85);
+  $('dot').style.opacity = prog(t, 2.45, 2.52);
+  $('dot').style.transform = `scale(${t < 2.45 ? 0 : eback(dk)})`;
+  const pk = prog(t, 2.55, 3.35);
+  $('ping').setAttribute('r', 11 + 26 * eo(pk));
+  $('ping').setAttribute('opacity', pk > 0 && pk < 1 ? 0.75 * (1 - pk) : 0);
+  const ak = eio(prog(t, 2.8, 3.55));
+  $('arc').setAttribute('stroke-dashoffset', 1 - ak);
+  $('arc').setAttribute('opacity', ak > 0.004 ? 1 : 0);
+
+  // Drop: ring pulse and a small bump; then the mark rises for the wordmark.
+  const rk = prog(t, 4.48, 5.45);
+  $('bigRing').setAttribute('r', 50 + 48 * eo(rk));
+  $('bigRing').setAttribute('stroke-width', 0.35 + 1.1 * (1 - rk));
+  $('bigRing').setAttribute('opacity', rk > 0 && rk < 1 ? 0.85 * (1 - rk) : 0);
+  const bump = t > 4.48 ? 0.06 * Math.sin(Math.PI * prog(t, 4.48, 4.8)) : 0;
+  const rise = -78 * eio(prog(t, 4.85, 5.45));
+  // At 8.3 s the mark flies into the app tile (ring centre lands on the tile's ring centre).
+  const mm = eio(prog(t, 8.3, 8.95)), ST = 0.682 * 170 / 230;
+  const sc = (0.93 + 0.07 * eo(prog(t, 2.45, 4.4)) + bump) * (1 - mm) + ST * mm;
+  const lift = -46 * eio(prog(t, 9.95, 10.45));
+  $('mark').style.transform = `translate(${-134 * mm}px, ${rise + 128 * mm + lift}px) scale(${sc})`;
+  $('mark').style.opacity = 1 - eio(prog(t, 10.45, 11.2)) * 0;
+
+  // Wordmark, letter by letter.
+  ['w0', 'w1', 'w2'].forEach((id, i) => {
+    const k = eo(prog(t, 5.0 + i * 0.12, 5.42 + i * 0.12));
+    $(id).style.opacity = k;
+    $(id).style.transform = `translateY(${22 * (1 - k)}px)`;
+  });
+  $('word').style.transform = `translateY(${-6 * eio(prog(t, 4.85, 5.45))}px)`;
+
+  // Taglines on the beat.
+  const a = eo(prog(t, 6.2, 6.65)) * (1 - eio(prog(t, 7.45, 7.7)));
+  $('tagA').style.opacity = a;
+  $('tagA').style.transform = `translateY(${14 * (1 - eo(prog(t, 6.2, 6.75)))}px)`;
+  $('tagB').style.opacity = eo(prog(t, 7.72, 8.1));
+  $('tagB').style.transform = `translateY(${14 * (1 - eo(prog(t, 7.72, 8.25)))}px)`;
+
+  // Stack hands over to the horizontal lockup.
+  const out = eio(prog(t, 8.25, 8.65));
+  $('stack').style.opacity = 1 - out;
+  $('stack').style.transform = `scale(${1 - 0.07 * out})`;
+  const tk = prog(t, 8.6, 9.1);
+  $('tile').style.opacity = prog(t, 8.6, 8.85);
+  $('tile').style.transform = `scale(${0.84 + 0.16 * eback(tk)})`;
+  const wk = eo(prog(t, 8.75, 9.25));
+  $('lword').style.opacity = wk;
+  $('lword').style.transform = `translateX(${42 * (1 - wk)}px)`;
+  const pl = eo(prog(t, 9.4, 9.85));
+  $('pill').style.opacity = pl;
+  $('pill').style.transform = `translateY(${12 * (1 - pl)}px)`;
+  $('lockup').style.transform = `translateY(${lift}px)`;
+  const wl = eo(prog(t, 10.15, 10.65));
+  $('wl').style.opacity = wl;
+  $('wl').style.transform = `translateY(${16 * (1 - wl)}px)`;
+  const tp = prog(t, 10.55, 11.35);
+  $('tilePing').setAttribute('r', 7.5 + 17 * eo(tp));
+  $('tilePing').setAttribute('opacity', tp > 0 && tp < 1 ? 0.8 * (1 - tp) : 0);
+};
+window.seek(0);
+</script>
+</body>
+</html>

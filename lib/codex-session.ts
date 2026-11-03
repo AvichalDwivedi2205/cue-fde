@@ -1,8 +1,7 @@
 import type { Thread, ThreadEvent } from "@openai/codex-sdk";
 import { annotateTelemetry, observed } from "./observability";
 
-// The Codex SDK has no supported neatlogs provider wrapper. Capture the whole
-// streamed agent operation, and use only the SDK's reported aggregate usage.
+// Keep local evidence for the streamed agent operation using SDK-reported aggregate usage.
 export const runCodexSession = observed(
   "Cue Codex agent",
   async (

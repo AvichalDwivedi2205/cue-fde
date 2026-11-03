@@ -34,6 +34,22 @@
     name: script.dataset.name || "",
     page: location.origin + location.pathname,
   });
+  const notifyRouteChange = () => {
+    if (frame.style.display !== "block") return;
+    try {
+      frame.contentWindow?.postMessage(context(), base);
+    } catch {}
+  };
+  for (const method of ["pushState", "replaceState"]) {
+    const original = window.history[method];
+    window.history[method] = function () {
+      "use strict";
+      const result = original.apply(this, arguments);
+      notifyRouteChange();
+      return result;
+    };
+  }
+  window.addEventListener("popstate", notifyRouteChange);
   button.onclick = () => {
     const open = frame.style.display === "none";
     frame.style.display = open ? "block" : "none";

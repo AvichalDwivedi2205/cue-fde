@@ -1,0 +1,1 @@
+This directory contains reference material for a prior demo editing plan. Its dated name does not establish when the material was created or prove a submission. See docs/repository-and-build-provenance.md.

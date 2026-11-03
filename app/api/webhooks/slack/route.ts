@@ -6,6 +6,7 @@ import { sendSlackDecisionFeedback } from "@/lib/slack-feedback";
 import { triage } from "@/lib/triage";
 import { recordSlackWebhook } from "@/lib/slack-webhook-health";
 import { decideGrowthSlack } from "@/lib/growth-slack";
+import { memberDigest } from "@/lib/slack-digest";
 export const runtime = "nodejs";
 export async function POST(request: Request) {
   const raw = await request.text();
@@ -25,7 +26,22 @@ export async function POST(request: Request) {
         .get("content-type")
         ?.includes("application/x-www-form-urlencoded")
     ) {
-      const p = JSON.parse(new URLSearchParams(raw).get("payload") || "{}");
+      const form = new URLSearchParams(raw);
+      if (form.get("command") === "/cue") {
+        if (!config)
+          return Response.json({
+            response_type: "ephemeral",
+            text: "Cue's Slack connection is not configured yet.",
+          });
+        return Response.json(
+          await memberDigest(
+            config,
+            form.get("user_id") || "",
+            form.get("text")?.trim() || undefined,
+          ),
+        );
+      }
+      const p = JSON.parse(form.get("payload") || "{}");
       if (
         p.actions?.some((a: { action_id: string }) =>
           a.action_id.startsWith("cue_growth_"),

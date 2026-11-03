@@ -7,15 +7,33 @@ export const growthEventType = v.union(
   v.literal("memory_created"),
   v.literal("caption_search_match"),
 );
-export const growthGeneration = v.object({
-  provider: v.union(v.literal("google"), v.literal("litellm")),
-  model: v.union(v.literal("gemini-2.5-flash"), v.literal("claude-sonnet-4.6")),
+const generationFields = {
   inputTokens: v.number(),
   outputTokens: v.number(),
   durationMs: v.number(),
   traceId: v.optional(v.string()),
+  requestedModel: v.optional(v.string()),
+  reportedModel: v.optional(v.string()),
+  requestId: v.optional(v.string()),
   fallbackFrom: v.optional(v.literal("claude-sonnet-4.6")),
-});
+};
+export const growthGeneration = v.union(
+  v.object({
+    ...generationFields,
+    provider: v.literal("google"),
+    model: v.literal("gemini-2.5-flash"),
+  }),
+  v.object({
+    ...generationFields,
+    provider: v.literal("litellm"),
+    model: v.literal("claude-sonnet-4.6"),
+  }),
+  v.object({
+    ...generationFields,
+    provider: v.literal("meta"),
+    model: v.literal("muse-spark-1.3"),
+  }),
+);
 export const growthTables = {
   growthCapabilities: defineTable({
     appId: v.string(),

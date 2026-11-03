@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { operator, sameOrigin } from "@/lib/access";
-import { readIntegrations } from "@/lib/integration-config";
+import { requireActivePack, asWidgetApp, listPacks } from "@/lib/app-pack";
 import { api, db, secret } from "@/lib/server-store";
 import {
   chunkKnowledge,
@@ -17,7 +17,7 @@ import {
 } from "@/lib/knowledge-import";
 import { answerKnowledge, SUPPORT_MODELS } from "@/lib/knowledge-answer";
 import type { Id } from "@/convex/_generated/dataModel";
-import { configuredSupportModel } from "@/lib/model-config";
+import { configuredSupportModel, modelRoute, routeReadiness } from "@/lib/model-config";
 export const runtime = "nodejs";
 const input = z.discriminatedUnion("action", [
   z
@@ -59,8 +59,16 @@ const input = z.discriminatedUnion("action", [
     .strict(),
 ]);
 async function scope(appId: string) {
-  const app = (await readIntegrations()).apps.find((a) => a.id === appId);
-  if (!app) throw new Error("Register the application in Setup first");
+  let app: ReturnType<typeof asWidgetApp>;
+  try {
+    app = asWidgetApp(await requireActivePack(appId));
+  } catch (e) {
+    throw new Error(
+      e instanceof Error && /suspended/i.test(e.message)
+        ? e.message
+        : "Register the application in Setup first",
+    );
+  }
   return {
     app,
     args: { secret: secret(), workspaceId: KNOWLEDGE_WORKSPACE, appId },
@@ -70,14 +78,14 @@ export async function GET(request: Request) {
   try {
     const user = await operator(request),
       u = new URL(request.url),
-      apps = (await readIntegrations()).apps;
+      apps = await listPacks();
     const defaultAppId =
       apps.find((app) =>
         app.origins.includes(
           process.env.CUE_BLOOM_PUBLIC_URL ||
             "https://bloom-with-cue.vercel.app",
         ),
-      )?.id || apps[0]?.id;
+      )?.appId || apps[0]?.appId;
     const appId = u.searchParams.get("app") || defaultAppId;
     const permissions = {
       canEdit: ["owner", "product", "support"].includes(user.role),
@@ -92,6 +100,7 @@ export async function GET(request: Request) {
           ...permissions,
           model,
           litellm: !!process.env.LITELLM_API_KEY,
+          meta: routeReadiness(modelRoute("muse-spark-1.3")).kind === "ready",
         },
         { headers: { "cache-control": "no-store" } },
       );
@@ -136,13 +145,14 @@ export async function GET(request: Request) {
     }
     return Response.json(
       {
-        apps: apps.map((a) => ({ id: a.id, name: a.name })),
+        apps: apps.map((a) => ({ id: a.appId, name: a.name })),
         appId,
         defaultAppId,
         sources: await db().query(api.knowledge.snapshot, args),
         ...permissions,
         model,
         litellm: !!process.env.LITELLM_API_KEY,
+        meta: routeReadiness(modelRoute("muse-spark-1.3")).kind === "ready",
       },
       { headers: { "cache-control": "no-store" } },
     );

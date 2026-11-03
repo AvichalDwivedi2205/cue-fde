@@ -2,10 +2,10 @@ import nextEnv from "@next/env";
 import { promises as fs } from "node:fs";
 import assert from "node:assert/strict";
 nextEnv.loadEnvConfig(process.cwd());
-const { readIntegrations } = await import("../lib/integration-config");
 const { api, db, secret } = await import("../lib/server-store");
 const base = process.env.CUE_VERIFY_ORIGIN || "http://127.0.0.1:3000";
-const app = (await readIntegrations()).apps.find((a) =>
+const { listPacks } = await import("../lib/app-pack");
+const app = (await listPacks()).find((a) =>
   a.origins.includes("http://localhost:4400"),
 );
 assert(app, "Register the widget demo app first");
@@ -20,7 +20,7 @@ async function call(
     headers: { "content-type": "application/json", origin: requestOrigin },
     body: JSON.stringify({
       action,
-      app: app!.id,
+      app: app!.appId,
       origin: "http://localhost:4400",
       ...extra,
     }),
@@ -65,7 +65,7 @@ const second = await call("message", {
 assert.equal(second.body.id, first.body.id);
 checks.push("report and follow-up share one case");
 const s = await db().query(api.cue.snapshot, { secret: secret() });
-assert(s.attachments.some((a) => a.caseId === first.body.id && a.url));
+assert(s.attachments.some((a) => a.caseId === first.body.appId && a.url));
 checks.push("real screenshot bytes stored and linked to the case");
 assert.equal(
   s.cases.find((c) => c._id === first.body.id)!.sourceUrl,
@@ -106,7 +106,7 @@ assert.equal(isolated.body.case, null);
 assert.deepEqual(isolated.body.messages, []);
 checks.push("another visitor cannot read this conversation");
 const frame = await fetch(
-  `${base}/widget?app=${app.id}&origin=${encodeURIComponent("http://localhost:4400")}`,
+  `${base}/widget?app=${app.appId}&origin=${encodeURIComponent("http://localhost:4400")}`,
 );
 assert.equal(frame.status, 200);
 assert(

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ConvexError } from "convex/values";
 import { operator, sameOrigin } from "@/lib/access";
-import { readIntegrations } from "@/lib/integration-config";
+import { requireActivePack, listPacks } from "@/lib/app-pack";
 import { api, db, secret } from "@/lib/server-store";
 import { KNOWLEDGE_WORKSPACE } from "@/lib/knowledge-policy";
 import { requirementCoverage } from "@/lib/company-context-policy";
@@ -42,15 +42,18 @@ const input = z.discriminatedUnion("action", [
     .strict(),
 ]);
 async function scope(appId: string) {
-  if (!(await readIntegrations()).apps.some((a) => a.id === appId))
+  try {
+    await requireActivePack(appId);
+  } catch {
     throw new Error("Register the application in Setup first");
+  }
   return { secret: secret(), workspaceId: KNOWLEDGE_WORKSPACE, appId };
 }
 export async function GET(request: Request) {
   try {
     const user = await operator(request),
-      apps = (await readIntegrations()).apps;
-    const appId = new URL(request.url).searchParams.get("app") || apps[0]?.id;
+      apps = await listPacks();
+    const appId = new URL(request.url).searchParams.get("app") || apps[0]?.appId;
     if (!appId)
       return Response.json({
         apps: [],
@@ -64,7 +67,7 @@ export async function GET(request: Request) {
       requirements = saved.manifest?.requirements || [];
     return Response.json(
       {
-        apps: apps.map((a) => ({ id: a.id, name: a.name })),
+        apps: apps.map((a) => ({ id: a.appId, name: a.name })),
         appId,
         canManage: ["owner", "product"].includes(user.role),
         brand: saved.brand,

@@ -1,11 +1,33 @@
-import schema from "./schema";
-import { mutation, query, env } from "./_generated/server";
+import { engineeringInput } from "../lib/app-pack-schema";
+import schema, { triageGeneration } from "./schema";
+import {
+  mutation,
+  query,
+  env,
+  QueryCtx,
+  MutationCtx,
+} from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { uploadRegressionCandidate } from "../lib/symptoms";
 import { fallbackReply } from "../lib/reply-policy";
 import { internal } from "./_generated/api";
 import { rehearsalForApp, registeredRehearsal } from "./rehearsalScope";
 import { rehearsalFingerprint } from "../lib/rehearsal-policy";
+import { packByAppId } from "./appPacks";
+
+// The Bloom app is both the legacy default (channel intake without an appId)
+// and the registered widget app (cue_app_… whose pack serves the Bloom
+// public origin). Everything Bloom-specific keys off this, nothing else.
+const BLOOM_PUBLIC_ORIGIN = "https://bloom-with-cue.vercel.app";
+async function isBloomApp(ctx: QueryCtx | MutationCtx, appId?: string) {
+  if (!appId || appId === "bloom") return true;
+  const pack = await packByAppId(ctx, appId);
+  return (
+    !!pack &&
+    (pack.origins.includes(BLOOM_PUBLIC_ORIGIN) ||
+      (pack.aliases ?? []).includes("bloom"))
+  );
+}
 
 export function authorize(secret: string) {
   if (!env.CUE_DEMO_SECRET || secret !== env.CUE_DEMO_SECRET)
@@ -48,6 +70,13 @@ export const snapshot = query({
       schema.doc("attachments").extend({ url: v.union(v.string(), v.null()) }),
     ),
     deliveries: v.array(schema.doc("deliveries")),
+    apps: v.array(
+      v.object({
+        appId: v.string(),
+        name: v.string(),
+        status: v.string(),
+      }),
+    ),
   }),
   handler: async (ctx, args) => {
     authorize(args.secret);
@@ -75,6 +104,11 @@ export const snapshot = query({
         })),
       ),
       deliveries: await ctx.db.query("deliveries").order("desc").take(100),
+      apps: (await ctx.db.query("appPacks").collect()).map((p) => ({
+        appId: p.appId,
+        name: p.routing?.label || p.name,
+        status: p.status,
+      })),
     };
   },
 });
@@ -303,9 +337,19 @@ export const createCase = mutation({
     )
       throw new ConvexError("Invalid report");
     const text = `${args.title} ${args.body}`.toLowerCase();
-    const upload = uploadRegressionCandidate(text) && !args.feature;
+    // Bloom's seeded-regression heuristics (the 413 fingerprint, the P1
+    // priority, the PDF and dark-mode feature shortcuts) belong to the Bloom
+    // app only — the legacy default AND the registered live Bloom widget —
+    // never to other apps, which start from provisional reports and real
+    // triage. Registered rehearsal apps keep their scenario routing.
+    const isBloom = await isBloomApp(ctx, args.appId);
+    const rehearsal = await rehearsalForApp(ctx, args.appId);
+    const upload =
+      (isBloom && uploadRegressionCandidate(text) && !args.feature) ||
+      !!rehearsal;
     const feature =
-      args.feature || /(?:pdf|dark mode|feature request)/.test(text);
+      args.feature ||
+      (!rehearsal && isBloom && /(?:pdf|dark mode|feature request)/.test(text));
     const group = upload
       ? "bloom:upload:413"
       : feature && /pdf/.test(text)
@@ -313,10 +357,11 @@ export const createCase = mutation({
         : feature && /dark mode/.test(text)
           ? "bloom:feature:dark"
           : `report:${stamp()}:${args.customer}:${args.body}`;
-    const rehearsal = upload ? await rehearsalForApp(ctx, args.appId) : null;
     const fingerprint = rehearsal
       ? rehearsalFingerprint(rehearsal.appId, rehearsal.key)
-      : args.appId ? `${args.appId}:${group}` : group;
+      : args.appId
+        ? `${args.appId}:${group}`
+        : group;
     let issue = await ctx.db
       .query("issues")
       .withIndex("by_fingerprint", (q) => q.eq("fingerprint", fingerprint))
@@ -365,18 +410,18 @@ export const createCase = mutation({
       provenance: rehearsal
         ? `Controlled rehearsal ${rehearsal.key} · ${args.channel === "chat" ? "connected widget report" : "operator fixture; native channel delivery not established"}`
         : args.sample
-        ? `Synthetic ${args.channel === "reddit" ? "Reddit" : "X"} sample · operator capture`
-        : args.channel === "x"
-          ? "Operator-assisted X capture"
-          : args.channel === "reddit"
-            ? "Operator-assisted Reddit capture"
-            : args.appId
-              ? "Connected app widget · visitor supplied identity"
-              : args.channel === "slack"
-                ? "Verified Slack event"
-                : args.channel === "email"
-                  ? "Verified inbound email"
-                  : "Live demo message",
+          ? `Synthetic ${args.channel === "reddit" ? "Reddit" : "X"} sample · operator capture`
+          : args.channel === "x"
+            ? "Operator-assisted X capture"
+            : args.channel === "reddit"
+              ? "Operator-assisted Reddit capture"
+              : args.appId
+                ? "Connected app widget · visitor supplied identity"
+                : args.channel === "slack"
+                  ? "Verified Slack event"
+                  : args.channel === "email"
+                    ? "Verified inbound email"
+                    : "Live demo message",
       priority: upload ? "P1" : "P2",
       status: feature ? "requested" : "open",
       tags: upload
@@ -456,16 +501,18 @@ export const message = mutation({
 });
 
 export const startRun = mutation({
-  args: { secret: v.string(), issueId: v.id("issues") },
+  args: {
+    secret: v.string(),
+    issueId: v.id("issues"),
+    reproduction: v.optional(v.string()),
+  },
   returns: v.id("runs"),
   handler: async (ctx, args) => {
     authorize(args.secret);
     const issue = await ctx.db.get("issues", args.issueId);
     const rehearsal = issue ? await registeredRehearsal(ctx, issue) : null;
-    if (!issue || (issue.fingerprint !== "bloom:upload:413" && !rehearsal))
-      throw new ConvexError(
-        "Live coding demo supports the Bloom upload issue.",
-      );
+    if (!issue) throw new ConvexError("Issue not found.");
+    const fixture = issue.fingerprint === "bloom:upload:413";
     const previous = await ctx.db
       .query("runs")
       .withIndex("by_issueId_and_createdAt", (q) =>
@@ -475,22 +522,72 @@ export const startRun = mutation({
       .take(1);
     if (
       previous[0] &&
-      ["running", "awaiting_approval", "resolved"].includes(previous[0].status)
+      ["running", "awaiting_approval", "approved", "resolved"].includes(
+        previous[0].status,
+      )
     )
       throw new ConvexError(
         "An active or completed run already exists. Reset the demo to run again.",
       );
+    if (!fixture && !rehearsal) {
+      // Generic bug on a registered app with a repository binding. The pack
+      // is read in this transaction: legality lives where runs are born.
+      if (issue.fingerprint.includes(":rehearsal:"))
+        throw new ConvexError(
+          "Live coding demo supports the Bloom upload issue.",
+        );
+      if (issue.kind !== "bug")
+        throw new ConvexError(
+          "Feature work needs an approved specification; use the feature flow.",
+        );
+      const reproduction = (args.reproduction || "").trim();
+      if (reproduction.length < 20)
+        throw new ConvexError(
+          "Describe how the failure was reproduced (at least 20 characters) before starting a fix run.",
+        );
+      const pack = await packByAppId(ctx, issue.appId || "bloom");
+      if (!pack || pack.status !== "active" || !pack.engineering)
+        throw new ConvexError(
+          "Connect this app's repository in settings first",
+        );
+      const runId = await ctx.db.insert("runs", {
+        issueId: issue._id,
+        status: "running",
+        phase: "reproducing",
+        provider: "Meta",
+        codingPolicy: engineeringInput.parse(pack.engineering),
+        kind: "bug",
+        deploymentMode: "pull_request",
+        targetId: pack.appId,
+        repository: pack.engineering.repository,
+        reproduction,
+        createdAt: stamp(),
+        updatedAt: stamp(),
+      });
+      await ctx.db.patch(issue._id, { status: "investigating" });
+      await ctx.db.insert("jobs", {
+        runId,
+        kind: "investigate",
+        status: "queued",
+        leaseUntil: 0,
+        cancel: false,
+        createdAt: stamp(),
+      });
+      return runId;
+    }
     const runId = await ctx.db.insert("runs", {
       issueId: args.issueId,
       status: "running",
       phase: "reproducing",
       provider: "Codex",
-      ...(rehearsal ? {
-        kind: "bug",
-        targetId: rehearsal.appId,
-        repository: rehearsal.repository,
-        deploymentMode: "rehearsal",
-      } : {}),
+      ...(rehearsal
+        ? {
+            kind: "bug",
+            targetId: rehearsal.appId,
+            repository: rehearsal.repository,
+            deploymentMode: "rehearsal",
+          }
+        : {}),
       createdAt: stamp(),
       updatedAt: stamp(),
     });
@@ -513,7 +610,7 @@ export const startFeature = mutation({
     issueId: v.id("issues"),
     expectedSpec: v.string(),
     targetId: v.string(),
-    repository: v.string(),
+    repository: v.optional(v.string()),
   },
   returns: v.id("runs"),
   handler: async (ctx, a) => {
@@ -529,9 +626,15 @@ export const startFeature = mutation({
       throw new ConvexError(
         "Implementation requires the current approved specification",
       );
+    // The pack is read in this transaction: an unbound or inactive app can
+    // never start implementation, whatever the caller supplies. A supplied
+    // repository must match the binding.
+    const pack = await packByAppId(ctx, issue.appId || "bloom");
+    if (!pack || pack.status !== "active" || !pack.engineering)
+      throw new ConvexError("Connect this app's repository in settings first");
     if (
-      (issue.appId || "bloom") !== a.targetId ||
-      !/^[\w.-]+\/[\w.-]+$/.test(a.repository)
+      a.repository !== undefined &&
+      a.repository !== pack.engineering.repository
     )
       throw new ConvexError("Repository must belong to this connected app");
     const old = await ctx.db
@@ -552,11 +655,12 @@ export const startFeature = mutation({
       issueId: issue._id,
       status: "running",
       phase: "preparing",
-      provider: "Codex",
+      provider: "Meta",
+      codingPolicy: engineeringInput.parse(pack.engineering),
       kind: "feature",
       approvedSpec: a.expectedSpec,
-      targetId: a.targetId,
-      repository: a.repository,
+      targetId: pack.appId,
+      repository: pack.engineering.repository,
       deploymentMode: "pull_request",
       createdAt: stamp(),
       updatedAt: stamp(),
@@ -574,35 +678,55 @@ export const startFeature = mutation({
   },
 });
 
+// Projection of the runs table that pipeline workers may patch. Keep in sync
+// with the runs schema — tests/update-run-schema-sync.test.ts fails the build
+// when the two drift (the reproductionStatus incident).
+export const updateRunFields = v.object({
+  model: v.optional(v.string()),
+  requestedModel: v.optional(v.string()),
+  executionBackend: v.optional(v.union(v.literal("local"), v.literal("modal"))),
+  inputTokens: v.optional(v.number()),
+  outputTokens: v.optional(v.number()),
+  modelCalls: v.optional(v.number()),
+  sandboxIds: v.optional(v.array(v.string())),
+  status: v.optional(v.string()),
+  phase: v.optional(v.string()),
+  rootCause: v.optional(v.string()),
+  diff: v.optional(v.string()),
+  before: v.optional(v.string()),
+  after: v.optional(v.string()),
+  prUrl: v.optional(v.string()),
+  commit: v.optional(v.string()),
+  repoPath: v.optional(v.string()),
+  error: v.optional(v.string()),
+  deployed: v.optional(v.boolean()),
+  verified: v.optional(v.boolean()),
+  approval: v.optional(v.string()),
+  summary: v.optional(v.string()),
+  baseCommit: v.optional(v.string()),
+  reproductionStatus: v.optional(
+    v.union(v.literal("reproduced"), v.literal("not_reproduced")),
+  ),
+});
+
 export const updateRun = mutation({
   args: {
     secret: v.string(),
     runId: v.id("runs"),
-    fields: v.object({
-      status: v.optional(v.string()),
-      phase: v.optional(v.string()),
-      rootCause: v.optional(v.string()),
-      diff: v.optional(v.string()),
-      before: v.optional(v.string()),
-      after: v.optional(v.string()),
-      prUrl: v.optional(v.string()),
-      commit: v.optional(v.string()),
-      repoPath: v.optional(v.string()),
-      error: v.optional(v.string()),
-      deployed: v.optional(v.boolean()),
-      verified: v.optional(v.boolean()),
-      approval: v.optional(v.string()),
-      summary: v.optional(v.string()),
-      baseCommit: v.optional(v.string()),
-    }),
+    fields: updateRunFields,
   },
   returns: v.null(),
   handler: async (ctx, args) => {
     authorize(args.secret);
     const run = await ctx.db.get("runs", args.runId);
     if (!run) throw new ConvexError("Run not found");
-    if (run.kind === "feature" && args.fields.status === "resolved")
-      throw new ConvexError("Use the repository release verifier for features");
+    if (
+      (run.kind === "feature" || run.deploymentMode === "pull_request") &&
+      args.fields.status === "resolved"
+    )
+      throw new ConvexError(
+        "Use the repository release verifier for pull-request runs",
+      );
     if (
       [
         "canceled",
@@ -633,9 +757,12 @@ export const updateRun = mutation({
       });
     if (args.fields.status === "resolved") {
       await ctx.db.patch("issues", run.issueId, { status: "resolved" });
-      const linked = await ctx.db.query("cases")
-        .withIndex("by_issueId", (q) => q.eq("issueId", run.issueId)).take(201);
-      if (linked.length > 200) throw new ConvexError("Release notifications require batching");
+      const linked = await ctx.db
+        .query("cases")
+        .withIndex("by_issueId", (q) => q.eq("issueId", run.issueId))
+        .take(201);
+      if (linked.length > 200)
+        throw new ConvexError("Release notifications require batching");
       for (const c of linked) {
         await ctx.db.patch("cases", c._id, {
           ...(c.channel === "chat" ? { status: "resolved" } : {}),
@@ -814,6 +941,7 @@ export const triage = mutation({
     secret: v.string(),
     caseId: v.id("cases"),
     receiptId: v.optional(v.id("triageReceipts")),
+    generation: v.optional(triageGeneration),
     issueId: v.optional(v.id("issues")),
     priority: v.union(v.literal("P1"), v.literal("P2"), v.literal("P3")),
     tags: v.array(v.string()),
@@ -825,6 +953,21 @@ export const triage = mutation({
     authorize(a.secret);
     const report = await ctx.db.get("cases", a.caseId);
     if (!report) throw new ConvexError("Case not found");
+    if (a.generation) {
+      const g = a.generation;
+      if (
+        [g.provider, g.model, g.requestedModel].some(
+          (value) => !value.trim() || value.length > 200,
+        ) ||
+        !Number.isSafeInteger(g.inputTokens) ||
+        g.inputTokens < 0 ||
+        !Number.isSafeInteger(g.outputTokens) ||
+        g.outputTokens < 0 ||
+        !Number.isFinite(g.durationMs) ||
+        g.durationMs < 0
+      )
+        throw new ConvexError("Invalid triage generation evidence");
+    }
     if (a.receiptId) {
       const receipt = await ctx.db.get("triageReceipts", a.receiptId);
       if (!receipt || receipt.caseId !== report._id)
@@ -846,6 +989,7 @@ export const triage = mutation({
       }
       await ctx.db.patch("triageReceipts", receipt._id, {
         status: "completed",
+        ...(a.generation ? { generation: a.generation } : {}),
         updatedAt: stamp(),
       });
     }
@@ -923,8 +1067,11 @@ export const triage = mutation({
       author: "Cue",
       role: "note",
       body:
-        "Gemini triage suggestion: " +
+        "AI triage suggestion: " +
         a.reason +
+        (a.generation
+          ? ` Serving model: ${a.generation.model} (${a.generation.provider}).`
+          : "") +
         " Model confidence is not a calibrated probability.",
       createdAt: stamp(),
     });

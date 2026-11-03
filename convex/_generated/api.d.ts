@@ -8,8 +8,10 @@
  * @module
  */
 
+import type * as appPacks from "../appPacks.js";
 import type * as background from "../background.js";
 import type * as bloom from "../bloom.js";
+import type * as commitMetadata from "../commitMetadata.js";
 import type * as companyContext from "../companyContext.js";
 import type * as companyContextSchema from "../companyContextSchema.js";
 import type * as crons from "../crons.js";
@@ -50,8 +52,10 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  appPacks: typeof appPacks;
   background: typeof background;
   bloom: typeof bloom;
+  commitMetadata: typeof commitMetadata;
   companyContext: typeof companyContext;
   companyContextSchema: typeof companyContextSchema;
   crons: typeof crons;

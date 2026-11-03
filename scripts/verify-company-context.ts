@@ -4,7 +4,6 @@ import { randomUUID, createHash } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 nextEnv.loadEnvConfig(process.cwd());
 const { api, db, secret } = await import("../lib/server-store");
-const { readIntegrations } = await import("../lib/integration-config");
 const { answerKnowledge } = await import("../lib/knowledge-answer");
 const { growthContext } = await import("../lib/company-context");
 const { draftGrowth } = await import("../lib/growth-model");
@@ -12,15 +11,16 @@ const { embedKnowledge } = await import("../lib/knowledge-embedding");
 const { requirementCoverage } = await import("../lib/company-context-policy");
 const { shutdownObservability } = await import("../lib/observability");
 const workspaceId = "cue-configured-workspace";
-const app = (await readIntegrations()).apps.find(
+const { listPacks } = await import("../lib/app-pack");
+const app = (await listPacks()).find(
   (a) =>
-    a.id === process.env.CUE_VERIFY_CONTEXT_APP ||
+    a.appId === process.env.CUE_VERIFY_CONTEXT_APP ||
     (!process.env.CUE_VERIFY_CONTEXT_APP && a.name === "Bloom"),
 );
 assert(app, "Select the registered app to verify");
 const checks: string[] = [],
   rows: Record<string, unknown>[] = [];
-const scope = { secret: secret(), workspaceId, appId: app.id };
+const scope = { secret: secret(), workspaceId, appId: app.appId };
 const saved = await db().query(api.companyContext.snapshot, scope);
 assert(saved.manifest?.requirements.length);
 assert(
@@ -39,7 +39,7 @@ for (const [question, medium] of [
 ] as const) {
   const began = Date.now();
   const a = await answerKnowledge(
-    app.id,
+    app.appId,
     { appName: app.name, message: question, ...(medium ? { medium } : {}) },
     { model: "gemini-2.5-flash" },
   );
@@ -76,7 +76,7 @@ checks.push(
 );
 const growth = await db().query(api.growth.snapshot, {
     secret: secret(),
-    appId: app.id,
+    appId: app.appId,
   }),
   cap = growth.capabilities.find((c) => c.valid);
 assert(cap);
@@ -85,7 +85,7 @@ for (const source of [
   "Anyone recommend a photo journal app that can find saved memories by their caption, even when I type words out of order?",
   "Looking for a photo journal app to find my old memories using caption words, without searching objects in images. Any recommendations?",
 ]) {
-  const context = await growthContext(app.id, source + "\n" + cap.need);
+  const context = await growthContext(app.appId, source + "\n" + cap.need);
   assert(
     context.hits.length &&
       context.grounding.brandVersion === saved.brand.version,
@@ -226,7 +226,7 @@ try {
     JSON.stringify(
       {
         checkedAt: new Date().toISOString(),
-        appId: app.id,
+        appId: app.appId,
         checks,
         rows,
         budget:

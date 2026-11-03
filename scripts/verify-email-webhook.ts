@@ -75,7 +75,7 @@ const classified = state.messages.some(
   (m) =>
     m.caseId === report._id &&
     m.role === "note" &&
-    m.body.startsWith("Gemini triage suggestion:"),
+    m.body.startsWith("AI triage suggestion:"),
 );
 assert(classified, "Hosted classification must have reached the stored case");
 const delivery = state.deliveries

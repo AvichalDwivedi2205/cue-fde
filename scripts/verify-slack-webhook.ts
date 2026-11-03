@@ -49,7 +49,7 @@ for (const followUp of [
 }
 assert(
   messages.some(
-    (m) => m.role === "note" && m.body.startsWith("Gemini triage suggestion:"),
+    (m) => m.role === "note" && m.body.startsWith("AI triage suggestion:"),
   ),
 );
 const replies = snapshot.deliveries.filter(

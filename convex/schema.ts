@@ -1,11 +1,27 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { agentId, taskState, taskAction } from "./workspaceValidators";
+import {
+  agentId,
+  taskState,
+  taskAction,
+  engineeringBinding,
+} from "./workspaceValidators";
 import { growthTables } from "./growthSchema";
 import { prospectTables } from "./prospectSchema";
 import { knowledgeTables } from "./knowledgeSchema";
 import { companyContextTables } from "./companyContextSchema";
 import { feedbackTables } from "./feedbackSchema";
+
+export const triageGeneration = v.object({
+  provider: v.string(),
+  model: v.string(),
+  requestedModel: v.string(),
+  inputTokens: v.number(),
+  outputTokens: v.number(),
+  durationMs: v.number(),
+  requestId: v.optional(v.string()),
+  traceId: v.optional(v.string()),
+});
 
 export default defineSchema({
   waitlist: defineTable({
@@ -97,7 +113,38 @@ export default defineSchema({
     version: v.number(),
     updatedAt: v.number(),
   }).index("by_key", ["key"]),
+  appPacks: defineTable({
+    appId: v.string(),
+    name: v.string(),
+    status: v.union(
+      v.literal("draft"),
+      v.literal("active"),
+      v.literal("suspended"),
+    ),
+    origins: v.array(v.string()),
+    aliases: v.optional(v.array(v.string())),
+    widget: v.optional(
+      v.object({
+        answers: v.boolean(),
+        voice: v.boolean(),
+        screenshots: v.boolean(),
+      }),
+    ),
+    engineering: v.optional(engineeringBinding),
+    routing: v.optional(
+      v.object({
+        label: v.optional(v.string()),
+        engineeringChannel: v.optional(v.string()),
+      }),
+    ),
+    installCheckedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_appId", ["appId"])
+    .index("by_status", ["status"]),
   triageReceipts: defineTable({
+    generation: v.optional(triageGeneration),
     caseId: v.id("cases"),
     messageId: v.id("messages"),
     status: v.union(
@@ -165,6 +212,16 @@ export default defineSchema({
     status: v.string(),
     phase: v.string(),
     provider: v.string(),
+    codingPolicy: v.optional(engineeringBinding),
+    model: v.optional(v.string()),
+    requestedModel: v.optional(v.string()),
+    executionBackend: v.optional(
+      v.union(v.literal("local"), v.literal("modal")),
+    ),
+    inputTokens: v.optional(v.number()),
+    outputTokens: v.optional(v.number()),
+    modelCalls: v.optional(v.number()),
+    sandboxIds: v.optional(v.array(v.string())),
     createdAt: v.number(),
     updatedAt: v.number(),
     rootCause: v.optional(v.string()),
@@ -187,6 +244,10 @@ export default defineSchema({
     deploymentMode: v.optional(v.string()),
     releaseEvidence: v.optional(v.string()),
     releaseCommit: v.optional(v.string()),
+    reproduction: v.optional(v.string()),
+    reproductionStatus: v.optional(
+      v.union(v.literal("reproduced"), v.literal("not_reproduced")),
+    ),
   }).index("by_issueId_and_createdAt", ["issueId", "createdAt"]),
   events: defineTable({
     runId: v.optional(v.id("runs")),

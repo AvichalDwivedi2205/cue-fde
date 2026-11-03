@@ -1,0 +1,8 @@
+{
+  "provider": "built-in imagegen",
+  "prompt_summary": "Recognizable natural-looking square photograph of a saffron lantern beside a river at dusk, matching the Lantern walk memory and caption. No text, people, logos, watermark or UI.",
+  "source": "/Users/avichaldwivedi/.codex/generated_images/01a13167-a3df-7a42-ab51-695ca4a8ea95/exec-2fd855d5-5787-4835-be26-f7611b786926.png",
+  "image": "/Users/avichaldwivedi/dev/Cue/cue-demo/design/brand/demo-assets/2026-10-13/bloom-lantern-walk.png",
+  "intended_use": "Actual Bloom upload for refreshed demo evidence, using the same image for failure and retry.",
+  "original_workspace_copy": "/Users/avichaldwivedi/dev/Cue/cue-demo/artifacts/demo-revision-2026-10-13/lantern-walk-generated.png"
+}

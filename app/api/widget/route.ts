@@ -1,16 +1,16 @@
 import { z } from "zod";
 import { sameOrigin } from "@/lib/access";
-import { readIntegrations } from "@/lib/integration-config";
+import { requireSessionPack, asWidgetApp } from "@/lib/app-pack";
 import {
   issueWidgetSession,
   verifyWidgetSession,
   widgetRateLimit,
 } from "@/lib/widget-session";
 import { api, db, secret } from "@/lib/server-store";
-import { saveAttachment } from "@/lib/attachment";
+import { parseScreenshot, saveAttachment } from "@/lib/attachment";
 import { triage } from "@/lib/triage";
 import { supportProgress } from "@/lib/support-progress";
-import { geminiReady } from "@/lib/gemini";
+import { configuredRoute, routeReadiness } from "@/lib/model-config";
 import { answerKnowledge, type KnowledgeAnswer } from "@/lib/knowledge-answer";
 import { KNOWLEDGE_WORKSPACE } from "@/lib/knowledge-policy";
 import { fallbackReply } from "@/lib/reply-policy";
@@ -37,11 +37,17 @@ export async function POST(request: Request) {
     if (Number(request.headers.get("content-length") || 0) > 6500000)
       throw new Error("Request too large");
     const b = input.parse(await request.json());
-    const app = (await readIntegrations()).apps.find((a) => a.id === b.app);
-    if (
-      !app ||
-      !(await widgetOriginAllowed(request, app.origins, b.origin, b.preview))
-    )
+    let pack: Awaited<ReturnType<typeof requireSessionPack>>;
+    try {
+      pack = await requireSessionPack(b.app);
+    } catch {
+      return Response.json(
+        { error: "App origin is not allowed" },
+        { status: 403 },
+      );
+    }
+    const app = asWidgetApp(pack);
+    if (!(await widgetOriginAllowed(request, app.origins, b.origin, b.preview)))
       return Response.json(
         { error: "App origin is not allowed" },
         { status: 403 },
@@ -139,6 +145,7 @@ export async function POST(request: Request) {
     if (!b.text) throw new Error("Write a message");
     if (b.attachment && app.widget?.screenshots === false)
       throw new Error("Screenshots are disabled for this app");
+    const images = b.attachment ? [await parseScreenshot(b.attachment)] : [];
     const customer = b.name || "Guest";
     const context =
       b.page && new URL(b.page).origin === b.origin
@@ -156,18 +163,17 @@ export async function POST(request: Request) {
     };
     let ack = fallbackReply({ ...replyContext.conversation, ...replyContext });
     let knowledge: KnowledgeAnswer | undefined;
-    if (
-      !b.handoff &&
-      app.widget?.answers !== false &&
-      (geminiReady() || process.env.LITELLM_API_KEY)
-    )
+    if (!b.handoff && app.widget?.answers !== false)
       try {
-        knowledge = await answerKnowledge(
-          app.id,
-          { ...replyContext.conversation, ...replyContext },
-          {},
-        );
-        ack = knowledge.text;
+        const route = await configuredRoute({ purpose: "support" });
+        if (routeReadiness(route).kind === "ready") {
+          knowledge = await answerKnowledge(
+            app.id,
+            { ...replyContext.conversation, ...replyContext },
+            { images, model: route.model },
+          );
+          ack = knowledge.text;
+        }
       } catch {}
     if (b.handoff)
       ack =

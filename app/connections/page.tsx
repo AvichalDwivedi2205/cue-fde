@@ -1,18 +1,27 @@
 import { withAuth } from "@workos-inc/authkit-nextjs";
 import { WorkOS } from "@workos-inc/node";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { PipesConnections } from "./pipes-connections";
-import { workosReady } from "@/lib/access";
+import { operator, workosReady } from "@/lib/access";
 import { signOutAction } from "@/app/auth/actions";
 import { WorkspaceShell } from "../components/workspace-shell";
 import "@workos-inc/widgets/styles.css";
 export const dynamic = "force-dynamic";
 export default async function Connections() {
   const configured = workosReady();
-  const session = configured ? await withAuth({ ensureSignedIn: true }) : null;
+  const session = configured ? await withAuth() : null;
+  if (configured && !session?.user) redirect("/auth/login");
+  let actor: Awaited<ReturnType<typeof operator>> | undefined;
+  if (configured)
+    try {
+      actor = await operator(
+        new Request("http://127.0.0.1", { headers: await headers() }),
+      );
+    } catch {}
   const allowed =
-    configured &&
-    session?.user.email.toLowerCase() ===
-      process.env.CUE_OPERATOR_EMAIL?.toLowerCase();
+    actor?.role === "owner" &&
+    actor.email.toLowerCase() === process.env.CUE_OPERATOR_EMAIL?.toLowerCase();
   let enabledProviders = false;
   let providerError = false;
   if (allowed) {
@@ -34,17 +43,7 @@ export default async function Connections() {
     <WorkspaceShell
       active="integrations"
       title="Connected accounts"
-      user={
-        session?.user
-          ? {
-              name:
-                [session.user.firstName, session.user.lastName]
-                  .filter(Boolean)
-                  .join(" ") || session.user.email,
-              role: allowed ? "owner" : "signed in",
-            }
-          : undefined
-      }
+      user={actor}
     >
       <main className="ui-page max-w-[1056px]">
         <h1 className="text-[22px] font-semibold tracking-tight">
@@ -87,12 +86,16 @@ export default async function Connections() {
           <section className="ui-card my-5 space-y-3 p-5">
             <h2 className="text-sm font-semibold">
               {configured
-                ? "Operator access required"
+                ? actor
+                  ? "Primary owner access required"
+                  : "Operator access required"
                 : "WorkOS account setup needed"}
             </h2>
             <p className="mt-2 text-xs leading-relaxed text-cue-muted">
               {configured
-                ? "Sign in with your operator account."
+                ? actor
+                  ? "Provider connections are managed by the primary owner."
+                  : "Sign in with your operator account."
                 : "Add the WorkOS API key and client ID to the local environment. Login and account connections will become available here."}
             </p>
             <a
@@ -107,9 +110,10 @@ export default async function Connections() {
         <section className="ui-card my-5 space-y-3 p-5">
           <h2 className="text-sm font-semibold">Engineering connections</h2>
           <p className="mt-2 text-xs leading-relaxed text-cue-muted">
-            Codex uses the existing local ChatGPT login. GitHub uses the
-            connected local GitHub CLI account. Gemini uses the selected Google
-            Cloud project.
+            For the Meta route, support and coding use the configured models;
+            repository commands run in local Docker isolation. The trusted coding
+            worker uses its authorized GitHub account. Legacy Gemini inference and local Codex
+            execution remain available when selected.
           </p>
           <p className="mt-2 text-xs leading-relaxed text-cue-muted">
             Slack event handling requires a Slack app signing secret. Provider

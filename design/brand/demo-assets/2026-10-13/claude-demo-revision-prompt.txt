@@ -1,0 +1,1 @@
+Superseded reference prompt. Earlier statements about dates, completed recordings, verification, and submissions are withdrawn. The dated directory is an artifact identifier, not evidence of execution. See docs/repository-and-build-provenance.md.

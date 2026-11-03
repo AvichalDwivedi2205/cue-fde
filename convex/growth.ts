@@ -704,13 +704,11 @@ export const saveDraft = mutation({
     await requireGrounding(ctx, a.appId, a.grounding);
     if (
       a.generation &&
-      ((a.generation.provider === "google") !==
-        (a.generation.model === "gemini-2.5-flash") ||
-        [
-          a.generation.inputTokens,
-          a.generation.outputTokens,
-          a.generation.durationMs,
-        ].some((n) => !Number.isSafeInteger(n) || n < 0 || n > 10000000) ||
+      ([
+        a.generation.inputTokens,
+        a.generation.outputTokens,
+        a.generation.durationMs,
+      ].some((n) => !Number.isSafeInteger(n) || n < 0 || n > 10000000) ||
         (a.generation.traceId &&
           !/^[a-f0-9]{16,64}$/.test(a.generation.traceId)) ||
         (a.generation.fallbackFrom && a.generation.provider !== "google"))

@@ -4,7 +4,10 @@ import { requirePermission } from "@/lib/roles";
 import { readIntegrations, updateIntegrations } from "@/lib/integration-config";
 import { SUPPORT_MODELS } from "@/lib/knowledge-answer";
 import { EMBEDDING_MODEL, EMBEDDING_DIMENSIONS } from "@/lib/knowledge-policy";
-import { GROWTH_MODELS } from "@/lib/model-config";
+import { GROWTH_MODELS, configuredRoute, modelRoute, routeReadiness } from "@/lib/model-config";
+import { geminiReady } from "@/lib/google-client";
+import { getMetaConnection, META_WONDER_MODEL } from "@/lib/meta";
+import { sharedWorkerStatus } from "@/lib/integration-checks";
 const input = z.discriminatedUnion("action", [
   z
     .object({
@@ -40,6 +43,10 @@ export async function GET(request: Request) {
   try {
     const actor = await operator(request),
       config = await readIntegrations();
+    const agentRoute = await configuredRoute({ purpose: "triage" });
+    const coding = (await sharedWorkerStatus().catch(() => null))?.coding;
+    let metaConfigured = false;
+    try { getMetaConnection(); metaConfigured = true; } catch {}
     return Response.json(
       {
         actor,
@@ -56,9 +63,19 @@ export async function GET(request: Request) {
             config.workspace?.supportModel ||
             process.env.CUE_SUPPORT_MODEL ||
             "gemini-2.5-flash",
-          agent: process.env.GEMINI_MODEL || "gemini-2.5-flash",
-          qualification: process.env.GEMINI_MODEL || "gemini-2.5-flash",
-          coding: "Codex",
+          agent: agentRoute.model,
+          qualification: agentRoute.model,
+          coding:
+            coding?.model || process.env.CUE_CODING_MODEL || META_WONDER_MODEL,
+          codingConfigured:
+            coding?.provider === "meta" &&
+            coding.backend === "local" &&
+            coding.configured &&
+            coding.workerOnline === true,
+          codingBackend: coding?.backend === "local" ? "local" : null,
+          codingWorkerOnline: coding?.backend === "local" && coding.workerOnline === true,
+          codingDetail: coding?.detail || "No fresh local coding worker",
+          legacyCoding: "Codex",
           growth:
             config.workspace?.growthModel ||
             process.env.CUE_GROWTH_MODEL ||
@@ -66,6 +83,8 @@ export async function GET(request: Request) {
           embedding: EMBEDDING_MODEL,
           dimensions: EMBEDDING_DIMENSIONS,
           litellm: !!process.env.LITELLM_API_KEY,
+          meta: metaConfigured,
+          google: geminiReady(),
           litellmCreditsRemaining: null,
         },
       },
@@ -89,13 +108,11 @@ export async function POST(request: Request) {
   }
   try {
     const body = input.parse(await request.json());
-    if (
-      ((body.action === "model" && !body.supportModel.startsWith("gemini")) ||
-        (body.action === "growth-model" &&
-          body.growthModel === "claude-sonnet-4.6")) &&
-      !process.env.LITELLM_API_KEY
-    )
-      throw new Error("LiteLLM is not configured");
+    if (body.action !== "workspace") {
+      const route = modelRoute(body.action === "model" ? body.supportModel : body.growthModel);
+      const readiness = routeReadiness(route);
+      if (readiness.kind === "unavailable") throw new Error(readiness.reason);
+    }
     await updateIntegrations((c) => ({
       ...c,
       workspace:

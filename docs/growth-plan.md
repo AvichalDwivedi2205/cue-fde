@@ -1,6 +1,6 @@
 # Cue Growth: product research, integration and demo plan
 
-Research date: October 11, 2026. This plan records the approved scope and research hypotheses. The configured Bloom Growth implementation is now deployed, with actual controlled publication/activation and retained quality limits recorded in [the verification report](verification-agent-growth-2026-10-11.md). Organic acquisition and comparative quality remain unproven. Existing Cue/Bloom support, engineering and channel verification remains recorded separately.
+This plan records proposed scope and research hypotheses. Previous deployment and acceptance claims are withdrawn. Organic acquisition and comparative quality remain unproven.
 
 ## Recommendation
 
@@ -75,7 +75,7 @@ Use the existing durable workpool for qualification and drafting. Keep separate 
 
 An opportunity moves through discovered → qualified/needs-feature/dismissed → drafted → awaiting-review → approved → publication-recorded. Publication, visit and activation are distinct observations. A supplied permalink is initially operator-reported. Verify the actual post through a bounded official read or an independent native-platform check, matching the brand author, original thread, approved content and campaign-link destination before showing verified publication. Keep the verification method visible. Even verified publication does not establish that the intended recipient read it.
 
-Capability validity requires a deployed acceptance check for the registered app and release. An approved PR alone is insufficient. The currently verified caption-search capability can be prepared as the first evidence record; do not pretend a new coding run happened during the growth demo. A release change requires re-verification before its facts can be used again.
+Capability validity requires a deployed acceptance check for the registered app and release. An approved PR alone is insufficient. Verify caption-search capability for the current release before preparing an evidence record. A release change requires re-verification before its facts can be used again.
 
 Gemini extracts the stated need and proposes matches/drafts against this bounded capability list. Server rules enforce app scope, capability validity, permitted channel, exact draft approval and deduplication. An edited draft or changed evidence invalidates old approval. Source text and model output cannot change permissions or execute commands.
 
@@ -117,7 +117,7 @@ This remains scoped to the configured workspace and registered Bloom app. Genera
 
 ## Five-to-seven-minute demo
 
-Prepare the genuine currently verified caption-search evidence and the separate participant browser beforehand. Keep the real source and screenshots, and use a fresh guest so previous memories cannot satisfy the activation goal.
+Prepare current caption-search evidence and a separate participant browser beforehand. Keep the real source and screenshots, and use a fresh guest so previous memories cannot satisfy the activation goal.
 
 | Beat | Action                                                                                        | What the audience sees                                                  |
 | ---- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |

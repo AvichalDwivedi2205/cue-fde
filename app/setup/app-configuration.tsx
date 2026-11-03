@@ -9,6 +9,7 @@ export function AppConfiguration({
   busy,
   send,
   register,
+  reload,
 }: {
   apps: App[];
   section: string;
@@ -16,9 +17,29 @@ export function AppConfiguration({
   busy: boolean;
   send: (body: object) => Promise<unknown>;
   register: (e: FormEvent<HTMLFormElement>) => void;
+  reload: () => Promise<void>;
 }) {
   const [id, setId] = useState(""),
     [copied, setCopied] = useState(false);
+  const [lifecycleBusy, setLifecycleBusy] = useState(false);
+  async function lifecycle(action: string, appId: string) {
+    setLifecycleBusy(true);
+    try {
+      const r = await fetch("/api/onboarding", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action, appId }),
+      });
+      const b = await r.json();
+      if (!r.ok) throw new Error(b.error);
+      await reload();
+      return b.message as string;
+    } catch (e) {
+      return e instanceof Error ? e.message : "Request failed";
+    } finally {
+      setLifecycleBusy(false);
+    }
+  }
   useEffect(() => {
     queueMicrotask(() => {
       if (!apps.some((a) => a.id === id)) {
@@ -98,19 +119,71 @@ export function AppConfiguration({
                     <p className="mt-1 font-mono text-[10px] text-cue-subtle">
                       {a.id}
                     </p>
+                    <small className="mt-1 block text-[11px] text-cue-muted">
+                      {a.packStatus === "active"
+                        ? "Active"
+                        : a.packStatus === "suspended"
+                          ? "Suspended"
+                          : a.packStatus === "draft"
+                            ? a.installChecked
+                              ? "Draft — install verified, ready to activate"
+                              : "Draft — send one widget message, then verify install"
+                            : "Legacy (no pack row)"}
+                      {a.hasEngineering ? " · repository bound" : ""}
+                    </small>
                   </div>
-                  <a
-                    className="ui-button"
-                    href="#domains"
-                    onClick={() => {
-                      setId(a.id);
-                      try {
-                        sessionStorage.setItem("cue-agent-app", a.id);
-                      } catch {}
-                    }}
-                  >
-                    Configure
-                  </a>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {a.packStatus === "draft" && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          disabled={lifecycleBusy}
+                          onClick={() =>
+                            void lifecycle("recordInstallCheck", a.id)
+                          }
+                        >
+                          Verify install
+                        </Button>
+                        <Button
+                          variant="primary"
+                          disabled={lifecycleBusy}
+                          onClick={() => void lifecycle("activate", a.id)}
+                        >
+                          Activate
+                        </Button>
+                      </>
+                    )}
+                    {a.packStatus === "active" && (
+                      <Button
+                        variant="ghost"
+                        disabled={lifecycleBusy}
+                        onClick={() => void lifecycle("suspend", a.id)}
+                      >
+                        Suspend
+                      </Button>
+                    )}
+                    {a.packStatus === "suspended" && (
+                      <Button
+                        variant="primary"
+                        disabled={lifecycleBusy}
+                        onClick={() => void lifecycle("reactivate", a.id)}
+                      >
+                        Reactivate
+                      </Button>
+                    )}
+                    <a
+                      className="ui-button"
+                      href="#domains"
+                      onClick={() => {
+                        setId(a.id);
+                        try {
+                          sessionStorage.setItem("cue-agent-app", a.id);
+                        } catch {}
+                      }}
+                    >
+                      Configure
+                    </a>
+                  </div>
                 </div>
               ))}
             </div>

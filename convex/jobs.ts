@@ -1,10 +1,18 @@
+import { runExecutionMode } from "../lib/coding-policy";
+import { engineeringInput } from "../lib/app-pack-schema";
+import { packByAppId } from "./appPacks";
 import schema from "./schema";
 import { mutation, query } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { authorize } from "./cue";
 
 export const claim = mutation({
-  args: { secret: v.string(), worker: v.string() },
+  args: {
+    secret: v.string(),
+    worker: v.string(),
+    executionMode: v.optional(v.literal("pull_request")),
+    provider: v.optional(v.literal("Meta")),
+  },
   returns: v.union(v.null(), schema.doc("jobs")),
   handler: async (ctx, args) => {
     authorize(args.secret);
@@ -35,10 +43,28 @@ export const claim = mutation({
       .withIndex("by_status", (q) => q.eq("status", "running"))
       .first();
     if (running) return null;
-    const job = await ctx.db
+    const candidates = await ctx.db
       .query("jobs")
       .withIndex("by_status", (q) => q.eq("status", "queued"))
-      .first();
+      .take(args.executionMode || args.provider ? 100 : 1);
+    let job: (typeof candidates)[number] | undefined = candidates[0];
+    if (args.executionMode || args.provider) {
+      job = undefined;
+      for (const candidate of candidates) {
+        if (candidate.kind !== "investigate" && candidate.kind !== "feature")
+          continue;
+        const run = await ctx.db.get("runs", candidate.runId);
+        if (
+          !run ||
+          (args.executionMode &&
+            runExecutionMode(run) !== args.executionMode) ||
+          (args.provider && run.provider !== args.provider)
+        )
+          continue;
+        job = candidate;
+        break;
+      }
+    }
     if (!job) return null;
     const claimed = {
       worker: args.worker,
@@ -87,6 +113,19 @@ export const decide = mutation({
     const r = await ctx.db.get("runs", a.runId);
     if (!r || r.status !== "awaiting_approval" || r.commit !== a.commit)
       throw new ConvexError("Approval must match the pending commit");
+    if (a.approve && r.codingPolicy) {
+      const pack = await packByAppId(ctx, r.targetId || "bloom");
+      if (
+        !pack ||
+        pack.status !== "active" ||
+        !pack.engineering ||
+        JSON.stringify(engineeringInput.parse(pack.engineering)) !==
+          JSON.stringify(engineeringInput.parse(r.codingPolicy))
+      )
+        throw new ConvexError(
+          "Repository policy changed after implementation started",
+        );
+    }
     if (a.approve && r.kind === "feature") {
       const issue = await ctx.db.get("issues", r.issueId);
       if (!issue?.specApprovedAt || issue.spec !== r.approvedSpec)

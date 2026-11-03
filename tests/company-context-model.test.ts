@@ -9,11 +9,12 @@ vi.mock("../lib/server-store", async () => ({
   db: () => m,
   secret: () => "trusted",
 }));
-vi.mock("../lib/gemini", () => ({
+vi.mock("../lib/google-client", () => ({
+  geminiReady: () => true,
   client: () => ({ models: { generateContent: m.generate } }),
-  draft: m.draft,
 }));
-vi.mock("../lib/model-config", () => ({
+vi.mock("../lib/model-config", async (original) => ({
+  ...(await original<object>()),
   configuredSupportModel: async () => "gemini-2.5-flash",
   configuredGrowthModel: async () => "gemini-2.5-flash",
   GROWTH_MODELS: ["gemini-2.5-flash", "claude-sonnet-4.6"],

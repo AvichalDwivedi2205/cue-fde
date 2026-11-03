@@ -6,6 +6,7 @@ import schema from "./schema";
 const key = v.union(
   v.literal("integrations"),
   v.literal("worker"),
+  v.literal("coding-worker"),
   v.literal("background"),
   v.literal("x-checkpoint"),
 );
