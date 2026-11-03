@@ -25,17 +25,17 @@ The coding policy freezes the repository, base branch, allowed files, package di
 
 ## Current verification
 
-At published checkpoint [8f3b3aa](https://github.com/AvichalDwivedi2205/cue-fde/commit/8f3b3aa), checked November 3, 2026, all 735 tests across 98 files, TypeScript, lint, and the production build pass. Lint retains six existing warnings. This review UI now serves all gateway traffic; candidate and live access checks pass, and the displayed approval binding matches the actual private PR head. No approval was submitted during those checks.
+At public checkpoint [02c5421](https://github.com/AvichalDwivedi2205/cue-fde/commit/02c5421), checked November 3, 2026, all 785 tests across 100 files, TypeScript, lint, and the production build pass. Lint has zero errors and six existing warnings. The hosted gateway runs the verified [8f3b3aa review UI](https://github.com/AvichalDwivedi2205/cue-fde/commit/8f3b3aa); the internal commit-provenance follow-up is deployed.
 
-Live Meta checks verified Spark structured output and Wonder tool use. The hosted gateway generated a Spark support reply and classification with actual model/usage receipts; repeated HTTP QA requests retained one case, and six access checks passed. A separate actual installed-widget report now includes its screenshot, correct application/workspace URL, support reply, and completed Spark classification. The conversation survives reload with and without a fresh operator session.
+The real preview workflow is verified: an installed-widget report and screenshot received a Spark reply and classification, then Muse Wonder produced a scoped private draft PR in 17 completed calls. A fresh isolated verifier passed TypeScript, 238 default tests, and all eight protected acceptance checks before import. The patch changes one Canvas file with 49 added lines. Independent review found no new P1 or P2 issues. Human exact-commit approval and authenticated preview build receipts are recorded. A requested author correction preserved the exact tree and parent; original test provenance remains intact, with a separate approval for the replacement commit.
 
-A live browser test on synthetic LatchGrid data reproduced the defect: Backspace removed a Note locally, but reload restored it. The existing menu-delete control stayed deleted after reload. The original seven protected acceptance checks cover Note persistence, group members and links, and explicit child selection. An eighth check now protects deletion across workspace navigation, following a matched failure experiment. Earlier candidates were rejected when domain review found data-loss or missed-deletion behavior.
+Browser checks confirm that Note keyboard and menu deletion stay saved after reload. Group-only deletion preserves unselected Notes; explicitly selecting a group and child deletes those two while retaining other Notes. Multi-selection deletion also persisted after normal workspace navigation and a fresh reload. This observes live timing, not controlled network latency. The exact grouped-child-to-outside-Note edge fixture has protected isolated-test coverage only. All synthetic test Notes and groups were removed.
 
-The third actual product investigation completed 17 Muse Wonder calls and produced a private draft fix PR. Its fresh verifier passed TypeScript, 238 default tests, and all eight protected acceptance checks before the supervisor imported the patch and opened the PR. The reported usage was 673,361 input tokens and 9,497 output tokens. One Canvas file changed; tests and manifests stayed unchanged. Independent patch review found no new P1 or P2 issues. This establishes a proposed, independently checked patch; human review and deployment are still pending.
+The saved support thread rendered with correct branding in three current checks, including a fresh tab and reload, without DevTools. Earlier intermittent blank frames have no confirmed cause; these passing checks do not establish a source-level fix. No application security protections were changed.
 
-Modal execution is disabled following failed credit redemption, and its hosted worker has been removed. The replacement uses local Docker with a dedicated Linux VM, isolated containers, and fresh independent verification. Real isolation, cancellation, and Bun-cache checks pass; the full private repository baseline also passes TypeScript and 238 default tests with the expected protected acceptance failures.
+The linked preview audit is recorded. Production release and the customer case remain pending; no customer-confirmed production resolution is claimed. The verified source is published on the public default branch. The video, personal eligibility confirmations, and submission form remain to complete. Modal is disabled after failed credit redemption; coding uses dedicated local Docker isolation and fresh verification.
 
-Generic app investigations use server-provided active repository capabilities and require operator reproduction evidence. Approved patches awaiting release cannot start duplicate runs. Review buttons bind the displayed run, commit, application, scope, and role; stale or malformed review context sends no approval request. Human approval, the authenticated preview deployment, browser reload acceptance, and customer outcome remain **pending**. A fresh-tab embedded-widget check also needs native browser comparison. Follow the [delivery record](docs/meta-delivery-plan.md), [demo plan](docs/meta-demo-plan.md), and [submission checklist](docs/meta-submission-checklist.md).
+See the [delivery evidence](docs/meta-delivery-plan.md), [three-minute demo plan](docs/meta-demo-plan.md), and [submission checklist](docs/meta-submission-checklist.md).
 
 ## Run Cue locally
 
@@ -83,6 +83,8 @@ A release verifier records the deployed commit and acceptance evidence before Cu
 ## Review the public fixtures
 
 LatchGrid is the existing private customer application used to test Cue's integration. Its canvas and private source are outside this public submission. The event work connects Meta routing and isolated coding execution to Cue's review and release controls. Public materials must separate those changes from the pre-existing customer app.
+
+Hosted operator views require authorized sign-in. The public repository and fixture checks are accessible without private customer source or workspace access.
 
 Reviewers can inspect and run the [Generic Notes fixture](demo/generic/README.md) without private source or customer access:
 
