@@ -9,6 +9,7 @@ vi.mock("../lib/integration-config", () => ({
   }),
 }));
 vi.mock("../lib/gemini", () => ({ geminiReady: () => state.gemini }));
+vi.mock("../lib/google-client", () => ({ geminiReady: () => state.gemini }));
 vi.mock("../lib/integration-checks", () => ({
   sharedWorkerStatus: async () => null,
   xRuntimeStatus: async () => ({ connected: false, detail: "Not configured" }),
@@ -38,12 +39,54 @@ beforeEach(() => {
   state.writer = "claude-sonnet-4.6";
   state.gemini = true;
   vi.stubEnv("LITELLM_API_KEY", "isolated-test-key");
+  vi.stubEnv("CUE_AGENT_MODEL", "");
+  vi.stubEnv("GEMINI_MODEL", "");
+  vi.stubEnv("META_API_KEY", "");
+  vi.stubEnv("META_BASE_URL", "");
+});
+test("Meta qualification and Growth writing work without a Google provider", async () => {
+  state.writer = "muse-spark-1.3";
+  state.gemini = false;
+  vi.stubEnv("CUE_AGENT_MODEL", "muse-spark-1.3");
+  vi.stubEnv("META_API_KEY", "isolated-meta-key");
+  const snapshot = await workspaceSnapshot("registered", {
+    id: "owner@example.test",
+    name: "Owner",
+    role: "owner",
+  });
+  const growth = snapshot.agents.find((agent) => agent.id === "growth");
+  expect(growth?.health.st).toBe("ok");
+  expect(growth?.models).toMatchObject({
+    qualification: "muse-spark-1.3",
+    writer: "muse-spark-1.3",
+    writerProvider: "meta",
+  });
+  expect(growth?.health.detail).toContain("muse-spark-1.3 via Meta API");
+});
+
+test("an unavailable selected Meta writer is not satisfied by Gemini", async () => {
+  state.writer = "muse-spark-1.3";
+  const snapshot = await workspaceSnapshot("registered", {
+    id: "owner@example.test",
+    name: "Owner",
+    role: "owner",
+  });
+  expect(
+    snapshot.agents.find((agent) => agent.id === "growth")?.health,
+  ).toMatchObject({
+    st: "unknown",
+    label: "Gemini qualification · Meta API writer unavailable",
+  });
 });
 vi.mock("../lib/app-pack", async () => {
-  const pack = { appId: 'registered', name: 'Bloom', status: "active", origins: [] };
-  const actual = await vi.importActual<typeof import("../lib/app-pack")>(
-    "../lib/app-pack",
-  );
+  const pack = {
+    appId: "registered",
+    name: "Bloom",
+    status: "active",
+    origins: [],
+  };
+  const actual =
+    await vi.importActual<typeof import("../lib/app-pack")>("../lib/app-pack");
   const known = (appId?: string) => appId === pack.appId;
   return {
     ...actual,
@@ -53,7 +96,8 @@ vi.mock("../lib/app-pack", async () => {
       return pack;
     },
     requireActivePack: async (appId: string) => {
-      if (!known(appId)) throw new Error("Register the application in Setup first");
+      if (!known(appId))
+        throw new Error("Register the application in Setup first");
       return pack;
     },
     listPacks: async () => [pack],

@@ -4,7 +4,8 @@ const { generate, completion, configure } = vi.hoisted(() => ({
   completion: vi.fn(),
   configure: vi.fn(),
 }));
-vi.mock("../lib/gemini", () => ({
+vi.mock("../lib/google-client", () => ({
+  geminiReady: () => true,
   client: () => ({ models: { generateContent: generate } }),
 }));
 vi.mock("openai", () => ({
@@ -12,10 +13,7 @@ vi.mock("openai", () => ({
     chat = { completions: { create: completion } };
   },
 }));
-vi.mock("neatlogs", async (original) => ({
-  ...(await original<object>()),
-  wrapOpenAI: (sdk: unknown) => sdk,
-}));
+
 vi.mock("../lib/model-config", async (original) => ({
   ...(await original<object>()),
   configuredGrowthModel: configure,

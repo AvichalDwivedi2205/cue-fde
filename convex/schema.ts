@@ -1,6 +1,11 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { agentId, taskState, taskAction } from "./workspaceValidators";
+import {
+  agentId,
+  taskState,
+  taskAction,
+  engineeringBinding,
+} from "./workspaceValidators";
 import { growthTables } from "./growthSchema";
 import { prospectTables } from "./prospectSchema";
 import { knowledgeTables } from "./knowledgeSchema";
@@ -114,19 +119,7 @@ export default defineSchema({
         screenshots: v.boolean(),
       }),
     ),
-    engineering: v.optional(
-      v.object({
-        repository: v.string(),
-        baseBranch: v.string(),
-        allowedPaths: v.array(v.string()),
-        testCommands: v.array(
-          v.object({
-            program: v.string(),
-            args: v.array(v.string()),
-          }),
-        ),
-      }),
-    ),
+    engineering: v.optional(engineeringBinding),
     routing: v.optional(
       v.object({
         label: v.optional(v.string()),
@@ -207,6 +200,16 @@ export default defineSchema({
     status: v.string(),
     phase: v.string(),
     provider: v.string(),
+    codingPolicy: v.optional(engineeringBinding),
+    model: v.optional(v.string()),
+    requestedModel: v.optional(v.string()),
+    executionBackend: v.optional(
+      v.union(v.literal("local"), v.literal("modal")),
+    ),
+    inputTokens: v.optional(v.number()),
+    outputTokens: v.optional(v.number()),
+    modelCalls: v.optional(v.number()),
+    sandboxIds: v.optional(v.array(v.string())),
     createdAt: v.number(),
     updatedAt: v.number(),
     rootCause: v.optional(v.string()),

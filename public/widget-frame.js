@@ -172,6 +172,7 @@
       e.data.origin !== origin
     )
       return;
+    context = e.data;
     if (!session) void init(e.data);
   });
   document.getElementById("close").onclick = () =>

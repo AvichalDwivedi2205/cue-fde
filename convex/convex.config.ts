@@ -8,7 +8,6 @@ const app = defineApp({
     CUE_DEMO_SECRET: v.optional(v.string()),
     CUE_BACKGROUND_ORIGIN: v.optional(v.string()),
     CRUSTDATA_API_KEY: v.optional(v.string()),
-    NEATLOGS_API_KEY: v.optional(v.string()),
   },
 });
 app.use(workpool, { name: "triagePool" });

@@ -187,6 +187,8 @@ export async function POST(request: Request) {
         baseBranch: target.baseBranch,
         allowedPaths: target.allowedPaths,
         testCommands: target.testCommands,
+        packageDirectory: target.packageDirectory,
+        packageManager: target.packageManager,
       });
       return Response.json({
         ok: true,

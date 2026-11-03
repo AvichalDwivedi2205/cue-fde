@@ -1,6 +1,7 @@
 import type { CodingConfig } from "./integration-config";
 export function permittedChange(file: string, policy: CodingConfig) {
   if (
+    /[\u0000-\u001f\u007f]/.test(file) ||
     file.startsWith("/") ||
     file.split("/").some((p) => p === ".." || p.startsWith(".")) ||
     file.includes("\\")
@@ -11,6 +12,12 @@ export function permittedChange(file: string, policy: CodingConfig) {
   );
 }
 export function protectedSource(file: string) {
+  if (
+    /(^|\/)(vitest\.config\.[cm]?[jt]s|vite\.config\.[cm]?[jt]s|tsconfig[^/]*\.json|next\.config\.[cm]?[jt]s|eslint[^/]*|[^/]+\.test\.[cm]?[jt]sx?|[^/]+\.spec\.[cm]?[jt]sx?)$/.test(
+      file,
+    )
+  )
+    return true;
   return /(^|\/)(tests?|__tests__)(\/|\.)|(^|\/)(AGENTS\.md|CLAUDE\.md|package(-lock)?\.json|.*lock.*|test\.mjs|fixture\.mjs)$/.test(
     file,
   );

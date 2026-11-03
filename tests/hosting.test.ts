@@ -128,6 +128,62 @@ test("server state bounds payloads and rejects invalid versions", async () => {
       }),
     ).rejects.toThrow("Invalid server state");
 });
+test("coding worker state has an independent authenticated compare-and-swap key", async () => {
+  const t = convexTest(schema, modules);
+  expect(
+    await t.mutation(api.serverState.write, {
+      ...auth,
+      key: "worker",
+      value: "channel-worker-status",
+      expectedVersion: 0,
+    }),
+  ).toBe(true);
+  expect(
+    await t.mutation(api.serverState.write, {
+      ...auth,
+      key: "coding-worker",
+      value: "private-coding-worker-status",
+      expectedVersion: 0,
+    }),
+  ).toBe(true);
+  expect(
+    await t.mutation(api.serverState.write, {
+      ...auth,
+      key: "coding-worker",
+      value: "private-coding-worker-update",
+      expectedVersion: 1,
+    }),
+  ).toBe(true);
+  expect(
+    await t.mutation(api.serverState.write, {
+      ...auth,
+      key: "coding-worker",
+      value: "stale-coding-worker-status",
+      expectedVersion: 1,
+    }),
+  ).toBe(false);
+  expect(
+    (await t.query(api.serverState.read, { ...auth, key: "worker" }))?.value,
+  ).toBe("channel-worker-status");
+  expect(
+    (await t.query(api.serverState.read, { ...auth, key: "coding-worker" }))
+      ?.value,
+  ).toBe("private-coding-worker-update");
+  await expect(
+    t.query(api.serverState.read, { secret: "wrong", key: "coding-worker" }),
+  ).rejects.toThrow("Unauthorized");
+  await expect(
+    t.mutation(api.serverState.write, {
+      secret: "wrong",
+      key: "coding-worker",
+      value: "forged",
+      expectedVersion: 2,
+    }),
+  ).rejects.toThrow("Unauthorized");
+  expect(JSON.stringify(await t.query(api.cue.snapshot, auth))).not.toContain(
+    "private-coding-worker",
+  );
+});
 test("private runtime state never appears in customer or operator snapshots", async () => {
   const t = convexTest(schema, modules);
   await t.mutation(api.serverState.write, {

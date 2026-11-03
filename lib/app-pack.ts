@@ -1,5 +1,7 @@
-import { api } from "@/convex/_generated/api";
+import { api } from "../convex/_generated/api";
 import { db, secret } from "./server-store";
+import { engineeringInput } from "./app-pack-schema";
+import type { EngineeringBinding } from "./app-pack-schema";
 import type { CodingConfig, WidgetApp } from "./integration-config";
 
 // Node-side read model for the app-pack aggregate (convex/appPacks.ts owns
@@ -14,17 +16,10 @@ export type AppContext = {
   origins: string[];
   aliases?: string[];
   widget?: { answers: boolean; voice: boolean; screenshots: boolean };
-  engineering?: {
-    repository: string;
-    baseBranch: string;
-    allowedPaths: string[];
-    testCommands: { program: "node" | "npm"; args: string[] }[];
-  };
+  engineering?: EngineeringBinding;
   routing?: { label?: string; engineeringChannel?: string };
   installCheckedAt?: number;
 };
-
-type PackRow = AppContext & { _id: unknown; _creationTime: number };
 
 // Boundary parse: Convex rows carry looser field types (e.g. test command
 // program is a plain string) than the domain type; construct the AppContext
@@ -32,46 +27,41 @@ type PackRow = AppContext & { _id: unknown; _creationTime: number };
 function normalize(pack: {
   appId: string;
   name: string;
-  status: string;
+  status: AppContext["status"];
   origins: string[];
   aliases?: string[];
   widget?: { answers: boolean; voice: boolean; screenshots: boolean };
-  engineering?: {
-    repository: string;
-    baseBranch: string;
-    allowedPaths: string[];
-    testCommands: { program: string; args: string[] }[];
-  };
+  engineering?: unknown;
   routing?: { label?: string; engineeringChannel?: string };
   installCheckedAt?: number;
 }): AppContext {
   return {
     appId: pack.appId,
     name: pack.name,
-    status: pack.status as AppContext["status"],
+    status: pack.status,
     origins: pack.origins,
     aliases: pack.aliases,
     widget: pack.widget,
-    engineering: pack.engineering as AppContext["engineering"],
+    engineering: pack.engineering
+      ? engineeringInput.parse(pack.engineering)
+      : undefined,
     routing: pack.routing,
     installCheckedAt: pack.installCheckedAt,
   };
 }
 
-export async function packContext(
-  appId: string,
-): Promise<AppContext | null> {
+export async function packContext(appId: string): Promise<AppContext | null> {
   const pack = await db().query(api.appPacks.get, {
     secret: secret(),
     appId,
   });
-  return pack ? normalize(pack as Parameters<typeof normalize>[0]) : null;
+  return pack ? normalize(pack) : null;
 }
 
 export async function listPacks(): Promise<AppContext[]> {
-  return (
-    await db().query(api.appPacks.list, { secret: secret() })
-  ).map((p) => normalize(p as Parameters<typeof normalize>[0]));
+  return (await db().query(api.appPacks.list, { secret: secret() })).map((p) =>
+    normalize(p),
+  );
 }
 
 // Sessions and intake are allowed for draft packs (that is how the install

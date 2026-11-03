@@ -46,7 +46,30 @@ export const widgetOptionsInput = z
   })
   .strict();
 
+export const packageDirectoryInput = z
+  .string()
+  .min(1)
+  .max(200)
+  .refine(
+    (value) =>
+      value === "." ||
+      (!value.startsWith("/") &&
+        !value.includes("\\") &&
+        value
+          .split("/")
+          .every(
+            (part) =>
+              !!part &&
+              part !== ".." &&
+              !part.startsWith(".") &&
+              !/[\u0000-\u001f\u007f]/.test(part),
+          )),
+    "Use a safe repository-relative package directory",
+  );
+
 export const engineeringInput = z.object({
+  packageDirectory: packageDirectoryInput.optional(),
+  packageManager: z.enum(["npm", "bun", "none"]).optional(),
   repository: z.string().regex(/^[\w.-]+\/[\w.-]+$/),
   baseBranch: z
     .string()

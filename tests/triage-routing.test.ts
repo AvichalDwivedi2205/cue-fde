@@ -13,6 +13,7 @@ vi.mock("../lib/gemini", () => ({
   geminiReady: () => true,
   classifyReport: mocks.classify,
 }));
+vi.mock("../lib/google-client", () => ({ geminiReady: () => true }));
 import { classifySavedReport } from "../lib/triage";
 import type { Id } from "../convex/_generated/dataModel";
 

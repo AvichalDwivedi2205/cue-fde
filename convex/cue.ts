@@ -1,5 +1,12 @@
+import { engineeringInput } from "../lib/app-pack-schema";
 import schema from "./schema";
-import { mutation, query, env, QueryCtx, MutationCtx } from "./_generated/server";
+import {
+  mutation,
+  query,
+  env,
+  QueryCtx,
+  MutationCtx,
+} from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { uploadRegressionCandidate } from "../lib/symptoms";
 import { fallbackReply } from "../lib/reply-policy";
@@ -352,7 +359,9 @@ export const createCase = mutation({
           : `report:${stamp()}:${args.customer}:${args.body}`;
     const fingerprint = rehearsal
       ? rehearsalFingerprint(rehearsal.appId, rehearsal.key)
-      : args.appId ? `${args.appId}:${group}` : group;
+      : args.appId
+        ? `${args.appId}:${group}`
+        : group;
     let issue = await ctx.db
       .query("issues")
       .withIndex("by_fingerprint", (q) => q.eq("fingerprint", fingerprint))
@@ -401,18 +410,18 @@ export const createCase = mutation({
       provenance: rehearsal
         ? `Controlled rehearsal ${rehearsal.key} · ${args.channel === "chat" ? "connected widget report" : "operator fixture; native channel delivery not established"}`
         : args.sample
-        ? `Synthetic ${args.channel === "reddit" ? "Reddit" : "X"} sample · operator capture`
-        : args.channel === "x"
-          ? "Operator-assisted X capture"
-          : args.channel === "reddit"
-            ? "Operator-assisted Reddit capture"
-            : args.appId
-              ? "Connected app widget · visitor supplied identity"
-              : args.channel === "slack"
-                ? "Verified Slack event"
-                : args.channel === "email"
-                  ? "Verified inbound email"
-                  : "Live demo message",
+          ? `Synthetic ${args.channel === "reddit" ? "Reddit" : "X"} sample · operator capture`
+          : args.channel === "x"
+            ? "Operator-assisted X capture"
+            : args.channel === "reddit"
+              ? "Operator-assisted Reddit capture"
+              : args.appId
+                ? "Connected app widget · visitor supplied identity"
+                : args.channel === "slack"
+                  ? "Verified Slack event"
+                  : args.channel === "email"
+                    ? "Verified inbound email"
+                    : "Live demo message",
       priority: upload ? "P1" : "P2",
       status: feature ? "requested" : "open",
       tags: upload
@@ -535,11 +544,7 @@ export const startRun = mutation({
           "Describe how the failure was reproduced (at least 20 characters) before starting a fix run.",
         );
       const pack = await packByAppId(ctx, issue.appId || "bloom");
-      if (
-        !pack ||
-        pack.status !== "active" ||
-        !pack.engineering
-      )
+      if (!pack || pack.status !== "active" || !pack.engineering)
         throw new ConvexError(
           "Connect this app's repository in settings first",
         );
@@ -547,7 +552,8 @@ export const startRun = mutation({
         issueId: issue._id,
         status: "running",
         phase: "reproducing",
-        provider: "Codex",
+        provider: "Meta",
+        codingPolicy: engineeringInput.parse(pack.engineering),
         kind: "bug",
         deploymentMode: "pull_request",
         targetId: pack.appId,
@@ -572,12 +578,14 @@ export const startRun = mutation({
       status: "running",
       phase: "reproducing",
       provider: "Codex",
-      ...(rehearsal ? {
-        kind: "bug",
-        targetId: rehearsal.appId,
-        repository: rehearsal.repository,
-        deploymentMode: "rehearsal",
-      } : {}),
+      ...(rehearsal
+        ? {
+            kind: "bug",
+            targetId: rehearsal.appId,
+            repository: rehearsal.repository,
+            deploymentMode: "rehearsal",
+          }
+        : {}),
       createdAt: stamp(),
       updatedAt: stamp(),
     });
@@ -622,7 +630,10 @@ export const startFeature = mutation({
     const pack = await packByAppId(ctx, issue.appId || "bloom");
     if (!pack || pack.status !== "active" || !pack.engineering)
       throw new ConvexError("Connect this app's repository in settings first");
-    if (a.repository !== undefined && a.repository !== pack.engineering.repository)
+    if (
+      a.repository !== undefined &&
+      a.repository !== pack.engineering.repository
+    )
       throw new ConvexError("Repository must belong to this connected app");
     const old = await ctx.db
       .query("runs")
@@ -642,7 +653,8 @@ export const startFeature = mutation({
       issueId: issue._id,
       status: "running",
       phase: "preparing",
-      provider: "Codex",
+      provider: "Meta",
+      codingPolicy: engineeringInput.parse(pack.engineering),
       kind: "feature",
       approvedSpec: a.expectedSpec,
       targetId: pack.appId,
@@ -668,6 +680,13 @@ export const startFeature = mutation({
 // with the runs schema — tests/update-run-schema-sync.test.ts fails the build
 // when the two drift (the reproductionStatus incident).
 export const updateRunFields = v.object({
+  model: v.optional(v.string()),
+  requestedModel: v.optional(v.string()),
+  executionBackend: v.optional(v.union(v.literal("local"), v.literal("modal"))),
+  inputTokens: v.optional(v.number()),
+  outputTokens: v.optional(v.number()),
+  modelCalls: v.optional(v.number()),
+  sandboxIds: v.optional(v.array(v.string())),
   status: v.optional(v.string()),
   phase: v.optional(v.string()),
   rootCause: v.optional(v.string()),
@@ -736,9 +755,12 @@ export const updateRun = mutation({
       });
     if (args.fields.status === "resolved") {
       await ctx.db.patch("issues", run.issueId, { status: "resolved" });
-      const linked = await ctx.db.query("cases")
-        .withIndex("by_issueId", (q) => q.eq("issueId", run.issueId)).take(201);
-      if (linked.length > 200) throw new ConvexError("Release notifications require batching");
+      const linked = await ctx.db
+        .query("cases")
+        .withIndex("by_issueId", (q) => q.eq("issueId", run.issueId))
+        .take(201);
+      if (linked.length > 200)
+        throw new ConvexError("Release notifications require batching");
       for (const c of linked) {
         await ctx.db.patch("cases", c._id, {
           ...(c.channel === "chat" ? { status: "resolved" } : {}),

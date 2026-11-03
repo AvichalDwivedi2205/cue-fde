@@ -7,27 +7,113 @@ import { slackConfig } from "./integration-config";
 import { slackWebhookStatus } from "./slack-webhook-health";
 import type { XStatus } from "./x-poller";
 import { readHostedBackground } from "./hosted-background";
+import { z } from "zod";
+import { META_MODELS } from "./meta";
 const exec = promisify(execFile);
-export async function sharedWorkerStatus() {
-  const row = await db().query(api.serverState.read, {
-    secret: secret(),
-    key: "worker",
-  });
-  if (!row || Date.now() - row.updatedAt > 30000)
-    throw new Error("Worker offline");
-  return JSON.parse(row.value) as {
-    slack: { connected: boolean; detail?: string; updatedAt: number };
-    notifications: {
-      connected: boolean;
-      lastPollAt: number | null;
-      imported: number;
-      needsReview: number;
-      backlog: boolean;
-      detail?: string;
-    };
-    codex: { loggedIn: boolean; workerOnline: boolean; github: boolean };
-    busy: boolean;
-    x?: XStatus;
+const codingStatusInput = z.object({
+  provider: z.literal("meta"),
+  model: z.enum(META_MODELS),
+  backend: z.literal("modal"),
+  configured: z.boolean(),
+  workerOnline: z.boolean().optional(),
+});
+const xStatusInput = z.object({
+  connected: z.boolean(),
+  detail: z.string(),
+  imported: z.number().int().nonnegative(),
+  lastPollAt: z.number().finite().nullable(),
+  retryAt: z.number().finite().nullable(),
+  backlog: z.boolean(),
+});
+const workerStatusInput = z.object({
+  slack: z.object({
+    connected: z.boolean(),
+    detail: z.string().optional(),
+    updatedAt: z.number().finite(),
+  }),
+  notifications: z.object({
+    connected: z.boolean(),
+    lastPollAt: z.number().finite().nullable(),
+    imported: z.number().int().nonnegative(),
+    needsReview: z.number().int().nonnegative(),
+    backlog: z.boolean(),
+    detail: z.string().optional(),
+  }),
+  codex: z.object({
+    loggedIn: z.boolean(),
+    workerOnline: z.boolean(),
+    github: z.boolean(),
+  }),
+  coding: codingStatusInput.optional(),
+  busy: z.boolean(),
+  x: xStatusInput.optional(),
+});
+const codingWorkerStatusInput = z.object({
+  coding: codingStatusInput,
+  busy: z.boolean(),
+});
+
+export async function sharedWorkerStatus(): Promise<
+  z.infer<typeof workerStatusInput>
+> {
+  const store = db();
+  const auth = secret();
+  const read = async (key: "worker" | "coding-worker"): Promise<unknown> => {
+    try {
+      const row = await store.query(api.serverState.read, {
+        secret: auth,
+        key,
+      });
+      if (
+        !row ||
+        !Number.isFinite(row.updatedAt) ||
+        Date.now() - row.updatedAt > 30000
+      )
+        return undefined;
+      const value: unknown = JSON.parse(row.value);
+      return value;
+    } catch {
+      return undefined;
+    }
+  };
+  const [legacyValue, codingValue] = await Promise.all([
+    read("worker"),
+    read("coding-worker"),
+  ]);
+  const legacy = workerStatusInput.safeParse(legacyValue);
+  const coding = codingWorkerStatusInput.safeParse(codingValue);
+  if (!legacy.success && !coding.success) throw new Error("Worker offline");
+  const base = legacy.success
+    ? legacy.data
+    : {
+        busy: false,
+        slack: {
+          connected: false,
+          detail: "No fresh channel worker",
+          updatedAt: Date.now(),
+        },
+        notifications: {
+          connected: false,
+          lastPollAt: null,
+          imported: 0,
+          needsReview: 0,
+          backlog: false,
+          detail: "No fresh channel worker",
+        },
+        codex: { loggedIn: false, workerOnline: false, github: false },
+        x: {
+          connected: false,
+          detail: "No fresh channel worker",
+          imported: 0,
+          lastPollAt: null,
+          retryAt: null,
+          backlog: false,
+        },
+      };
+  return {
+    ...base,
+    busy: base.busy || (coding.success && coding.data.busy),
+    ...(coding.success ? { coding: coding.data.coding } : {}),
   };
 }
 export async function xRuntimeStatus(): Promise<XStatus> {

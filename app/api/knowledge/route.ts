@@ -17,7 +17,7 @@ import {
 } from "@/lib/knowledge-import";
 import { answerKnowledge, SUPPORT_MODELS } from "@/lib/knowledge-answer";
 import type { Id } from "@/convex/_generated/dataModel";
-import { configuredSupportModel } from "@/lib/model-config";
+import { configuredSupportModel, modelRoute, routeReadiness } from "@/lib/model-config";
 export const runtime = "nodejs";
 const input = z.discriminatedUnion("action", [
   z
@@ -100,6 +100,7 @@ export async function GET(request: Request) {
           ...permissions,
           model,
           litellm: !!process.env.LITELLM_API_KEY,
+          meta: routeReadiness(modelRoute("muse-spark-1.3")).kind === "ready",
         },
         { headers: { "cache-control": "no-store" } },
       );
@@ -151,6 +152,7 @@ export async function GET(request: Request) {
         ...permissions,
         model,
         litellm: !!process.env.LITELLM_API_KEY,
+        meta: routeReadiness(modelRoute("muse-spark-1.3")).kind === "ready",
       },
       { headers: { "cache-control": "no-store" } },
     );

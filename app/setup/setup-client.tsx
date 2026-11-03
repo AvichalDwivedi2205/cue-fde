@@ -30,6 +30,8 @@ type Status = {
     appId: string;
     repository: string;
     baseBranch: string;
+    packageDirectory?: string;
+    packageManager?: "npm" | "bun" | "none";
     allowedPaths: string[];
     testCommands: Array<{ program: string; args: string[] }>;
   }>;
@@ -497,11 +499,11 @@ export function SetupClient({
               <section id="coding" hidden={active !== "coding"}>
                 <div className="section-heading">
                   <h2>App repositories</h2>
-                  <span className="badge">Codex implementation</span>
+                  <span className="badge">Coding agent</span>
                 </div>
                 <p>
                   Connect a repository and fixed validation commands. Product
-                  approves specifications; Codex prepares scoped, tested PRs;
+                  approves specifications; Cue prepares scoped, tested PRs;
                   Engineering reviews the exact commit. Your repository’s
                   release process controls deployment.
                 </p>
@@ -515,6 +517,8 @@ export function SetupClient({
                         appId: data.get("appId"),
                         repository: data.get("repository"),
                         baseBranch: data.get("baseBranch"),
+                        packageDirectory: data.get("packageDirectory"),
+                        packageManager: data.get("packageManager"),
                         allowedPaths: String(data.get("allowedPaths"))
                           .split(/\s+/)
                           .filter(Boolean),
@@ -553,6 +557,18 @@ export function SetupClient({
                     <input name="baseBranch" required defaultValue="main" />
                   </label>
                   <label>
+                    Package directory
+                    <input name="packageDirectory" required defaultValue="." placeholder="creati-frontend" />
+                  </label>
+                  <label>
+                    Dependency installer
+                    <select name="packageManager" defaultValue="npm">
+                      <option value="npm">npm · package-lock.json</option>
+                      <option value="bun">Bun · bun.lock</option>
+                      <option value="none">No dependencies</option>
+                    </select>
+                  </label>
+                  <label>
                     Allowed changed files or directories
                     <textarea
                       name="allowedPaths"
@@ -580,6 +596,7 @@ export function SetupClient({
                         ? "Bloom"
                         : status.apps.find((a) => a.id === c.appId)?.name}{" "}
                       · {c.baseBranch}
+                      {" · "}{c.packageDirectory || "."}{" · "}{c.packageManager || "npm"}
                     </p>
                     <p>Allowed changes: {c.allowedPaths.join(", ")}</p>
                     <pre>{JSON.stringify(c.testCommands, null, 2)}</pre>

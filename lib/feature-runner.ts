@@ -17,6 +17,9 @@ import { sendSlackRunUpdate } from "./delivery";
 import type { Id } from "../convex/_generated/dataModel";
 import { observed, recordWorkflowFailure } from "./observability";
 import { runCodexSession } from "./codex-session";
+import { engineeringInput } from "./app-pack-schema";
+import { implementInModal } from "./meta-pull-request";
+import { installCommand, readSourceSnapshot } from "./coding-workspace";
 const exec = promisify(execFile);
 
 type PullRequestFlavor = {
@@ -32,9 +35,8 @@ type PullRequestFlavor = {
     commit: string;
     reproductionStatus?: "reproduced" | "not_reproduced";
   }) => string;
-  // feature: baseline checks must pass before Codex starts. bug: the baseline
-  // is recorded as-is — a failing baseline is the honest reproduction signal,
-  // a passing one is reported as not_reproduced.
+  // Features require a green baseline. Bug checks are recorded as observed;
+  // a failing exit code alone cannot establish the reported customer failure.
   baseline: "must_pass" | "record_only";
   rootCause: string;
 };
@@ -43,6 +45,7 @@ async function runPullRequestPipeline(
   runId: Id<"runs">,
   flavor: PullRequestFlavor,
   signal: AbortSignal,
+  options: { notify?: boolean } = {},
 ) {
   const store = db(),
     auth = secret(),
@@ -71,6 +74,7 @@ async function runPullRequestPipeline(
   };
   for (const key of ["HOME", "PATH", "TMPDIR", "LANG", "CODEX_HOME"])
     if (process.env[key]) testEnv[key] = process.env[key]!;
+  let executionDirectory = ".";
   const command = async (
     file: string,
     args: string[],
@@ -78,13 +82,14 @@ async function runPullRequestPipeline(
     isolated = false,
   ) => {
     const r = await exec(file, args, {
-      cwd: repo,
+      cwd: isolated ? path.join(repo, executionDirectory) : repo,
       timeout,
       signal,
       maxBuffer: 2 * 1024 * 1024,
       ...(isolated ? { env: testEnv } : {}),
     });
-    return (r.stdout + r.stderr).trim();
+    const output = r.stdout + r.stderr;
+    return args.includes("-z") ? output : output.trim();
   };
   const hash = (bytes: Buffer) =>
     createHash("sha256").update(bytes).digest("hex");
@@ -93,6 +98,7 @@ async function runPullRequestPipeline(
       run = state.runs.find((r) => r._id === runId),
       issue = state.issues.find((i) => i._id === run?.issueId);
     if (!run || !issue) throw new Error("Run not found");
+    if (run.status !== "running") return;
     if (flavor.kind === "feature") {
       if (
         run.kind !== "feature" ||
@@ -110,7 +116,20 @@ async function runPullRequestPipeline(
     // The pack is the single policy source; the run must reference exactly
     // the binding it was created with.
     const pack = await requireActivePack(run.targetId ?? "bloom");
-    const policy = asCodingConfig(pack);
+    const currentPolicy = asCodingConfig(pack);
+    const policy = run.codingPolicy
+      ? { appId: pack.appId, ...engineeringInput.parse(run.codingPolicy) }
+      : currentPolicy;
+    if (
+      run.codingPolicy &&
+      JSON.stringify(engineeringInput.parse(currentPolicy)) !==
+        JSON.stringify(engineeringInput.parse(run.codingPolicy))
+    )
+      throw new Error(
+        "Connected repository policy changed after this run started",
+      );
+    executionDirectory = policy.packageDirectory ?? ".";
+    const meta = run.provider === "Meta";
     if (policy.repository !== run.repository)
       throw new Error("Connected repository policy does not match the run");
     await fs.mkdir(path.dirname(repo), { recursive: true });
@@ -139,26 +158,32 @@ async function runPullRequestPipeline(
       baseCommit: base,
       phase: "validating_baseline",
     });
-    if (
-      await fs.access(path.join(repo, "package-lock.json")).then(
-        () => true,
-        () => false,
-      )
-    )
-      await command(
-        "npm",
-        ["ci", "--ignore-scripts", "--no-audit", "--no-fund"],
-        120_000,
-        true,
-      );
-    const tracked = (await command("git", ["ls-files"])).split("\n");
+    if (!meta) {
+      const source = await readSourceSnapshot(repo, signal);
+      const install = installCommand(policy, source);
+      if (install) await command(install[0], install.slice(1), 180_000, true);
+    }
+    const tracked = (await command("git", ["ls-files", "-z"]))
+      .split("\0")
+      .filter(Boolean);
     const protectedHashes = new Map<string, string>();
-    for (const file of tracked)
+    let trackedBytes = 0;
+    for (const file of tracked) {
+      const stat = await fs.lstat(path.join(repo, file));
+      trackedBytes += stat.size;
+      if (
+        !stat.isFile() ||
+        stat.nlink !== 1 ||
+        stat.size > 16 * 1024 * 1024 ||
+        trackedBytes > 80 * 1024 * 1024
+      )
+        throw new Error(`Repository contains unsupported source: ${file}`);
       if (!permittedChange(file, policy) || protectedSource(file))
         protectedHashes.set(
           file,
-          hash(await fs.readFile(path.join(repo, file))),
+          hash(await fs.readFile(path.join(repo, file), { signal })),
         );
+    }
     const checks = async () => {
       const output: string[] = [];
       for (const check of policy.testCommands)
@@ -167,88 +192,154 @@ async function runPullRequestPipeline(
         );
       return output.join("\n\n").slice(-20000);
     };
-    let before = "";
-    let baselineFailed = false;
-    if (flavor.baseline === "must_pass") {
-      before = await checks();
-      await log("Repository baseline passed", before, "success");
+    let before = "",
+      after = "",
+      summary = "";
+    const assertCurrent = async () => {
+      signal.throwIfAborted();
+      const fresh = await store.query(api.cue.snapshot, { secret: auth });
+      const currentRun = fresh.runs.find((r) => r._id === runId);
+      if (!currentRun || currentRun.status !== "running")
+        throw new Error("Run is no longer active");
+      if (
+        flavor.kind === "feature" &&
+        fresh.issues.find((i) => i._id === issue._id)?.spec !== run.approvedSpec
+      )
+        throw new Error("Feature specification changed during implementation");
+      const active = await requireActivePack(run.targetId ?? "bloom");
+      if (
+        JSON.stringify(engineeringInput.parse(asCodingConfig(active))) !==
+        JSON.stringify(engineeringInput.parse(policy))
+      )
+        throw new Error(
+          "Connected repository policy changed during implementation",
+        );
+    };
+    if (meta) {
+      await update({ executionBackend: "modal", phase: "validating_baseline" });
+      const sandboxIds: string[] = [];
+      const result = await implementInModal({
+        repo,
+        runId,
+        policy,
+        prompt: flavor.promptFor(policy),
+        baseline: flavor.baseline,
+        signal,
+        event: log,
+        sandboxCreated: async (id) => {
+          sandboxIds.push(id);
+          await update({ sandboxIds });
+        },
+        baselineRecorded: async (output) => {
+          before = output;
+          await update({
+            before,
+            phase: "implementing",
+            rootCause: flavor.rootCause,
+          });
+        },
+        selected: async (model) => {
+          await update({ requestedModel: model });
+        },
+        receipt: async (receipt) => {
+          await update(receipt);
+        },
+      });
+      before = result.before;
+      after = result.after;
+      summary = result.summary;
     } else {
-      try {
+      await update({ executionBackend: "local" });
+      if (flavor.baseline === "must_pass") {
         before = await checks();
-        await log(
-          "Repository baseline passed",
-          "The repository's own checks pass at the base commit; they do not reproduce the reported failure. The PR body will say so.",
-          "success",
-        );
-      } catch (e) {
-        baselineFailed = true;
-        const err = e as { stdout?: string; stderr?: string; message?: string };
-        before = `${err.stdout || ""}${err.stderr || ""}\n${err.message || ""}`
-          .trim()
-          .slice(-20000);
-        await log(
-          "Repository baseline check failed",
-          "The repository's own checks fail at the base commit — this is the reproduction signal for the reported bug.",
-          "success",
-        );
+        await log("Repository baseline passed", before, "success");
+      } else {
+        try {
+          before = await checks();
+          await log(
+            "Repository baseline passed",
+            "The repository's own checks pass at the base commit; they do not reproduce the reported failure. The PR body will say so.",
+            "success",
+          );
+        } catch (e) {
+          const err = e as {
+            stdout?: string;
+            stderr?: string;
+            message?: string;
+          };
+          before =
+            `${err.stdout || ""}${err.stderr || ""}\n${err.message || ""}`
+              .trim()
+              .slice(-20000);
+          await log(
+            "Repository baseline check failed",
+            "The repository checks failed at the base commit. This exit status alone does not establish the reported customer failure.",
+            "reproduction",
+          );
+        }
       }
+      await update({
+        before,
+        phase: "implementing",
+        rootCause: flavor.rootCause,
+      });
+      const agent = new Codex({
+        env: testEnv,
+        ...(process.env.CUE_CODEX_PATH
+          ? { codexPathOverride: process.env.CUE_CODEX_PATH }
+          : {}),
+      });
+      const thread = agent.startThread({
+        workingDirectory: repo,
+        sandboxMode: "workspace-write",
+        approvalPolicy: "never",
+        networkAccessEnabled: false,
+        webSearchMode: "disabled",
+      });
+      await log(
+        "Codex implementing change",
+        `Repository ${policy.repository}; base ${base}. Allowed paths: ${policy.allowedPaths.join(", ")}.`,
+      );
+      await runCodexSession(
+        thread,
+        flavor.promptFor(policy),
+        signal,
+        async (e) => {
+          if (
+            e.type === "item.completed" &&
+            e.item.type === "command_execution"
+          )
+            await log(
+              "Codex repository check",
+              e.item.command + "\n" + e.item.aggregated_output.slice(-4500),
+            );
+          if (e.type === "item.completed" && e.item.type === "file_change")
+            await log(
+              "Codex proposed patch",
+              e.item.changes
+                .map((c) => `${c.kind}: ${path.basename(c.path)}`)
+                .join("\n"),
+            );
+          if (e.type === "item.completed" && e.item.type === "agent_message")
+            summary = e.item.text;
+          if (e.type === "turn.failed") throw new Error(e.error.message);
+          if (e.type === "error") throw new Error(e.message);
+        },
+      );
     }
-    await update({
-      before,
-      phase: "implementing",
-      rootCause: flavor.rootCause,
-    });
-    const agent = new Codex({
-      env: testEnv,
-      ...(process.env.CUE_CODEX_PATH
-        ? { codexPathOverride: process.env.CUE_CODEX_PATH }
-        : {}),
-    });
-    const thread = agent.startThread({
-      workingDirectory: repo,
-      sandboxMode: "workspace-write",
-      approvalPolicy: "never",
-      networkAccessEnabled: false,
-      webSearchMode: "disabled",
-    });
-    await log(
-      "Codex implementing change",
-      `Repository ${policy.repository}; base ${base}. Allowed paths: ${policy.allowedPaths.join(", ")}.`,
-    );
-    let summary = "";
-    await runCodexSession(
-      thread,
-      flavor.promptFor(policy),
-      signal,
-      async (e) => {
-        if (e.type === "item.completed" && e.item.type === "command_execution")
-          await log(
-            "Codex repository check",
-            e.item.command + "\n" + e.item.aggregated_output.slice(-4500),
-          );
-        if (e.type === "item.completed" && e.item.type === "file_change")
-          await log(
-            "Codex proposed patch",
-            e.item.changes
-              .map((c) => `${c.kind}: ${path.basename(c.path)}`)
-              .join("\n"),
-          );
-        if (e.type === "item.completed" && e.item.type === "agent_message")
-          summary = e.item.text;
-        if (e.type === "turn.failed") throw new Error(e.error.message);
-        if (e.type === "error") throw new Error(e.message);
-      },
-    );
+    await assertCurrent();
     if (signal.aborted) throw new Error("Run canceled");
     if ((await command("git", ["rev-parse", "HEAD"])) !== base)
       throw new Error("Agent changed Git history");
-    const changed = (await command("git", ["diff", "HEAD", "--name-only"]))
-      .split("\n")
+    const changed = (
+      await command("git", ["diff", "HEAD", "--name-only", "-z"])
+    )
+      .split("\0")
       .filter(Boolean);
     const added = (
-      await command("git", ["ls-files", "--others", "--exclude-standard"])
+      await command("git", ["ls-files", "--others", "--exclude-standard", "-z"])
     )
-      .split("\n")
+      .split("\0")
       .filter(Boolean);
     if (!changed.length && !added.length)
       throw new Error("Agent produced no implementation");
@@ -258,7 +349,8 @@ async function runPullRequestPipeline(
         (tracked.includes(file) && protectedSource(file))
       )
         throw new Error(`Patch violates repository policy: ${file}`);
-      if (!(await fs.lstat(path.join(repo, file))).isFile())
+      const stat = await fs.lstat(path.join(repo, file)).catch(() => null);
+      if (stat && (!stat.isFile() || stat.nlink !== 1))
         throw new Error(`Patch contains a non-file: ${file}`);
     }
     for (const [file, expected] of protectedHashes)
@@ -271,7 +363,8 @@ async function runPullRequestPipeline(
       )
         throw new Error("Feature specification changed during implementation");
     }
-    const after = await checks();
+    if (!meta) after = await checks();
+    await assertCurrent();
     await log("Independent checks passed", after, "success");
     await command("git", ["add", "--", ...changed, ...added]);
     const diff = await command("git", ["diff", "--cached"]);
@@ -279,13 +372,11 @@ async function runPullRequestPipeline(
       throw new Error("Patch exceeds review size limit");
     await command("git", ["commit", "-m", flavor.commitMessage]);
     const commit = await command("git", ["rev-parse", "HEAD"]);
+    await assertCurrent();
     await command("git", ["push", "origin", branch]);
-    const reproductionStatus: "reproduced" | "not_reproduced" | undefined =
-      flavor.kind === "bug"
-        ? baselineFailed
-          ? "reproduced"
-          : "not_reproduced"
-        : undefined;
+    // A failed repository baseline alone cannot establish the customer's failure.
+    const reproductionStatus =
+      flavor.kind === "bug" ? "not_reproduced" : undefined;
     const bodyFile = path.join(process.cwd(), ".cue", `pr-${runId}.txt`);
     await fs.writeFile(
       bodyFile,
@@ -299,6 +390,7 @@ async function runPullRequestPipeline(
       }),
       { mode: 0o600 },
     );
+    await assertCurrent();
     const pr = await command("gh", [
       "pr",
       "create",
@@ -329,7 +421,7 @@ async function runPullRequestPipeline(
       `${pr}\nExact commit ${commit}. Deployment remains subject to the connected repository's release process.`,
       "approval",
     );
-    await sendSlackRunUpdate(runId);
+    if (options.notify !== false) await sendSlackRunUpdate(runId);
   } catch (e) {
     recordWorkflowFailure(e);
     const error = e instanceof Error ? e.message : String(e);
@@ -342,7 +434,11 @@ async function runPullRequestPipeline(
   }
 }
 
-async function implementFeatureImpl(runId: Id<"runs">, signal: AbortSignal) {
+async function implementFeatureImpl(
+  runId: Id<"runs">,
+  signal: AbortSignal,
+  options: { notify?: boolean } = {},
+) {
   const store = db(),
     auth = secret();
   const state = await store.query(api.cue.snapshot, { secret: auth }),
@@ -369,6 +465,7 @@ async function implementFeatureImpl(runId: Id<"runs">, signal: AbortSignal) {
       rootCause: `Implement the approved specification: ${issue.title}`,
     },
     signal,
+    options,
   );
 }
 
@@ -380,7 +477,11 @@ export const implementFeature = observed(
   },
 );
 
-async function implementFixImpl(runId: Id<"runs">, signal: AbortSignal) {
+async function implementFixImpl(
+  runId: Id<"runs">,
+  signal: AbortSignal,
+  options: { notify?: boolean } = {},
+) {
   const store = db(),
     auth = secret();
   const state = await store.query(api.cue.snapshot, { secret: auth }),
@@ -396,25 +497,24 @@ async function implementFixImpl(runId: Id<"runs">, signal: AbortSignal) {
         bugPrompt(issue.title, issue.description, run.reproduction!, policy),
       prTitle: `Fix ${issue.title.slice(0, 100)}`,
       commitMessage: `Fix ${issue.title.slice(0, 100)}`,
-      prBody: ({
-        summary,
-        before,
-        after,
-        commit,
-        reproductionStatus,
-      }) =>
+      prBody: ({ summary, before, after, commit, reproductionStatus }) =>
         `${issue.title}\n\nReported reproduction:\n${run.reproduction}\n\nRepository check at base commit: ${
           reproductionStatus === "reproduced"
-            ? "FAILED (matches the reported failure)"
-            : "PASSED (the repository's checks did not reproduce the reported failure)"
+            ? "REPRODUCED by independent regression evidence"
+            : "NOT ESTABLISHED by baseline exit status alone; see the check output below"
         }\n\nInvestigation summary:\n${summary}\n\nBaseline output:\n${before}\n\nChecks after the change:\n${after}\n\nEngineering review must approve exact commit ${commit}. This draft PR has not been merged or deployed, and nothing here claims the fix is verified for customers.`,
       baseline: "record_only",
       rootCause: `Investigate and fix the reported bug: ${issue.title}`,
     },
     signal,
+    options,
   );
 }
 
-export const implementFix = observed("Cue bug fix implementation", implementFixImpl, {
-  input: (runId) => ({ runId }),
-});
+export const implementFix = observed(
+  "Cue bug fix implementation",
+  implementFixImpl,
+  {
+    input: (runId) => ({ runId }),
+  },
+);

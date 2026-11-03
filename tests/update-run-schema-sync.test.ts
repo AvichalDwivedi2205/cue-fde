@@ -27,6 +27,7 @@ const NOT_PATCHABLE = new Set([
   "kind", // fixed where the run is born
   "deploymentMode", // fixed where the run is born
   "provider", // fixed where the run is born
+  "codingPolicy", // frozen from the application binding where the run is born
   "releaseCommit", // release-verifier only
   "releaseEvidence", // release-verifier only
 ]);

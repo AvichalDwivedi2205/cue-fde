@@ -1,10 +1,6 @@
+import { engineeringBinding } from "./workspaceValidators";
 import { ConvexError, v } from "convex/values";
-import {
-  mutation,
-  query,
-  MutationCtx,
-  QueryCtx,
-} from "./_generated/server";
+import { mutation, query, MutationCtx, QueryCtx } from "./_generated/server";
 import { Doc } from "./_generated/dataModel";
 import { authorize } from "./cue";
 import {
@@ -89,28 +85,14 @@ export const ensure = mutation({
         screenshots: v.boolean(),
       }),
     ),
-    engineering: v.optional(
-      v.object({
-        repository: v.string(),
-        baseBranch: v.string(),
-        allowedPaths: v.array(v.string()),
-        testCommands: v.array(
-          v.object({
-            program: v.string(),
-            args: v.array(v.string()),
-          }),
-        ),
-      }),
-    ),
+    engineering: v.optional(engineeringBinding),
     aliases: v.optional(v.array(v.string())),
   },
   returns: v.id("appPacks"),
   handler: async (ctx, a) => {
     authorize(a.secret);
     const identity = appInput.parse({ name: a.name, origins: a.origins });
-    const widget = a.widget
-      ? widgetOptionsInput.parse(a.widget)
-      : undefined;
+    const widget = a.widget ? widgetOptionsInput.parse(a.widget) : undefined;
     const engineering = a.engineering
       ? engineeringInput.parse(a.engineering)
       : undefined;
@@ -195,6 +177,10 @@ export const bindEngineering = mutation({
     appId: v.string(),
     repository: v.string(),
     baseBranch: v.string(),
+    packageDirectory: v.optional(v.string()),
+    packageManager: v.optional(
+      v.union(v.literal("npm"), v.literal("bun"), v.literal("none")),
+    ),
     allowedPaths: v.array(v.string()),
     testCommands: v.array(
       v.object({ program: v.string(), args: v.array(v.string()) }),
@@ -207,6 +193,8 @@ export const bindEngineering = mutation({
     const binding = engineeringInput.parse({
       repository: a.repository,
       baseBranch: a.baseBranch,
+      packageDirectory: a.packageDirectory,
+      packageManager: a.packageManager,
       allowedPaths: a.allowedPaths,
       testCommands: a.testCommands,
     });

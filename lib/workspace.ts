@@ -7,11 +7,12 @@ import {
   xRuntimeStatus,
   notificationRuntimeStatus,
 } from "./integration-checks";
-import { geminiReady } from "./gemini";
 import type { Role } from "./roles";
 import type { Id } from "../convex/_generated/dataModel";
 import { ConvexError } from "convex/values";
-import { configuredGrowthModel } from "./model-config";
+import { configuredRoute, routeReadiness, type ModelRoute } from "./model-config";
+
+const providerName = (route: ModelRoute) => route.kind === "meta" ? "Meta API" : route.kind === "google" ? "Gemini API" : "LiteLLM";
 
 export const workspaceInput = z
   .object({
@@ -151,7 +152,7 @@ export async function postWorkspace(
     ...growthCommand,
     ...(threadKey ? { threadKey } : {}),
     repository: config.coding?.find((c) => c.appId === input.appId)?.repository,
-    queueAnswer: !action && geminiReady(),
+    queueAnswer: !action && routeReadiness(await configuredRoute({ purpose: "workspace" })).kind === "ready",
   });
 }
 export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
@@ -164,7 +165,8 @@ export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
     notifications,
     companion,
     growth,
-    growthModel,
+    growthRoute,
+    qualificationRoute,
   ] = await Promise.all([
     db().query(api.workspace.snapshot, {
       secret: secret(),
@@ -177,8 +179,14 @@ export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
     notificationRuntimeStatus(),
     sharedWorkerStatus().catch(() => null),
     db().query(api.growth.snapshot, { secret: secret(), appId }),
-    configuredGrowthModel(),
+    configuredRoute({ purpose: "growth" }),
+    configuredRoute({ purpose: "qualification" }),
   ]);
+  const growthModel = growthRoute.model;
+  const qualificationReady = routeReadiness(qualificationRoute).kind === "ready";
+  const growthReady = routeReadiness(growthRoute).kind === "ready";
+  const qualifier = qualificationRoute.kind === "meta" ? "Meta" : qualificationRoute.kind === "google" ? "Gemini" : "LiteLLM";
+  const writer = growthRoute.kind === "meta" ? "Muse Spark via Meta API" : growthModel === "claude-sonnet-4.6" ? "Claude Sonnet via LiteLLM" : `${growthModel} via ${providerName(growthRoute)}`;
   const health = (ok: boolean, label: string, detail: string) => ({
     st: ok ? "ok" : "unknown",
     label,
@@ -238,23 +246,19 @@ export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
       ],
       limits: "Shares two reasoning slots",
       health: health(
-        geminiReady() &&
-          (growthModel !== "claude-sonnet-4.6" ||
-            !!process.env.LITELLM_API_KEY),
-        !geminiReady()
-          ? "Gemini qualification unavailable"
-          : growthModel === "claude-sonnet-4.6"
-            ? process.env.LITELLM_API_KEY
-              ? "Gemini qualification · Claude Sonnet via LiteLLM"
-              : "Gemini qualification · LiteLLM writer unavailable"
-            : "Gemini qualification and reply writing",
-        `Qualification: ${process.env.GEMINI_MODEL || "gemini-2.5-flash"} via Gemini API. Replies: ${growthModel} via ${growthModel === "claude-sonnet-4.6" ? "LiteLLM" : "Gemini API"}. Publication requires exact review and Owner action.`,
+        qualificationReady && growthReady,
+        !qualificationReady
+          ? `${qualifier} qualification unavailable`
+          : !growthReady
+            ? `${qualifier} qualification · ${providerName(growthRoute)} writer unavailable`
+            : `${qualifier} qualification · ${writer}`,
+        `Qualification: ${qualificationRoute.model} via ${providerName(qualificationRoute)}. Replies: ${growthModel} via ${providerName(growthRoute)}. Publication requires exact review and Owner action.`,
       ),
       models: {
-        qualification: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+        qualification: qualificationRoute.model,
         writer: growthModel,
         writerProvider:
-          growthModel === "claude-sonnet-4.6" ? "litellm" : "google",
+          growthRoute.kind === "meta" ? "meta" : growthRoute.kind === "litellm" ? "litellm" : "google",
       },
       sugg: ["What is blocked?"],
     },
@@ -267,18 +271,20 @@ export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
       can: [
         "Delegate approved specs",
         "Inspect existing runs",
-        "Scoped Bloom upload investigation",
+        "Investigate registered app bugs",
       ],
       cannot: [
-        "Arbitrary bug execution",
+        "Change files outside repository policy",
         "Claim deployed resolution without release evidence",
       ],
-      limits: "One personal Codex run",
+      limits: "One coding run; fixed checks and exact commit approval",
       health: health(
-        !!companion?.codex.loggedIn && !!companion?.codex.workerOnline,
-        companion?.codex.workerOnline
-          ? "Companion online"
-          : "Companion offline",
+        companion?.coding?.provider === "meta"
+          ? companion.coding.configured && companion.coding.workerOnline !== false
+          : !!companion?.codex.loggedIn && !!companion?.codex.workerOnline,
+        companion?.coding?.provider === "meta"
+          ? companion.coding.configured && companion.coding.workerOnline !== false ? "Meta + Modal worker online" : "Meta + Modal worker unavailable"
+          : companion?.codex.workerOnline ? "Companion online" : "Companion offline",
         companion?.busy
           ? "Coding slot busy"
           : "No active companion work reported",

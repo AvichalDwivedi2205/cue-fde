@@ -41,6 +41,7 @@ type Snapshot = {
   canPublish: boolean;
   model: string;
   litellm: boolean;
+  meta: boolean;
 };
 type TestResult = {
   text: string;
@@ -1145,6 +1146,7 @@ export function KnowledgeClient() {
                   >
                     <option value="">Widget model · {snapshot.model}</option>
                     <option value="gemini-2.5-flash">Gemini Flash</option>
+                    {snapshot.meta && <option value="muse-spark-1.3">Muse Spark 1.3 · Meta</option>}
                     {snapshot.litellm && (
                       <>
                         <option value="nova-lite">Nova Lite · LiteLLM</option>
@@ -1197,6 +1199,7 @@ export function KnowledgeClient() {
                     >
                       <option value="">Same model</option>
                       <option value="gemini-2.5-flash">Gemini Flash</option>
+                      {snapshot.meta && <option value="muse-spark-1.3">Muse Spark 1.3 · Meta</option>}
                       {snapshot.litellm && (
                         <>
                           <option value="nova-lite">Nova Lite · LiteLLM</option>
@@ -1274,8 +1277,8 @@ export function KnowledgeClient() {
               {busy ? "Answering…" : "Ask Cue"}
             </Button>
             <p className="text-[11px] text-cue-subtle">
-              Test questions aren’t sent to customers. Gemini is the default;
-              other models use LiteLLM only when selected.
+              Test questions aren’t sent to customers. Choose a configured model;
+              Meta and Gemini connect directly; Claude and Nova use LiteLLM.
             </p>
           </section>
           <div

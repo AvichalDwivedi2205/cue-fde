@@ -22,6 +22,10 @@ type Snapshot = {
     embedding: string;
     dimensions: number;
     litellm: boolean;
+    meta: boolean;
+    google: boolean;
+    codingConfigured: boolean;
+    legacyCoding: string;
     litellmCreditsRemaining: null;
   };
 };
@@ -289,10 +293,9 @@ export function SettingsClient() {
                   <div className="ui-card">
                     {row(
                       "Provider route",
-                      "Gemini directly. Additional models use the connected LiteLLM proxy.",
+                      "Meta and Gemini connect directly. Additional models use the connected LiteLLM proxy.",
                       <Badge tone="green">
-                        Gemini
-                        {data.models.litellm ? " + LiteLLM available" : ""}
+                        {[data.models.meta && "Meta", data.models.google && "Gemini", data.models.litellm && "LiteLLM"].filter(Boolean).join(" + ") || "No provider configured"}
                       </Badge>,
                     )}
                     {row(
@@ -306,6 +309,7 @@ export function SettingsClient() {
                         onChange={(e) => setModel(e.target.value)}
                       >
                         <option value="gemini-2.5-flash">Gemini Flash</option>
+                        {data.models.meta && <option value="muse-spark-1.3">Muse Spark 1.3 · Meta</option>}
                         {data.models.litellm && (
                           <>
                             <option value="nova-lite">
@@ -339,6 +343,7 @@ export function SettingsClient() {
                         onChange={(e) => setGrowthModel(e.target.value)}
                       >
                         <option value="gemini-2.5-flash">Gemini Flash</option>
+                        {data.models.meta && <option value="muse-spark-1.3">Muse Spark 1.3 · Meta</option>}
                         {data.models.litellm && (
                           <option value="claude-sonnet-4.6">
                             Claude Sonnet 4.6 · LiteLLM
@@ -349,7 +354,7 @@ export function SettingsClient() {
                     {row(
                       "Code changes",
                       "The connected coding worker implements scoped changes. Deployment requires exact-commit approval and verification.",
-                      <span className="text-xs">{data.models.coding}</span>,
+                      <span className="text-xs">{data.models.coding}{data.models.codingConfigured ? " · Modal" : " · worker unavailable"}</span>,
                     )}
                     {row(
                       "Reviewed FAQ answers",
@@ -404,9 +409,9 @@ export function SettingsClient() {
                     </div>
                   </div>
                   <Notice>
-                    Gemini is the default for support. A Growth provider outage
-                    falls back to Gemini with the same facts and recorded
-                    provider. Unsupported or invalid output stays blocked. You
+                    Meta uses the selected model for every generation. The Claude Growth route
+                    can fall back to Gemini on a provider outage, with the actual provider recorded.
+                    Unsupported or invalid output stays blocked. You
                     can compare support models for individual questions in{" "}
                     <a className="underline" href="/knowledge#test">
                       Test answers
@@ -420,14 +425,14 @@ export function SettingsClient() {
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="ui-card p-5">
                       <span className="font-mono text-[10px] text-cue-subtle uppercase">
-                        Gemini
+                        Meta and Gemini
                       </span>
                       <h2 className="mt-3 text-lg font-semibold">
                         Provider-managed billing
                       </h2>
                       <p className="mt-2 text-xs leading-relaxed text-cue-muted">
-                        The workspace doesn’t receive a live Gemini balance.
-                        Check usage and limits in your Google project.
+                        The workspace doesn’t receive live provider balances.
+                        Check usage and limits in each provider dashboard.
                       </p>
                       <a
                         className="ui-button mt-4"

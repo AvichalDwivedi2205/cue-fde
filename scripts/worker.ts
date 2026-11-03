@@ -40,6 +40,24 @@ const {
   sameRehearsal,
   shutdownRehearsals,
 } = await import("../lib/rehearsal-runtime");
+const { getMetaConnection, META_WONDER_MODEL } = await import("../lib/meta");
+const codingStatus = () => {
+  let meta = false;
+  try {
+    getMetaConnection();
+    meta = true;
+  } catch {}
+  return {
+    provider: "meta",
+    model: process.env.CUE_CODING_MODEL || META_WONDER_MODEL,
+    backend: "modal",
+    configured:
+      meta &&
+      !!process.env.MODAL_TOKEN_ID &&
+      !!process.env.MODAL_TOKEN_SECRET &&
+      !!process.env.CUE_MODAL_IMAGE,
+  };
+};
 const control = createServer(async (req, res) => {
   if (req.headers.authorization !== `Bearer ${auth}`) {
     res.writeHead(403);
@@ -51,6 +69,7 @@ const control = createServer(async (req, res) => {
       JSON.stringify({
         ok: true,
         busy,
+        coding: codingStatus(),
         slack: slack.status(),
         notifications: notifications.status(),
         x: x.status(),
@@ -98,7 +117,10 @@ const control = createServer(async (req, res) => {
   res.writeHead(409);
   res.end("worker busy");
 });
-control.listen(4319, "127.0.0.1");
+const controlPort = process.env.PORT ? Number(process.env.PORT) : 4319;
+if (!Number.isInteger(controlPort) || controlPort < 1 || controlPort > 65535)
+  throw new Error("Invalid worker control port");
+control.listen(controlPort, process.env.PORT ? "0.0.0.0" : "127.0.0.1");
 console.log("Cue worker ready · persistent Convex jobs · Bloom :4318");
 const { checkCodex } = await import("../lib/integration-checks");
 const workerIdentity = await checkCodex(true);
@@ -117,6 +139,7 @@ async function publishStatus() {
       expectedVersion: row?.version ?? 0,
       value: JSON.stringify({
         busy,
+        coding: codingStatus(),
         slack: slack.status(),
         notifications: notifications.status(),
         x: x.status(),
@@ -192,9 +215,10 @@ while (!stopping) {
         // runs go through the shared PR pipeline for features and bugs.
         const mode = runExecutionMode(run);
         if (mode === "pull_request")
-          await (run.kind === "feature"
-            ? implementFeature
-            : implementFix)(run._id, abort.signal);
+          await (run.kind === "feature" ? implementFeature : implementFix)(
+            run._id,
+            abort.signal,
+          );
         else await investigate(run._id, run.issueId, abort.signal);
       } else if (job.kind === "feature")
         await implementFeature(run._id, abort.signal);

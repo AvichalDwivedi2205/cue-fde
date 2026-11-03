@@ -3,6 +3,7 @@ import { sameOrigin, operator } from "@/lib/access";
 import { requirePermission } from "@/lib/roles";
 import { listPacks, packContext, requireActivePack } from "@/lib/app-pack";
 import { db, api, secret } from "@/lib/server-store";
+import { engineeringInput } from "@/lib/app-pack-schema";
 
 // Application lifecycle for the multi-app workspace. Owner (manage) only:
 // registration is deliberately not self-serve while Cue is a single-company
@@ -26,24 +27,6 @@ export async function GET(request: Request) {
     );
   }
 }
-
-const engineeringInput = z.object({
-  repository: z.string().regex(/^[\w.-]+\/[\w.-]+$/),
-  baseBranch: z
-    .string()
-    .regex(/^[\w./-]+$/)
-    .refine((v) => !v.includes("..") && !v.startsWith("-")),
-  allowedPaths: z.array(z.string().min(1).max(200)).min(1).max(30),
-  testCommands: z
-    .array(
-      z.object({
-        program: z.enum(["node", "npm"]),
-        args: z.array(z.string().min(1).max(200)).min(1).max(10),
-      }),
-    )
-    .min(1)
-    .max(6),
-});
 
 async function mutate(action: string, args: Record<string, unknown>) {
   switch (action) {
@@ -80,6 +63,8 @@ async function mutate(action: string, args: Record<string, unknown>) {
         baseBranch: binding.baseBranch,
         allowedPaths: binding.allowedPaths,
         testCommands: binding.testCommands,
+        packageDirectory: binding.packageDirectory,
+        packageManager: binding.packageManager,
       });
       return "Repository binding saved. Bug reports on this app can now be investigated.";
     }

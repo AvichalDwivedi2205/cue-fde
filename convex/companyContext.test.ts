@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
+import { makeFunctionReference } from "convex/server";
 import { beforeEach, afterEach, expect, test, vi } from "vitest";
 import schema from "./schema";
 import { api } from "./_generated/api";
@@ -531,3 +532,40 @@ test.each(["text", "voice"])(
     ).toHaveLength(0);
   },
 );
+
+test("Meta Growth receipts persist actual metadata while mismatched provider/model pairs fail at the validator", async () => {
+  const s = await growthSetup();
+  const generation = {
+    provider: "meta" as const,
+    model: "muse-spark-1.3" as const,
+    requestedModel: "muse-spark-1.3",
+    reportedModel: "muse-spark-1.3",
+    inputTokens: 101,
+    outputTokens: 31,
+    durationMs: 200,
+    requestId: "meta-request-1",
+  };
+  const draftId = await s.t.mutation(api.growth.saveDraft, {
+    ...s.args,
+    generation,
+  });
+  const draft = await s.t.run((ctx) => ctx.db.get("growthDrafts", draftId));
+  expect(draft?.generation).toEqual(generation);
+  // A deliberately broad boundary reference lets the runtime validate untyped external data.
+  const untypedSave = makeFunctionReference<
+    "mutation",
+    Record<string, unknown>
+  >("growth:saveDraft");
+  for (const pair of [
+    { provider: "meta", model: "gemini-2.5-flash" },
+    { provider: "google", model: "muse-spark-1.3" },
+    { provider: "litellm", model: "muse-spark-1.3" },
+  ]) {
+    await expect(
+      s.t.mutation(untypedSave, {
+        ...s.args,
+        generation: { ...generation, ...pair },
+      }),
+    ).rejects.toThrow();
+  }
+});

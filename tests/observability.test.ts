@@ -1,71 +1,40 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-const sdk = vi.hoisted(() => ({
-  init: vi.fn(async () => {}),
-  flush: vi.fn(async () => true),
-  shutdown: vi.fn(async () => true),
-  trace: vi.fn(),
-  google: vi.fn((client) => client),
-  vertex: vi.fn((client) => client),
-}));
-vi.mock("neatlogs", () => ({
-  init: sdk.init,
-  trace: sdk.trace,
-  flush: sdk.flush,
-  shutdown: sdk.shutdown,
-  wrapGoogleGenAI: sdk.google,
-  wrapVertexAI: sdk.vertex,
-}));
 import {
   observed,
   redactTelemetry,
   recordWorkflowFailure,
   shutdownObservability,
+  initializeObservability,
+  flushObservability,
+  readLocalTelemetry,
+  annotateTelemetry,
+  currentTraceId,
+  instrumentModel,
 } from "../lib/observability";
 
-describe("Cue telemetry preserves workflow behavior and export privacy", () => {
-  const spans: Array<{
-    name: string;
-    kind: string;
-    attributes: Record<string, unknown>;
-    status?: unknown;
-  }> = [];
+describe("Cue local telemetry preserves workflow behavior and privacy", () => {
+  const network = vi.fn<typeof fetch>();
   beforeEach(() => {
-    vi.stubEnv("NEATLOGS_API_KEY", "test-credential-never-exported");
-    vi.clearAllMocks();
-    spans.length = 0;
-    sdk.trace.mockImplementation(async (options, fn) => {
-      const record = {
-        name: options.name,
-        kind: options.kind,
-        attributes: { ...options.attributes },
-      } as (typeof spans)[number];
-      spans.push(record);
-      return fn({
-        spanContext: () => ({ traceId: "test-trace" }),
-        setAttribute: (key: string, value: unknown) => {
-          record.attributes[key] = value;
-        },
-        setAttributes: (values: Record<string, unknown>) =>
-          Object.assign(record.attributes, values),
-        setStatus: (status: unknown) => {
-          record.status = status;
-        },
-      });
-    });
+    vi.stubEnv("CUE_TEST_PRIVATE_KEY", "test-credential-never-exported");
+    vi.stubEnv("CUE_TELEMETRY_LOCAL", "1");
+    vi.stubGlobal("fetch", network);
+    network.mockReset();
   });
   afterEach(async () => {
+    expect(network).not.toHaveBeenCalled();
     await shutdownObservability();
     vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
   });
 
-  it("redacts nested credentials, JSON attributes, email, and recordings while keeping numeric usage", () => {
+  it("redacts credentials, JSON attributes, email, images, and recordings while preserving usage", () => {
     const envelope = redactTelemetry({
       attributes: {
         "input.value": JSON.stringify({
           email: "customer@example.com",
           secret: "hidden",
           inlineData: { data: "raw recording" },
+          image_url: { url: "data:image/png;base64,aGVsbG8=" },
         }),
         "output.value": JSON.stringify({
           audioContent: "raw audio",
@@ -83,6 +52,7 @@ describe("Cue telemetry preserves workflow behavior and export privacy", () => {
       "raw audio",
       "private-token",
       "test-credential-never-exported",
+      "aGVsbG8=",
     ])
       expect(serialized).not.toContain(privateText);
     expect(envelope).toMatchObject({
@@ -93,16 +63,23 @@ describe("Cue telemetry preserves workflow behavior and export privacy", () => {
     });
   });
 
-  it("runs concurrent requests once with separate roots and one initialization", async () => {
+  it("runs concurrent requests once with separate local roots", async () => {
     const operation = vi.fn(async (id: number) => id * 2);
     const run = observed("Support", operation);
     expect(await Promise.all([run(1), run(2)])).toEqual([2, 4]);
     expect(operation).toHaveBeenCalledTimes(2);
-    expect(sdk.init).toHaveBeenCalledTimes(1);
-    expect(spans.map((span) => span.kind)).toEqual(["WORKFLOW", "WORKFLOW"]);
+    const records = readLocalTelemetry();
+    expect(records.map((record) => record.kind)).toEqual([
+      "WORKFLOW",
+      "WORKFLOW",
+    ]);
+    expect(new Set(records.map((record) => record.traceId)).size).toBe(2);
+    expect(
+      records.every((record) => /^[a-f0-9]{32}$/.test(record.traceId)),
+    ).toBe(true);
   });
 
-  it("allows metadata-only trace output while returning the complete provider result to the caller", async () => {
+  it("allows metadata-only local output while returning the complete result", async () => {
     const raw = {
       data: { unexpectedPersonalField: "private detail" },
       credits: 2,
@@ -111,22 +88,28 @@ describe("Cue telemetry preserves workflow behavior and export privacy", () => {
       output: (value) => ({ usedCredits: value.credits }),
     })();
     expect(result).toBe(raw);
-    expect(spans[0].attributes["output.value"]).toBe('{"usedCredits":2}');
-    expect(JSON.stringify(spans)).not.toContain("private detail");
+    expect(readLocalTelemetry()[0].output).toEqual({ usedCredits: 2 });
+    expect(JSON.stringify(readLocalTelemetry())).not.toContain(
+      "private detail",
+    );
   });
 
-  it("keeps nested agent work under the workflow boundary", async () => {
-    const child = observed("Classification", async () => "bug");
+  it("keeps nested agent work under one local workflow ID", async () => {
+    const child = observed("Classification", async () => currentTraceId());
     const root = observed("Triage", async () => child());
-    expect(await root()).toBe("bug");
-    expect(spans.map(({ name, kind }) => ({ name, kind }))).toEqual([
+    const traceId = await root();
+    const records = readLocalTelemetry();
+    expect(records.map(({ name, kind }) => ({ name, kind }))).toEqual([
       { name: "Triage", kind: "WORKFLOW" },
       { name: "Classification", kind: "AGENT" },
     ]);
-    expect(spans[0].attributes["neatlogs.workflow.name"]).toBe("Triage");
+    expect(records[0].traceId).toBe(traceId);
+    expect(records[1].traceId).toBe(traceId);
+    expect(records[1].parentSpanId).toBe(records[0].spanId);
+    expect(records[1].spanId).not.toBe(records[0].spanId);
   });
 
-  it("returns the original object and rethrows the original error without retrying effects", async () => {
+  it("returns original objects and rethrows original errors without retrying effects", async () => {
     const value = { saved: true };
     expect(await observed("Save", async () => value)()).toBe(value);
     const failure = new Error("original failure");
@@ -135,24 +118,90 @@ describe("Cue telemetry preserves workflow behavior and export privacy", () => {
     });
     await expect(observed("Failed save", operation)()).rejects.toBe(failure);
     expect(operation).toHaveBeenCalledTimes(1);
+    expect(readLocalTelemetry()[1].status).toEqual({
+      kind: "failed",
+      message: "original failure",
+    });
   });
 
-  it("records supervisor failures even when the existing job API returns normally", async () => {
+  it("records supervisor failures even when the job API returns normally", async () => {
     await observed("Investigation", async () => {
       recordWorkflowFailure(new Error("independent tests failed"));
     })();
-    expect(spans[0].status).toEqual({
-      code: 2,
-      message: "independent tests failed",
+    expect(readLocalTelemetry()[0]).toMatchObject({
+      status: { kind: "failed", message: "independent tests failed" },
+      output: { status: "failed", error: "independent tests failed" },
     });
-    expect(spans[0].attributes["output.value"]).toContain('"status":"failed"');
   });
 
-  it("works without a tracing credential", async () => {
-    vi.stubEnv("NEATLOGS_API_KEY", "");
+  it("retains provider, model, tokens and request evidence without capturing payloads by default", async () => {
     vi.stubEnv("CUE_TELEMETRY_LOCAL", "");
-    expect(await observed("Local", async () => 9)()).toBe(9);
-    expect(sdk.init).not.toHaveBeenCalled();
-    expect(sdk.trace).not.toHaveBeenCalled();
+    expect(await initializeObservability()).toBe(true);
+    const result = await observed(
+      "Model request",
+      async (_privateInput: string) => {
+        annotateTelemetry({
+          provider: "meta",
+          model: "muse-spark-1.3",
+          inputTokens: 42,
+          outputTokens: 7,
+          requestId: "provider-request-1",
+          apiKey: "test-credential-never-exported",
+        });
+        return "private model output";
+      },
+    )("private customer message");
+    expect(result).toBe("private model output");
+    const record = readLocalTelemetry()[0];
+    expect(record.attributes).toMatchObject({
+      provider: "meta",
+      model: "muse-spark-1.3",
+      inputTokens: 42,
+      outputTokens: 7,
+      requestId: "provider-request-1",
+      apiKey: "[redacted]",
+    });
+    expect(record).not.toHaveProperty("input");
+    expect(record).not.toHaveProperty("output");
+    expect(JSON.stringify(record)).not.toContain("private customer message");
+    expect(JSON.stringify(record)).not.toContain("private model output");
+  });
+
+  it("bounds local memory and returns isolated diagnostic snapshots", async () => {
+    const run = observed("Bounded record", async (index: number) => {
+      annotateTelemetry({ index });
+      return index;
+    });
+    for (let index = 0; index < 150; index++) await run(index);
+    const records = readLocalTelemetry();
+    expect(records).toHaveLength(128);
+    expect(records[0].attributes.index).toBe(22);
+    expect(records[127].attributes.index).toBe(149);
+    records[0].attributes.index = -1;
+    expect(readLocalTelemetry()[0].attributes.index).toBe(22);
+  });
+
+  it("does not let a diagnostic projection failure change the operation", async () => {
+    const operation = vi.fn(async () => 9);
+    const run = observed("Projection", operation, {
+      input: () => {
+        throw new Error("projection failed");
+      },
+    });
+    expect(await run()).toBe(9);
+    expect(operation).toHaveBeenCalledTimes(1);
+    expect(readLocalTelemetry()[0].input).toEqual({ unavailable: true });
+  });
+
+  it("keeps legacy SDK instrumentation and flush exports local", async () => {
+    const sdk = { provider: "google" };
+    expect(instrumentModel(sdk, false)).toBe(sdk);
+    expect(instrumentModel(sdk, true)).toBe(sdk);
+    expect(await flushObservability()).toBe(true);
+    await observed("Local record", async () => 1)();
+    expect(readLocalTelemetry()).toHaveLength(1);
+    await shutdownObservability();
+    expect(readLocalTelemetry()).toEqual([]);
+    expect(await observed("Next record", async () => 2)()).toBe(2);
   });
 });

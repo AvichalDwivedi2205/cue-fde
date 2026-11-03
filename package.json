@@ -35,9 +35,8 @@
     "convex": "^1.44.0",
     "google-auth-library": "10.9.1",
     "mammoth": "^1.13.0",
-    "neatlogs": "1.1.28",
-    "next": "^16.3.0",
-    "npm-run-all2": "^5.0.0",
+    "modal": "0.11.1",
+    "next": "^16.4.1",
     "openai": "^7.32.0",
     "parse5": "^8.0.1",
     "pdfjs-dist": "^6.4.299",
@@ -46,7 +45,7 @@
     "resend": "^6.32.1",
     "sharp": "^0.35.5",
     "tsx": "^4.23.15",
-    "zod": "^4.6.5"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@edge-runtime/vm": "^5.0.0",
@@ -57,7 +56,8 @@
     "@types/react-dom": "^19",
     "convex-test": "^0.0.61",
     "eslint": "^9",
-    "eslint-config-next": "^16.3.0",
+    "eslint-config-next": "^16.4.1",
+    "npm-run-all2": "^5.0.0",
     "prettier": "3.6.2",
     "tailwindcss": "4.3.3",
     "typescript": "^6.0.3",
