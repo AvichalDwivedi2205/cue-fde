@@ -150,6 +150,20 @@ test("a bug on app #2 walks the full governed loop without any Bloom coupling", 
   expect(approved.status).toBe("approved");
   const approvedIssue = s3.issues.find((i) => i._id === issueId)!;
   expect(approvedIssue.status).toBe("implemented");
+  const jobsBeforeDuplicate = await t.query(api.jobs.status, auth);
+  await expect(
+    t.mutation(api.cue.startRun, {
+      ...auth,
+      issueId,
+      reproduction:
+        "The approved private pull request is still awaiting its release.",
+    }),
+  ).rejects.toThrow("already exists");
+  const afterDuplicate = await t.query(api.cue.snapshot, auth);
+  expect(afterDuplicate.runs.filter((r) => r.issueId === issueId)).toEqual([
+    approved,
+  ]);
+  expect(await t.query(api.jobs.status, auth)).toEqual(jobsBeforeDuplicate);
 
   // updateRun cannot fabricate resolution for a pull-request run.
   await expect(
@@ -168,8 +182,9 @@ test("a bug on app #2 walks the full governed loop without any Bloom coupling", 
   expect(draft.fixVerified).toBe(false);
   // An explicit overclaim the documented pattern guards catch.
   const candidate = "The fix is deployed and verified. Please retry.";
-  expect(replyProblems(candidate, { issue: approvedIssue, run: approved }).length)
-    .toBeGreaterThan(0);
+  expect(
+    replyProblems(candidate, { issue: approvedIssue, run: approved }).length,
+  ).toBeGreaterThan(0);
 
   // The release verifier resolves the run with real evidence — the only
   // honest path to "verified" for a bug fixed via PR.
@@ -229,6 +244,38 @@ test("a bug on app #2 walks the full governed loop without any Bloom coupling", 
   const fixtureRun = await t.run((ctx) => ctx.db.get("runs", fixtureRunId));
   expect(fixtureRun?.deploymentMode).toBeUndefined();
 });
+
+test.each(["failed", "rejected", "cancelled"])(
+  "a %s generic bug run can retry with the same frozen repository policy",
+  async (status) => {
+    const t = fresh();
+    const { caseId } = await onboardApp2(t);
+    const state = await t.query(api.cue.snapshot, auth);
+    const issueId = state.cases.find((c) => c._id === caseId)?.issueId;
+    if (!issueId) throw new Error("Expected installed app report issue");
+    const args = {
+      ...auth,
+      issueId,
+      reproduction:
+        "The repository check demonstrates the saved title is missing.",
+    };
+    const first = await t.mutation(api.cue.startRun, args);
+    await t.mutation(api.cue.updateRun, {
+      ...auth,
+      runId: first,
+      fields: { status, phase: status },
+    });
+    const second = await t.mutation(api.cue.startRun, args);
+    expect(second).not.toBe(first);
+    const runs = (await t.query(api.cue.snapshot, auth)).runs;
+    const original = runs.find((run) => run._id === first);
+    const retry = runs.find((run) => run._id === second);
+    expect(original?.status).toBe(status);
+    expect(retry?.status).toBe("running");
+    expect(retry?.codingPolicy).toEqual(original?.codingPolicy);
+    expect(retry?.deploymentMode).toBe("pull_request");
+  },
+);
 
 test("suspended apps refuse coding but keep their history", async () => {
   const t = fresh();

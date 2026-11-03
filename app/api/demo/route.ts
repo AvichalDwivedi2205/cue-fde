@@ -23,6 +23,7 @@ import {
   xRuntimeStatus,
 } from "@/lib/integration-checks";
 import { socialSource } from "@/lib/social-source";
+import { listPacks } from "@/lib/app-pack";
 import type { Id } from "@/convex/_generated/dataModel";
 export const runtime = "nodejs";
 const report = z.object({
@@ -51,7 +52,8 @@ export async function GET(request: NextRequest) {
     const slack = await slackConfig(),
       email = await emailConfig(),
       socket = await slackRuntimeStatus(),
-      config = await readIntegrations();
+      config = await readIntegrations(),
+      packs = await listPacks();
     return NextResponse.json({
       ...snapshot,
       integration: {
@@ -77,6 +79,9 @@ export async function GET(request: NextRequest) {
         },
         workos: workosReady(),
         codingApps: config.coding?.map((c) => c.appId) || [],
+        engineeringApps: packs
+          .filter((pack) => pack.status === "active" && pack.engineering)
+          .map((pack) => pack.appId),
         actor: actor.name,
         role: actor.role,
         members:

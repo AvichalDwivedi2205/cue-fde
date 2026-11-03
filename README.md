@@ -25,15 +25,15 @@ The coding policy freezes the repository, base branch, allowed files, package di
 
 ## Current verification
 
-At published checkpoint [30d1c14](https://github.com/AvichalDwivedi2205/cue-fde/commit/30d1c14), checked November 3, 2026, 608 tests across 90 files, TypeScript, lint, and the production build passed. Lint retains six warnings. The local Docker follow-up passes 636 tests across 95 files, TypeScript, lint, and the production build. Lint retains the same six warnings.
+At published checkpoint [30d1c14](https://github.com/AvichalDwivedi2205/cue-fde/commit/30d1c14), checked November 3, 2026, 608 tests across 90 files, TypeScript, lint, and the production build passed. Lint retains six warnings. The local Docker and generic investigation follow-up passes 659 tests across 97 files, TypeScript, lint, and the production build. Lint retains the same six warnings.
 
 Live Meta checks verified Spark structured output and Wonder tool use. The hosted gateway generated a Spark support reply and classification with actual model/usage receipts; repeated HTTP QA requests retained one case, and six access checks passed. A separate actual installed-widget report now includes its screenshot, correct application/workspace URL, support reply, and completed Spark classification. The conversation survives reload with and without a fresh operator session.
 
 A live browser test on synthetic LatchGrid data reproduced the defect: Backspace removed a Note locally, but reload restored it. The existing menu-delete control stayed deleted after reload. Seven protected acceptance checks now cover Note persistence, group members and links, and explicit child selection. An earlier Meta candidate passed its original checks but failed domain review for deleting unselected children; it was rejected.
 
-Modal execution is disabled following failed credit redemption, and its hosted worker has been removed. The replacement uses local Docker with a dedicated Linux VM, isolated containers, and fresh independent verification. Real isolation, cancellation, and Bun-cache checks pass; the full private repository baseline is being verified through the replacement.
+Modal execution is disabled following failed credit redemption, and its hosted worker has been removed. The replacement uses local Docker with a dedicated Linux VM, isolated containers, and fresh independent verification. Real isolation, cancellation, and Bun-cache checks pass; the full private repository baseline also passes TypeScript and 238 default tests with the expected protected acceptance failures.
 
-A safe Meta-generated private PR, human review, verified release, and customer retry remain **pending**. Follow the [delivery record](docs/meta-delivery-plan.md), [demo plan](docs/meta-demo-plan.md), and [submission checklist](docs/meta-submission-checklist.md).
+Generic app investigations now use server-provided active repository capabilities and require operator reproduction evidence. Approved patches awaiting release cannot start duplicate runs. A safe Meta-generated private PR, human review, verified release, and customer retry remain **pending**. Follow the [delivery record](docs/meta-delivery-plan.md), [demo plan](docs/meta-demo-plan.md), and [submission checklist](docs/meta-submission-checklist.md).
 
 ## Run Cue locally
 

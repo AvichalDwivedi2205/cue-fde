@@ -522,7 +522,9 @@ export const startRun = mutation({
       .take(1);
     if (
       previous[0] &&
-      ["running", "awaiting_approval", "resolved"].includes(previous[0].status)
+      ["running", "awaiting_approval", "approved", "resolved"].includes(
+        previous[0].status,
+      )
     )
       throw new ConvexError(
         "An active or completed run already exists. Reset the demo to run again.",
