@@ -5,6 +5,7 @@ import { EmptyState, Button, Icon } from "../components/ui";
 import { AppConfiguration } from "./app-configuration";
 import "./setup.css";
 import type { TeamMember } from "@/lib/roles";
+import { EngineeringRouting } from "./engineering-routing";
 export type App = {
   id: string;
   name: string;
@@ -12,6 +13,7 @@ export type App = {
   widget?: { answers: boolean; voice: boolean; screenshots: boolean };  packStatus?: "draft" | "active" | "suspended" | "none";
   installChecked?: boolean;
   hasEngineering?: boolean;
+  routing?: { label?: string; engineeringChannel?: string; engineeringMemberId?: string };
 };
 type Status = {
   x: {
@@ -19,6 +21,8 @@ type Status = {
     enabled: boolean;
     username?: string;
     userId?: string;
+    appId?: string;
+    replyConfigured?: boolean;
     connected: boolean;
     detail: string;
     imported: number;
@@ -56,6 +60,7 @@ type Status = {
     pollReceiving?: boolean;
     receivingAddress?: string;
     supportReceivingAddress?: string;
+    appId?: string;
     notifications?: {
       connected: boolean;
       detail: string;
@@ -250,7 +255,7 @@ export function SetupClient({
                 <p>
                   Collect public posts that tag your brand through the official
                   X API. Cue checks free credits before each poll and pauses
-                  below a $1 reserve. API replies remain reviewable drafts.
+                  below a $1 reserve. Public replies require exact-message review and verified user access.
                 </p>
                 <p>
                   {status?.x.detail}{" "}
@@ -279,12 +284,21 @@ export function SetupClient({
                 >
                   <div className="fields">
                     <label>
+                      Application receiving mentions
+                      <select name="appId" required defaultValue={status?.x.appId || ""}>
+                        <option value="" disabled>Choose an active application</option>
+                        {status?.apps.filter((a) => a.packStatus === "active").map((a) => (
+                          <option key={a.id} value={a.id}>{a.name}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
                       Brand handle
                       <input
                         name="username"
                         required
                         pattern="[A-Za-z0-9_]{1,15}"
-                        placeholder="bloomwithcue"
+                        placeholder="Your brand handle"
                         defaultValue={status?.x.username}
                       />
                     </label>
@@ -311,6 +325,10 @@ export function SetupClient({
                             : "From your own X developer app"
                         }
                       />
+                    </label>
+                    <label>
+                      User-authorized reply token
+                      <input name="userAccessToken" type="password" autoComplete="off" placeholder={status?.x.replyConfigured ? "Saved · leave blank to keep" : "OAuth 2 user token with posts read/write and users read access"} />
                     </label>
                   </div>
                   <label className="check">
@@ -344,6 +362,7 @@ export function SetupClient({
                         : "Setup needed"}
                   </span>
                 </div>
+                <EngineeringRouting apps={status?.apps || []} members={status?.slack.members || []} onSaved={load} />
                 <p>
                   {status?.slack.deliveryMode === "webhook"
                     ? "Messages and approval buttons are delivered directly to the hosted Cue app over HTTPS."
@@ -656,6 +675,15 @@ export function SetupClient({
                         }
                         required={!status?.email.configured}
                       />
+                    </label>
+                    <label>
+                      Application receiving email
+                      <select name="appId" required defaultValue={status?.email.appId || ""}>
+                        <option value="" disabled>Choose an active application</option>
+                        {status?.apps.filter((a) => a.packStatus === "active").map((a) => (
+                          <option key={a.id} value={a.id}>{a.name}</option>
+                        ))}
+                      </select>
                     </label>
                     <label>
                       From address

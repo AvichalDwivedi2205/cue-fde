@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { sameOrigin, operator } from "@/lib/access";
-import { requirePermission } from "@/lib/roles";
+import { can, requirePermission } from "@/lib/roles";
+import { slackConfig } from "@/lib/integration-config";
 import { listPacks, packContext, requireActivePack } from "@/lib/app-pack";
 import { db, api, secret } from "@/lib/server-store";
 import { engineeringInput } from "@/lib/app-pack-schema";
@@ -74,7 +75,15 @@ async function mutate(action: string, args: Record<string, unknown>) {
         appId: String(args.appId),
       });
       return "Repository binding removed.";
-    case "setRouting":
+    case "setRouting": {
+      const memberId = typeof args.engineeringMemberId === "string"
+        ? args.engineeringMemberId.trim() : undefined;
+      if (memberId) {
+        const config = await slackConfig();
+        const member = config?.members?.find((m) => m.slackId === memberId);
+        if (!member || !can(member.role, "investigate") || !can(member.role, "deploy"))
+          throw new Error("Assign a connected Engineering or Owner member");
+      }
       await db().mutation(api.appPacks.setRouting, {
         secret: secret(),
         appId: String(args.appId),
@@ -86,8 +95,10 @@ async function mutate(action: string, args: Record<string, unknown>) {
           typeof args.engineeringChannel === "string"
             ? args.engineeringChannel.trim()
             : undefined,
+        engineeringMemberId: memberId,
       });
       return "Slack routing saved.";
+    }
     case "checkEngineering": {
       const pack = await requireActivePack(String(args.appId));
       if (!pack.engineering)
@@ -143,6 +154,7 @@ export async function POST(request: Request) {
       appId?: string;
       label?: string;
       engineeringChannel?: string;
+      engineeringMemberId?: string;
       binding?: Record<string, unknown>;
     };
     z.string().min(1).max(100).parse(b.appId);
