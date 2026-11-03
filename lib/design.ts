@@ -47,6 +47,11 @@ export async function design(name: "bloom" | "cue") {
       (await fs.readFile(
         path.join(process.cwd(), "lib/browser/product-shell.js"),
         "utf8",
+      )) +
+      "\n" +
+      (await fs.readFile(
+        path.join(process.cwd(), "lib/browser/signals.js"),
+        "utf8",
       ));
   html = html.replace(
     name === "cue"
