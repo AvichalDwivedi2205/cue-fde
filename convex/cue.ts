@@ -77,6 +77,42 @@ export const snapshot = query({
         status: v.string(),
       }),
     ),
+    // Bounded projections for honest workspace views: which coding job is
+    // actually claimed (queued vs executing), and the batch evidence behind
+    // promoted signal features. Additive; old callers can ignore them.
+    jobs: v.array(schema.doc("jobs")),
+    signals: v.array(
+      v.object({
+        batchId: v.id("signalBatches"),
+        appId: v.string(),
+        state: v.string(),
+        provenance: v.object({
+          kind: v.string(),
+          fixture: v.optional(v.string()),
+          version: v.optional(v.string()),
+          note: v.optional(v.string()),
+        }),
+        postCount: v.number(),
+        analysisRevision: v.optional(v.number()),
+        clusters: v.array(
+          v.object({
+            id: v.string(),
+            title: v.string(),
+            sources: v.array(
+              v.object({
+                postId: v.string(),
+                author: v.string(),
+                quote: v.string(),
+              }),
+            ),
+            distinctAuthors: v.number(),
+            repeatedEvidence: v.boolean(),
+            promotedIssueId: v.optional(v.id("issues")),
+          }),
+        ),
+        updatedAt: v.number(),
+      }),
+    ),
   }),
   handler: async (ctx, args) => {
     authorize(args.secret);
@@ -108,6 +144,33 @@ export const snapshot = query({
         appId: p.appId,
         name: p.routing?.label || p.name,
         status: p.status,
+      })),
+      jobs: await ctx.db.query("jobs").order("desc").take(100),
+      signals: (
+        await ctx.db
+          .query("signalBatches")
+          .order("desc")
+          .take(20)
+      ).map((batch) => ({
+        batchId: batch._id,
+        appId: batch.appId,
+        state: batch.state,
+        provenance: batch.provenance,
+        postCount: batch.posts.length,
+        analysisRevision: batch.analysis?.revision,
+        clusters: (batch.analysis?.clusters || []).map((cluster) => ({
+          id: cluster.id,
+          title: cluster.proposal.title,
+          sources: cluster.sources,
+          distinctAuthors: cluster.distinctAuthors,
+          repeatedEvidence: cluster.repeatedEvidence,
+          promotedIssueId: batch.promoted.find(
+            (p) =>
+              p.clusterId === cluster.id &&
+              p.analysisRevision === batch.analysis!.revision,
+          )?.issueId,
+        })),
+        updatedAt: batch.updatedAt,
       })),
     };
   },

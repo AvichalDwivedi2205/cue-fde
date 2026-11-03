@@ -362,6 +362,22 @@ describe("promotion into ordinary feature governance", () => {
     expect(issue.specGeneration).toEqual(receipt);
     const spec = JSON.parse(issue.spec!);
     expect(spec.acceptanceCriteria).toHaveLength(2);
+    // The workspace snapshot projects batch evidence so the feature views can
+    // show source quotes and honest counts, plus the actual job state.
+    const projection = s.signals.find((b) => b.batchId === batchId);
+    expect(projection).toMatchObject({
+      appId: issue.appId,
+      state: "analyzed",
+      postCount: 3,
+      analysisRevision: 1,
+    });
+    expect(projection!.clusters[0]).toMatchObject({
+      id: "c-recover",
+      distinctAuthors: 2,
+      repeatedEvidence: true,
+    });
+    expect(projection!.clusters[0].promotedIssueId).toBe(issueId);
+    expect(Array.isArray(s.jobs)).toBe(true);
     // Promotion never approves; implementation still requires Product.
     await expect(
       t.mutation(api.cue.startFeature, {

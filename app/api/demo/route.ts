@@ -247,17 +247,41 @@ export async function POST(request: NextRequest) {
         const issue = s.issues.find((i) => i._id === body.issueId);
         if (!issue || issue.kind !== "feature")
           throw new Error("Feature not found");
-        const { spec, generation } = await generateSpec({
-          issue: { title: issue.title, description: issue.description },
-          requests: s.cases
-            .filter(
-              (c) =>
-                c.issueId === issue._id &&
-                c.provenance !== "Seeded demo report" &&
-                !c.provenance.startsWith("Synthetic "),
-            )
-            .map((c) => ({ title: c.title, body: c.body })),
-        });
+        // A promoted signal feature regenerates from its immutable validated
+        // batch evidence, never from an empty case list. Ordinary features
+        // keep the existing synthetic-case exclusion.
+        const context = issue.sourceSignals
+          ? (() => {
+              const batch = (s.signals || []).find(
+                (b) => b.batchId === issue.sourceSignals!.batchId,
+              );
+              const cluster = batch?.clusters.find(
+                (c) => c.id === issue.sourceSignals!.clusterId,
+              );
+              if (!batch || !cluster)
+                throw new Error(
+                  "The saved signals evidence for this feature is unavailable",
+                );
+              return {
+                issue: { title: issue.title, description: issue.description },
+                requests: cluster.sources.map((src) => ({
+                  title: src.author,
+                  body: src.quote,
+                })),
+              };
+            })()
+          : {
+              issue: { title: issue.title, description: issue.description },
+              requests: s.cases
+                .filter(
+                  (c) =>
+                    c.issueId === issue._id &&
+                    c.provenance !== "Seeded demo report" &&
+                    !c.provenance.startsWith("Synthetic "),
+                )
+                .map((c) => ({ title: c.title, body: c.body })),
+            };
+        const { spec, generation } = await generateSpec(context);
         await store.mutation(api.cue.spec, {
           secret: auth,
           issueId: issue._id,
