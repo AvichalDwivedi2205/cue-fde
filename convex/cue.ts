@@ -689,6 +689,10 @@ export const startFeature = mutation({
       throw new ConvexError(
         "Implementation requires the current approved specification",
       );
+    if (issue.sourceSignals)
+      throw new ConvexError(
+        "Handoff ready: a verified future-work binding is required before queueing a signal-derived specification",
+      );
     // The pack is read in this transaction: an unbound or inactive app can
     // never start implementation, whatever the caller supplies. A supplied
     // repository must match the binding.

@@ -147,7 +147,7 @@ test("runs without job records keep the honest raw status line", () => {
 test("an approved signals handoff stays ready without queueing on an unverified future binding", () => {
   const html = feature({ stub: baseStub, issue: { status: "approved", sourceSignals: { batchId: "batch", inputFingerprint: "digest", analysisRevision: 1, clusterId: "need" } } });
   expect(html).toContain("Handoff ready");
-  expect(html).toContain("verified future-work binding");
+  expect(html).toContain("verified repository baseline");
   expect(html).not.toContain('data-act="implementFeature"');
 });
 

@@ -334,3 +334,61 @@ test("an expired final attempt exposes reconciliation without promising another 
   expect(b.html()).toContain("Reconcile expired attempt");
   expect(b.html()).toContain("No new model call");
 });
+
+test("an analysis response from a previous app cannot reload its batch or report success", async () => {
+  const b = await browser();
+  b.setBatch({ ...analyzedBatch, state: "ready", analysis: undefined, attempts: [] });
+  const response = Promise.withResolvers<Response>();
+  b.fetch.mockImplementationOnce(() => response.promise);
+  const pending = b.run<Promise<void>>("A.signalsAnalyze({ disabled: false })");
+  b.state.scopeApp = "app-b";
+  b.run("renderSignals()");
+  response.resolve(Response.json({ state: "analyzed", attemptNumber: 1 }));
+  await pending;
+  expect(b.fetch).toHaveBeenCalledTimes(1);
+  expect(b.run("signalsBatch")).toBeNull();
+  expect(b.toast).not.toHaveBeenCalled();
+});
+
+test("switching apps while a fixture loads cannot import it into the new app", async () => {
+  const b = await browser();
+  const response = Promise.withResolvers<Response>();
+  b.fetch.mockImplementationOnce(() => response.promise);
+  const pending = b.run<Promise<void>>("A.signalsImport({ disabled: false })");
+  b.state.scopeApp = "app-b";
+  b.run("renderSignals()");
+  response.resolve(Response.json({ fixture: "scope", version: "v1", posts: analyzedBatch.posts }));
+  await pending;
+  expect(b.fetch).toHaveBeenCalledTimes(1);
+  expect(b.run("signalsBatch")).toBeNull();
+  expect(b.toast).not.toHaveBeenCalled();
+});
+
+test("a promotion response from a previous app cannot navigate to its feature", async () => {
+  const b = await browser({ features: [{ _backend: "issue-1", id: "FR-12" }] });
+  b.setBatch(analyzedBatch);
+  const response = Promise.withResolvers<Response>();
+  b.fetch.mockImplementationOnce(() => response.promise);
+  const pending = b.run<Promise<void>>("A.signalsPromote({ dataset: { id: 'c-recover' }, disabled: false })");
+  b.state.scopeApp = "app-b";
+  b.run("renderSignals()");
+  response.resolve(Response.json({ issueId: "issue-1" }));
+  await pending;
+  expect(b.fetch).toHaveBeenCalledTimes(1);
+  expect(b.navigations).toEqual([]);
+  expect(b.run("signalsBatch")).toBeNull();
+});
+
+test("recovery of an expired final claim records failure without showing a new successful analysis", async () => {
+  const b = await browser();
+  const attempts = [{ number: 1, status: "failed", startedAt: 1 }, { number: 2, status: "running", startedAt: 2 }];
+  const expired = { ...analyzedBatch, state: "analyzing", analysis: undefined, attempt: { number: 2, token: "test", expiresAt: Date.now() - 1000 }, attempts };
+  b.setBatch(expired);
+  b.fetch.mockImplementationOnce(async () => Response.json({ state: "failed", error: "Analysis retry budget exhausted" }));
+  b.fetch.mockImplementationOnce(async () => Response.json({ batch: { ...expired, state: "failed", attempt: undefined, attempts: attempts.map((a) => ({ ...a, status: "failed" })) } }));
+  await b.run<Promise<void>>("A.signalsRecover({ disabled: false })");
+  expect(JSON.parse(b.fetch.mock.calls[0]![1]!.body)).toEqual({ action: "analyze", batchId: analyzedBatch._id, expectedFingerprint: analyzedBatch.inputFingerprint });
+  expect(b.html()).toContain("Retry budget used");
+  expect(b.html()).not.toContain("Analysis running");
+  expect(b.toast).toHaveBeenCalledWith("Analysis retry budget exhausted", "fail");
+});
