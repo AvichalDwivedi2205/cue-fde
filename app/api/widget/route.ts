@@ -17,7 +17,7 @@ import { fallbackReply } from "@/lib/reply-policy";
 import { widgetOriginAllowed } from "@/lib/widget-preview";
 import type { Id } from "@/convex/_generated/dataModel";
 const input = z.object({
-  action: z.enum(["session", "read", "message", "feedback"]),
+  action: z.enum(["session", "read", "message", "feedback", "contact"]),
   app: z.string().max(100),
   origin: z.string().url(),
   token: z.string().max(2000).optional(),
@@ -30,6 +30,10 @@ const input = z.object({
   caseId: z.string().max(100).optional(),
   messageId: z.string().max(100).optional(),
   outcome: z.enum(["solved", "needs_help"]).optional(),
+  contact: z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("opt_in"), address: z.email().max(254) }).strict(),
+    z.object({ kind: z.literal("revoke") }).strict(),
+  ]).optional(),
 });
 export async function POST(request: Request) {
   try {
@@ -73,6 +77,12 @@ export async function POST(request: Request) {
     widgetRateLimit(owner + ":" + b.action, b.action === "message" ? 12 : 60);
     const store = db(),
       auth = secret();
+    if (b.action === "contact") {
+      if (!b.caseId || !b.contact) throw new Error("Choose notification preferences for this conversation");
+      return Response.json({ contact: await store.mutation(api.widgetContact.set, {
+        secret: auth, appId: app.id, owner, caseId: b.caseId as Id<"cases">, contact: b.contact,
+      }) }, { headers: { "cache-control": "no-store" } });
+    }
     if (b.action === "feedback") {
       if (!b.caseId || !b.messageId || !b.outcome)
         throw new Error("Choose an answer outcome");
@@ -116,6 +126,8 @@ export async function POST(request: Request) {
         {
           name: app.name,
           settings: app.widget,
+          notificationsAvailable: pack.status === "active",
+          notificationEmail: previous?.case?.notificationEmail || null,
           progress: previous ? supportProgress(previous) : null,
           attachments: previous?.attachments || [],
           case: previous?.case

@@ -161,3 +161,11 @@
   opacity: 0.5;
   cursor: default;
 }
+#notification-preferences {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--ink-2);
+}
+#notification-preferences summary { cursor: pointer; }
+#notification-form { display: grid; gap: 7px; margin-top: 8px; }
+#notification-email { border: 1px solid var(--line); border-radius: 6px; padding: 7px; }
