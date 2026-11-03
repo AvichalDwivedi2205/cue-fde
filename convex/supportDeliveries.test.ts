@@ -253,10 +253,18 @@ test("concurrent approved duplicates and different drafts reserve only one provi
     deploymentMode: "pull_request",
   });
   expect(saved.run?.deployed).toBeUndefined();
-  const posted = await s.t.run((ctx) => ctx.db.query("messages").withIndex("by_caseId_and_createdAt", (q) => q.eq("caseId", s.caseId)).take(10));
+  const posted = await s.t.run((ctx) =>
+    ctx.db
+      .query("messages")
+      .withIndex("by_caseId_and_createdAt", (q) => q.eq("caseId", s.caseId))
+      .take(10),
+  );
   expect(posted).toHaveLength(1);
   expect(posted[0]).toMatchObject({ role: "staff", author: "Cue · X reply" });
-  expect([previewUpdateBody(url), `A browser check passed for this preview: ${url} Production is unchanged.`]).toContain(posted[0].body);
+  expect([
+    previewUpdateBody(url),
+    `A browser check passed for this preview: ${url} Production is unchanged.`,
+  ]).toContain(posted[0].body);
 });
 
 test("changed destination, app route, commit, acceptance or latest run cannot reuse approval", async () => {
@@ -522,4 +530,192 @@ test("claim rejects a supplied changed target or config digest independently of 
     ).rejects.toThrow("changed");
   }
   expect(s.send).not.toHaveBeenCalled();
+});
+
+test("rotated same-target credentials reconcile unknown or accepted sends without allowing a second send", async () => {
+  for (const channel of ["x", "chat"] as const) {
+    for (const state of ["unknown", "accepted"] as const) {
+      const s = await setup(channel),
+        review = await s.approved();
+      if (state === "unknown") {
+        s.send.mockRejectedValueOnce(new Error("POST outcome lost"));
+        await expect(s.service.send(review)).rejects.toThrow("outcome unknown");
+      } else {
+        s.readback.mockRejectedValueOnce(new Error("GET timeout"));
+        await expect(s.service.send(review)).rejects.toThrow("GET timeout");
+      }
+      const config = s.config();
+      if (!config.x || !config.email) throw new Error("Fixture missing config");
+      s.changeConfig(
+        channel === "x"
+          ? {
+              ...config,
+              x: {
+                ...config.x,
+                userAccessToken: "replacement-user-context-token",
+              },
+            }
+          : { ...config, email: { ...config.email, apiKey: "re_replacement" } },
+      );
+      const second = await s.approved(
+        `A browser check passed for this preview: ${url} Production is unchanged.`,
+      );
+      expect(await s.service.send(second)).toEqual({ sent: false });
+      const readsBefore = s.readback.mock.calls.length;
+      await s.service.reconcile({ id: review.id, providerId: "900" });
+      expect(s.verify).toHaveBeenCalledTimes(3);
+      expect(s.readback).toHaveBeenCalledTimes(readsBefore + 1);
+      expect(s.verify.mock.invocationCallOrder.at(-1)).toBeLessThan(
+        s.readback.mock.invocationCallOrder.at(-1)!,
+      );
+      expect(
+        (await s.t.query(api.supportDeliveries.get, { ...auth, id: review.id }))
+          .supportIntent?.state.kind,
+      ).toBe("verified");
+      expect(await s.service.send(second)).toEqual({ sent: false });
+      expect(s.send).toHaveBeenCalledTimes(1);
+    }
+  }
+});
+
+test("reconciliation refuses replacement credentials until the saved brand or sender verifies", async () => {
+  for (const channel of ["x", "chat"] as const) {
+    const s = await setup(channel),
+      review = await s.approved();
+    s.readback.mockRejectedValueOnce(new Error("GET timeout"));
+    await expect(s.service.send(review)).rejects.toThrow("GET timeout");
+    const config = s.config();
+    if (!config.x || !config.email) throw new Error("Fixture missing config");
+    s.changeConfig(
+      channel === "x"
+        ? {
+            ...config,
+            x: {
+              ...config.x,
+              userAccessToken: "replacement-user-context-token",
+            },
+          }
+        : { ...config, email: { ...config.email, apiKey: "re_replacement" } },
+    );
+    s.verify.mockRejectedValueOnce(
+      new Error("Replacement account or sender did not verify"),
+    );
+    const readsBefore = s.readback.mock.calls.length;
+    await expect(s.service.reconcile({ id: review.id })).rejects.toThrow(
+      "did not verify",
+    );
+    expect(s.readback).toHaveBeenCalledTimes(readsBefore);
+    expect(
+      (await s.t.query(api.supportDeliveries.get, { ...auth, id: review.id }))
+        .supportIntent?.state.kind,
+    ).toBe("accepted");
+    expect(s.send).toHaveBeenCalledTimes(1);
+  }
+});
+
+test("read-only reconciliation rejects changed app, brand, sender or recipient", async () => {
+  for (const change of [
+    "x-app",
+    "x-brand",
+    "email-app",
+    "email-sender",
+    "email-recipient",
+  ] as const) {
+    const s = await setup(change.startsWith("x") ? "x" : "chat"),
+      review = await s.approved();
+    s.readback.mockRejectedValueOnce(new Error("GET timeout"));
+    await expect(s.service.send(review)).rejects.toThrow("GET timeout");
+    const config = s.config();
+    if (!config.x || !config.email) throw new Error("Fixture missing config");
+    if (change === "x-app")
+      s.changeConfig({ ...config, x: { ...config.x, appId: "other-app" } });
+    if (change === "x-brand")
+      s.changeConfig({ ...config, x: { ...config.x, userId: "999" } });
+    if (change === "email-app")
+      s.changeConfig({
+        ...config,
+        email: { ...config.email, appId: "other-app" },
+      });
+    if (change === "email-sender")
+      s.changeConfig({
+        ...config,
+        email: { ...config.email, from: "other@example.test" },
+      });
+    if (change === "email-recipient")
+      s.readback.mockResolvedValueOnce({
+        kind: "widget_email",
+        providerId: "900",
+        sender: "support@example.test",
+        recipient: "other@example.test",
+        body: previewUpdateBody(url),
+      });
+    await expect(s.service.reconcile({ id: review.id })).rejects.toThrow();
+    expect(
+      (await s.t.query(api.supportDeliveries.get, { ...auth, id: review.id }))
+        .supportIntent?.state.kind,
+    ).toBe("accepted");
+    expect(s.send).toHaveBeenCalledTimes(1);
+  }
+});
+
+test("paused same-brand X collection permits verified native readback but never another send", async () => {
+  const s = await setup(),
+    review = await s.approved();
+  s.readback.mockRejectedValueOnce(new Error("GET timeout"));
+  await expect(s.service.send(review)).rejects.toThrow("GET timeout");
+  const config = s.config();
+  if (!config.x) throw new Error("Fixture missing X config");
+  s.changeConfig({
+    ...config,
+    x: {
+      ...config.x,
+      enabled: false,
+      userAccessToken: "replacement-user-context-token",
+    },
+  });
+  const request = vi.fn<typeof fetch>().mockImplementation(async (input) => {
+    const endpoint = String(input);
+    if (endpoint.endsWith("users/me"))
+      return new Response(
+        JSON.stringify({ data: { id: "200", username: "brand" } }),
+      );
+    return new Response(
+      JSON.stringify({
+        data: {
+          id: "900",
+          text: previewUpdateBody(url),
+          author_id: "200",
+          referenced_tweets: [{ type: "replied_to", id: "100" }],
+        },
+      }),
+    );
+  });
+  vi.stubGlobal("fetch", request);
+  try {
+    const service = createCustomerUpdates({
+      store: {
+        query: (reference, ...args) =>
+          s.t.run((ctx) => ctx.runQuery(reference, ...args)),
+        mutation: (reference, ...args) =>
+          s.t.run((ctx) => ctx.runMutation(reference, ...args)),
+      },
+      secret: auth.secret,
+      config: async () => s.config(),
+    });
+    await service.reconcile({ id: review.id });
+    expect(request.mock.calls.map(([endpoint]) => String(endpoint))).toEqual([
+      "https://api.x.com/2/users/me",
+      "https://api.x.com/2/tweets/900?tweet.fields=author_id,referenced_tweets,entities",
+    ]);
+    for (const [, options] of request.mock.calls)
+      expect(options?.method).toBe("GET");
+    expect(await service.send(review)).toEqual({ sent: false });
+    await expect(
+      service.prepare({ caseId: s.caseId, runId: s.runId, actor: "Operator" }),
+    ).rejects.toThrow("configured user-authorized brand");
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(s.send).toHaveBeenCalledTimes(1);
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });

@@ -66,11 +66,13 @@ function configured(
   config: IntegrationConfig,
   target: SupportTarget,
   appId: string,
+  operation: "send" | "reconcile",
 ) {
   if (target.kind === "x") {
     const x = config.x;
     if (
-      !x?.enabled ||
+      !x ||
+      (operation === "send" && !x.enabled) ||
       !x.userAccessToken ||
       x.appId !== appId ||
       x.userId !== target.brandUserId ||
@@ -213,13 +215,17 @@ export function createWidgetEmailSupport(
 function nativeProvider(
   config: IntegrationConfig,
   target: SupportTarget,
+  operation: "send" | "reconcile",
 ): CustomerUpdateProvider {
   if (target.kind === "widget_email") {
     if (!config.email) throw new Error("Email configuration unavailable");
     return createWidgetEmailSupport(config.email, target);
   }
   if (!config.x) throw new Error("X configuration unavailable");
-  const x = createXSupport(config.x);
+  // Pausing collection blocks sends, but existing outcomes still need read access.
+  const x = createXSupport(
+    operation === "reconcile" ? { ...config.x, enabled: true } : config.x,
+  );
   return {
     verify: () => x.verifyBrand(target),
     send: (body) => x.send(target, body),
@@ -233,18 +239,28 @@ export function createCustomerUpdates(deps: CustomerUpdateDependencies) {
   async function get(id: Id<"deliveries">): Promise<Doc<"deliveries">> {
     return await deps.store.query(api.supportDeliveries.get, { ...auth, id });
   }
-  async function provider(delivery: Doc<"deliveries">) {
+  async function provider(
+    delivery: Doc<"deliveries">,
+    operation: "send" | "reconcile",
+  ) {
     if (!delivery.supportIntent)
       throw new Error("Reviewed customer update required");
     const config = await deps.config(),
       review = delivery.supportIntent.review;
-    const configDigest = configured(config, review.target, review.appId);
-    if (configDigest !== review.configDigest)
+    const configDigest = configured(
+      config,
+      review.target,
+      review.appId,
+      operation,
+    );
+    if (operation === "send" && configDigest !== review.configDigest)
       throw new Error(
         "Outbound configuration changed; prepare and approve a fresh update",
       );
     return {
-      adapter: (deps.provider ?? nativeProvider)(config, review.target),
+      adapter: deps.provider
+        ? deps.provider(config, review.target)
+        : nativeProvider(config, review.target, operation),
       configDigest,
       target: review.target,
     };
@@ -289,7 +305,12 @@ export function createCustomerUpdates(deps: CustomerUpdateDependencies) {
           consentRevision: consent.revision,
         };
       }
-      const configDigest = configured(config, target, conversation.appId);
+      const configDigest = configured(
+        config,
+        target,
+        conversation.appId,
+        "send",
+      );
       return await deps.store.mutation(api.supportDeliveries.prepare, {
         ...auth,
         caseId: args.caseId,
@@ -319,7 +340,10 @@ export function createCustomerUpdates(deps: CustomerUpdateDependencies) {
         throw new Error("Exact approved review required");
       if (delivery.supportIntent.state.kind !== "approved")
         return { sent: false };
-      const { adapter, configDigest, target } = await provider(delivery);
+      const { adapter, configDigest, target } = await provider(
+        delivery,
+        "send",
+      );
       // Verify the user-context identity/sender before reserving any external write.
       await adapter.verify();
       const claimed = await deps.store.mutation(api.supportDeliveries.claim, {
@@ -377,7 +401,8 @@ export function createCustomerUpdates(deps: CustomerUpdateDependencies) {
         throw new Error(
           "Locate the provider post/message identity for read-only reconciliation; resend remains blocked",
         );
-      const { adapter } = await provider(delivery);
+      const { adapter } = await provider(delivery, "reconcile");
+      await adapter.verify();
       const readback = await adapter.readback(providerId, delivery.body);
       await deps.store.mutation(api.supportDeliveries.verify, {
         ...auth,
