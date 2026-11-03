@@ -3,7 +3,7 @@ import schema from "./schema";
 import { query } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { authorize } from "./cue";
-import { assertPublicText } from "../lib/signals-schema";
+import { assertPublicText, signalAuthorKey, postsFingerprint, validateSignalsAnalysis, signalsPersistenceOutput } from "../lib/signals-schema";
 import {
   observeRunChecks,
   summarizeObservedChecks,
@@ -351,7 +351,9 @@ const dispositionOutcome = v.union(
 export const signalEvidence = query({
   args: { secret: v.string(), batchId: v.id("signalBatches") },
   returns: v.object({
-    schemaVersion: v.literal(1),
+    schemaVersion: v.union(v.literal(1), v.literal(2)),
+    sourceKind: v.optional(v.literal("selected-public")),
+    review: v.optional(v.object({ inputFingerprint: v.string(), analysisRevision: v.number(), reviewedAt: v.string() })),
     provenance: v.object({
       kind: v.string(),
       label: v.string(),
@@ -431,17 +433,40 @@ export const signalEvidence = query({
     if (!analysis)
       throw new ConvexError("Signal batch has not been analyzed yet");
 
-    if (batch.provenance.kind !== "synthetic-fixture")
-      throw new ConvexError(
-        "Operator captures require a reviewed projection before export",
-      );
+    const realSources = batch.provenance.kind !== "synthetic-fixture";
+    if (realSources && !["native-x", "operator-capture"].includes(batch.provenance.kind))
+      throw new ConvexError("Unsupported source provenance");
+    const review = batch.publicReview;
+    if (realSources && (!review || review.inputFingerprint !== batch.inputFingerprint ||
+        review.analysisRevision !== analysis.revision))
+      throw new ConvexError("Real sources require a reviewed projection matching the saved input and analysis revision before export");
+    if (realSources && postsFingerprint(batch.posts) !== batch.inputFingerprint)
+      throw new ConvexError("Saved batch input no longer matches its fingerprint");
+    // Re-derive accounting and exact citations before projecting persisted data.
+    const validated = validateSignalsAnalysis(batch.posts, signalsPersistenceOutput(analysis));
+    if (validated.clusters.some((cluster, index) => {
+          const saved = analysis.clusters[index];
+          return !saved || cluster.distinctAuthors !== saved.distinctAuthors ||
+            cluster.repeatedEvidence !== saved.repeatedEvidence ||
+            JSON.stringify(cluster.sources.map((source) => [source.postId, source.author, source.quote])) !==
+            JSON.stringify(saved.sources.map((source) => [source.postId, source.author, source.quote]));
+        }) || Object.entries(validated.stats).some(([key, value]) =>
+          !Object.entries(analysis.stats).some(([savedKey, savedValue]) => savedKey === key && savedValue === value)))
+      throw new ConvexError("Stored analysis does not match the saved input");
     const privateValues = [
       args.secret,
       batch._id,
       batch.appId,
       batch.requestKey,
       batch.creator,
-      ...batch.posts.flatMap((post) => [post.id, post.sourceRef]),
+      ...batch.posts.flatMap((post) => {
+        const xSource = post.sourceRef?.match(/^https:\/\/(?:www\.)?(?:x|twitter)\.com\/([^/]+)\/status\/(\d+)/);
+        return [post.id, post.sourceRef, ...(realSources
+          ? [post.author, post.author.replace(/^@/, ""), post.providerAuthorId, xSource?.[1], xSource?.[2]]
+          : [])];
+      }),
+      ...(batch.sourceCaseIds ?? []),
+      batch.publicReview?.reviewedBy,
       ...analysis.clusters.map((cluster) => cluster.id),
       ...batch.promoted.map((promotion) => promotion.issueId),
       analysis.receipt?.requestId,
@@ -451,12 +476,21 @@ export const signalEvidence = query({
         attempt.receipt?.traceId,
       ]),
     ].filter(isString);
-    const publicText = (text: string) => assertPublicText(text, privateValues);
-    const label = `Synthetic operator fixture ${publicText(batch.provenance.fixture ?? "unknown")} ${publicText(batch.provenance.version ?? "unknown")} · fictional authors`;
+    const withoutHandles = (text: string) => {
+      if (realSources && /(^|[^A-Za-z0-9_])@[A-Za-z0-9_]{1,30}\b/.test(text))
+        throw new ConvexError("Export text contains a private handle; exact text cannot be redacted");
+      return text;
+    };
+    const publicText = (text: string) => assertPublicText(withoutHandles(text), privateValues);
+    const label = realSources
+      ? batch.provenance.kind === "native-x"
+        ? "Selected public X posts · authors aliased · native provider provenance"
+        : "Operator-supplied capture · authors aliased · not platform-verified"
+      : `Synthetic operator fixture ${publicText(batch.provenance.fixture ?? "unknown")} ${publicText(batch.provenance.version ?? "unknown")} · fictional authors`;
     const postAliases = new Map(
       batch.posts.map((post, index) => [post.id, `post-${index + 1}`]),
     );
-    const authors = [...new Set(batch.posts.map((post) => post.author))];
+    const authors = [...new Set(batch.posts.map(signalAuthorKey))];
     const authorAliases = new Map(
       authors.map((author, index) => [author, `Author ${index + 1}`]),
     );
@@ -485,7 +519,7 @@ export const signalEvidence = query({
       (value) => !narrativeAliases.has(value),
     );
     const publicNarrative = (text: string) => assertPublicText(
-      text.replace(narrativePattern, (_, prefix: string, id: string) =>
+      withoutHandles(text).replace(narrativePattern, (_, prefix: string, id: string) =>
         prefix + alias(narrativeAliases, id),
       ),
       privateNarrativeValues,
@@ -506,16 +540,22 @@ export const signalEvidence = query({
     };
 
     return {
-      schemaVersion: 1 as const,
+      schemaVersion: realSources ? 2 as const : 1 as const,
+      ...(realSources && review ? {
+        sourceKind: "selected-public" as const,
+        review: { inputFingerprint: publicText(review.inputFingerprint),
+          analysisRevision: review.analysisRevision,
+          reviewedAt: new Date(review.reviewedAt).toISOString() },
+      } : {}),
       provenance: {
         kind: batch.provenance.kind,
         label,
-        syntheticAuthors: true,
+        syntheticAuthors: !realSources,
       },
       batch: {
         fingerprint: publicText(batch.inputFingerprint),
         posts: batch.posts.length,
-        authors: new Set(batch.posts.map((p) => p.author)).size,
+        authors: new Set(batch.posts.map(signalAuthorKey)).size,
         totalChars: batch.posts.reduce((sum, p) => sum + p.text.length, 0),
       },
       posts: batch.posts.map((post) => {
@@ -524,7 +564,7 @@ export const signalEvidence = query({
           throw new ConvexError("Stored analysis is missing a disposition");
         return {
           id: alias(postAliases, post.id),
-          author: alias(authorAliases, post.author),
+          author: alias(authorAliases, signalAuthorKey(post)),
           text: publicText(post.text),
           disposition: {
             outcome: disposition.outcome,
@@ -563,7 +603,7 @@ export const signalEvidence = query({
               );
             return {
               postId: alias(postAliases, s.postId),
-              author: alias(authorAliases, s.author),
+              author: alias(authorAliases, signalAuthorKey(post)),
               quote: publicText(s.quote),
             };
           }),

@@ -26,10 +26,11 @@ export const signalPostInputSchema = z
     author: z.string().trim().min(1).max(60),
     text: z
       .string()
-      .trim()
       .min(1)
-      .max(MAX_POST_CHARS),
-    sourceRef: z.string().trim().min(1).max(300).optional(),
+      .max(MAX_POST_CHARS)
+      .refine((text) => text.trim().length > 0, "Post text must not be blank"),
+    sourceRef: z.string().min(1).max(300).optional(),
+    providerAuthorId: z.string().regex(/^\d{1,30}$/).optional(),
   })
   .strict();
 export type SignalPostInput = z.infer<typeof signalPostInputSchema>;
@@ -49,7 +50,9 @@ export const signalsProvenanceSchema = z.discriminatedUnion("kind", [
     })
     .strict(),
 ]);
-export type SignalsProvenance = z.infer<typeof signalsProvenanceSchema>;
+export const nativeSignalsProvenanceSchema = z.object({ kind: z.literal("native-x") }).strict();
+export const storedSignalsProvenanceSchema = z.union([signalsProvenanceSchema, nativeSignalsProvenanceSchema]);
+export type SignalsProvenance = z.infer<typeof storedSignalsProvenanceSchema>;
 
 export function canonicalPosts(posts: readonly SignalPostInput[]): string {
   const canonical = [...posts]
@@ -60,6 +63,7 @@ export function canonicalPosts(posts: readonly SignalPostInput[]): string {
         p.author,
         p.text,
         p.sourceRef === undefined ? null : p.sourceRef,
+        ...(p.providerAuthorId === undefined ? [] : [p.providerAuthorId]),
       ]),
     );
   return JSON.stringify(canonical);
@@ -77,6 +81,10 @@ export function postsFingerprint(posts: readonly SignalPostInput[]): string {
     hash = (hash * prime) & mask;
   }
   return hash.toString(16).padStart(16, "0");
+}
+
+export function signalAuthorKey(post: SignalPostInput): string {
+  return post.providerAuthorId === undefined ? `label:${post.author}` : `x:${post.providerAuthorId}`;
 }
 
 export function validateBatchInputs(posts: readonly SignalPostInput[]): void {
@@ -303,7 +311,7 @@ export function validateSignalsAnalysis(
       throw new SignalsValidationError(
         `Cluster ${cluster.id} has no validated evidence`,
       );
-    const distinctAuthors = new Set(sources.map((s) => s.author)).size;
+    const distinctAuthors = new Set(sources.map((s) => signalAuthorKey(byId.get(s.postId)!))).size;
     return {
       id: cluster.id,
       need: cluster.need,
@@ -325,7 +333,7 @@ export function validateSignalsAnalysis(
       posts: posts.length,
       evidencePosts: evidence.length,
       distinctEvidenceAuthors: new Set(
-        evidence.map((d) => byId.get(d.postId)!.author),
+        evidence.map((d) => signalAuthorKey(byId.get(d.postId)!)),
       ).size,
       duplicatePosts: count("duplicate"),
       spamPosts: count("spam"),
@@ -338,7 +346,7 @@ export function validateSignalsAnalysis(
 
 // Public-safe projection for the operator-reviewed signals export. Safe
 // labels only: no backend IDs, no private URLs, no provider request IDs.
-export const signalsExportSchema = z
+const signalsExportV1Schema = z
   .object({
     schemaVersion: z.literal(1),
     provenance: z.object({
@@ -405,6 +413,23 @@ export const signalsExportSchema = z
     completedAt: z.string().nullable(),
   })
   .strict();
+export const signalsExportSchema = z.union([
+  signalsExportV1Schema,
+  signalsExportV1Schema.extend({
+    schemaVersion: z.literal(2),
+    sourceKind: z.literal("selected-public"),
+    provenance: z.object({
+      kind: z.enum(["native-x", "operator-capture"]),
+      label: z.string(),
+      syntheticAuthors: z.literal(false),
+    }).strict(),
+    review: z.object({
+      inputFingerprint: z.string(),
+      analysisRevision: z.number().int().positive(),
+      reviewedAt: z.string().datetime(),
+    }).strict(),
+  }).strict(),
+]);
 export type SignalsExport = z.infer<typeof signalsExportSchema>;
 
 // Public-safe projection of one coding run's evidence for run.json. Only

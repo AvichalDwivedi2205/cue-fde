@@ -20,6 +20,13 @@ export const signalTables = {
     provenance: signalProvenance,
     posts: v.array(signalPost),
     inputFingerprint: v.string(),
+    sourceCaseIds: v.optional(v.array(v.id("cases"))),
+    publicReview: v.optional(v.object({
+      inputFingerprint: v.string(),
+      analysisRevision: v.number(),
+      reviewedAt: v.number(),
+      reviewedBy: v.string(),
+    })),
     state: signalBatchState,
     attempt: v.optional(
       v.object({

@@ -348,3 +348,11 @@ test.each([
   expect(() => assertPublicText(text)).toThrow(/private identifier/);
   expect(redactPublicText(text)).not.toContain("/Users/alice");
 });
+
+test("source text stays exact and whitespace cannot bypass character budgets", () => {
+  const post = { id: "exact", author: "Operator", text: "  Recover boards.\n", sourceRef: "https://x.com/user/status/123?exact=1" };
+  expect(signalPostInputSchema.parse(post).text).toBe(post.text);
+  expect(signalPostInputSchema.parse(post).sourceRef).toBe(post.sourceRef);
+  expect(() => validateBatchInputs([{ ...post, text: " ".repeat(1500) + "x" }])).toThrow();
+  expect(() => validateBatchInputs(Array.from({ length: 17 }, (_, index) => ({ ...post, id: `p${index}`, text: " ".repeat(1499) + "x" })))).toThrow(/24000/);
+});

@@ -5,9 +5,10 @@ import { requirePermission } from "@/lib/roles";
 import { listPacks } from "@/lib/app-pack";
 import { z } from "zod";
 import {
-  signalsProvenanceSchema,
   signalsPersistenceOutput,
   signalPostInputSchema,
+  storedSignalsProvenanceSchema,
+  MAX_POSTS,
 } from "@/lib/signals-schema";
 import {
   analyzeSignalPosts,
@@ -37,6 +38,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ batch }, { headers: { "cache-control": "no-store" } });
     }
     const appId = z.string().min(1).max(200).parse(params.get("appId") || "");
+    if (params.get("sources") === "native-x") {
+      const sources = await store.query(api.signals.listNativeSignalSources, { secret: auth, appId });
+      return NextResponse.json({ sources }, { headers: { "cache-control": "no-store" } });
+    }
     const batches = await store.query(api.signals.listSignalBatches, {
       secret: auth,
       appId,
@@ -71,7 +76,7 @@ const importInput = z.object({
       })
       .strict(),
   ]),
-  posts: z.array(signalPostInputSchema).min(1),
+  posts: z.array(signalPostInputSchema.omit({ providerAuthorId: true })).min(1).max(MAX_POSTS),
 });
 
 export async function POST(request: NextRequest) {
@@ -82,6 +87,31 @@ export async function POST(request: NextRequest) {
     const store = db(),
       auth = secret();
     switch (body.action) {
+      case "import-native": {
+        requirePermission(actor, "spec");
+        const input = z.object({
+          action: z.literal("import-native"), appId: z.string().min(1).max(200),
+          requestKey: requestKeyInput, caseIds: z.array(z.string().regex(/^[a-z0-9]{32}$/)).min(1).max(MAX_POSTS),
+        }).strict().parse(body);
+        const result = await store.mutation(api.signals.createNativeSignalBatch, {
+          secret: auth, appId: input.appId, requestKey: input.requestKey,
+          caseIds: input.caseIds as Id<"cases">[], actor: actor.name,
+        });
+        return NextResponse.json(result);
+      }
+      case "review-export": {
+        requirePermission(actor, "spec");
+        const input = z.object({ action: z.literal("review-export"),
+          batchId: batchIdInput, expectedFingerprint: fingerprintInput,
+          expectedAnalysisRevision: z.number().int().positive(),
+        }).strict().parse(body);
+        await store.mutation(api.signals.reviewSignalExport, {
+          secret: auth, batchId: input.batchId as Id<"signalBatches">,
+          expectedFingerprint: input.expectedFingerprint,
+          expectedAnalysisRevision: input.expectedAnalysisRevision, actor: actor.name,
+        });
+        return NextResponse.json({ reviewed: true });
+      }
       case "import": {
         // Importing and analyzing mint specification material, so they share
         // the spec permission with generateSpec.
@@ -127,7 +157,7 @@ export async function POST(request: NextRequest) {
             packs.find((p) => p.appId === batch.appId)?.name || batch.appId;
           const result = await analyzeSignalPosts({
             appName,
-            provenance: signalsProvenanceSchema.parse(batch.provenance),
+            provenance: storedSignalsProvenanceSchema.parse(batch.provenance),
             posts: batch.posts,
           });
           receipt = result.receipt;

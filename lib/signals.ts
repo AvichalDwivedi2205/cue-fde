@@ -13,6 +13,7 @@ import {
   MAX_CLUSTERS,
   MAX_POSTS,
   validateSignalsAnalysis,
+  signalAuthorKey,
   type SignalsProvenance,
   type SignalPostInput,
   type ValidatedAnalysis,
@@ -119,7 +120,10 @@ export async function analyzeSignalPosts(args: {
   const provenanceLabel =
     args.provenance.kind === "synthetic-fixture"
       ? `Synthetic operator fixture ${args.provenance.fixture} ${args.provenance.version}; authors are fictional.`
-      : `Operator-supplied capture: ${args.provenance.note}`;
+      : args.provenance.kind === "native-x"
+        ? "Saved native X posts; provider source and stable author identity verified by the server."
+        : `Operator-supplied capture: ${args.provenance.note}`;
+  const nativeAuthors = new Map([...new Set(args.posts.map(signalAuthorKey))].map((key, index) => [key, `Author ${index + 1}`]));
   let receipt: GenerationReceipt;
   let value: z.infer<typeof analysisZodShape>;
   try {
@@ -133,7 +137,7 @@ export async function analyzeSignalPosts(args: {
         promptVersion: SIGNALS_PROMPT_VERSION,
         posts: args.posts.map((p) => ({
           id: p.id,
-          author: p.author,
+          author: p.providerAuthorId === undefined ? p.author : nativeAuthors.get(signalAuthorKey(p)),
           text: p.text,
         })),
       },

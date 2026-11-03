@@ -203,3 +203,44 @@ describe("signals HTTP boundary", () => {
     );
   });
 });
+
+test("native import forwards selected IDs and current app only, and never analyzes during import", async () => {
+  state.store.mutation.mockResolvedValueOnce({ batchId, created: true });
+  const caseIds = ["c".repeat(32)];
+  const response = await POST(request({ action: "import-native", appId: "cue_app_test", requestKey: "native", caseIds }));
+  expect(response.status).toBe(200);
+  expect(state.store.mutation).toHaveBeenCalledWith(expect.anything(), {
+    secret: "trusted-test-secret", appId: "cue_app_test", requestKey: "native", caseIds, actor: "Avi",
+  });
+  expect(state.analyze).not.toHaveBeenCalled();
+});
+
+test("native import rejects forged bodies, author identities and provenance claims", async () => {
+  for (const forged of [{ posts: batch.posts }, { providerAuthorId: "123" }, { provenance: { kind: "native-x" } }]) {
+    const response = await POST(request({ action: "import-native", appId: "cue_app_test", requestKey: "native", caseIds: ["c".repeat(32)], ...forged }));
+    expect(response.status).toBe(400);
+  }
+  expect(state.store.mutation).not.toHaveBeenCalled();
+  expect(state.analyze).not.toHaveBeenCalled();
+});
+
+test("manual import preserves sourceRef and rejects native provenance or provider author IDs", async () => {
+  const sourceRef = "https://x.com/user/status/123?exact=1";
+  state.store.mutation.mockResolvedValueOnce({ batchId, created: true });
+  const payload = { action: "import", appId: "cue_app_test", requestKey: "capture", provenance: { kind: "operator-capture", note: "Manually captured" }, posts: [{ ...batch.posts[0], sourceRef }] };
+  expect((await POST(request(payload))).status).toBe(200);
+  expect(state.store.mutation.mock.calls[0][1].posts[0].sourceRef).toBe(sourceRef);
+  state.store.mutation.mockClear();
+  expect((await POST(request({ ...payload, provenance: { kind: "native-x" } }))).status).toBe(400);
+  expect((await POST(request({ ...payload, posts: [{ ...payload.posts[0], providerAuthorId: "123" }] }))).status).toBe(400);
+  expect(state.store.mutation).not.toHaveBeenCalled();
+});
+
+test("public export review forwards the exact immutable fingerprint and analysis revision", async () => {
+  state.store.mutation.mockResolvedValueOnce(null);
+  expect((await POST(request({ action: "review-export", batchId, expectedFingerprint: fingerprint, expectedAnalysisRevision: 2 }))).status).toBe(200);
+  expect(state.store.mutation).toHaveBeenCalledWith(expect.anything(), {
+    secret: "trusted-test-secret", batchId, expectedFingerprint: fingerprint, expectedAnalysisRevision: 2, actor: "Avi",
+  });
+  expect(state.analyze).not.toHaveBeenCalled();
+});

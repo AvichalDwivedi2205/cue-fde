@@ -179,6 +179,7 @@ export default defineSchema({
   })
     .index("by_updatedAt", ["updatedAt"])
     .index("by_sourceKey", ["sourceKey"])
+    .index("by_appId_and_channel", ["appId", "channel"])
     .index("by_issueId", ["issueId"])
     .index("by_owner", ["owner"]),
   issues: defineTable({

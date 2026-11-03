@@ -73,6 +73,7 @@ export const signalPost = v.object({
   author: v.string(),
   text: v.string(),
   sourceRef: v.optional(v.string()),
+  providerAuthorId: v.optional(v.string()),
 });
 
 export const signalProvenance = v.object({

@@ -223,3 +223,14 @@ describe("Spark batch analysis service", () => {
     expect(body).toContain("Synthetic operator fixture");
   });
 });
+
+test("native analysis sees stable author aliases across handle changes and never receives provider IDs or source URLs", async () => {
+  state.completion.mockResolvedValueOnce(metaOutput(goodValue));
+  const input = posts.map((post, index) => ({ ...post, author: index ? "@newhandle" : "@oldhandle", providerAuthorId: "7358192", sourceRef: "https://x.com/privatehandle/status/123" }));
+  const result = await analyzeSignalPosts({ appName: "LatchGrid", provenance: { kind: "native-x" }, posts: input });
+  const payload = JSON.parse(state.completion.mock.calls[0][0].messages[1].content[0].text);
+  expect(payload.posts.map((post: { author: string }) => post.author)).toEqual(["Author 1", "Author 1", "Author 1"]);
+  expect(result.analysis.stats.distinctEvidenceAuthors).toBe(1);
+  expect(JSON.stringify(payload)).not.toMatch(/7358192|oldhandle|newhandle|privatehandle|https:\/\//);
+  expect(state.completion).toHaveBeenCalledTimes(1);
+});

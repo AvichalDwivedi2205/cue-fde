@@ -544,3 +544,59 @@ test("recovery of an expired final claim records failure without showing a new s
   expect(b.html()).not.toContain("Analysis running");
   expect(b.toast).toHaveBeenCalledWith("Analysis retry budget exhausted", "fail");
 });
+
+test("pasted source references survive the actual import action without claiming native provenance", async () => {
+  const b = await browser();
+  const sourceRef = "https://x.com/publichandle/status/123?exact=1";
+  b.run(`$ = (selector) => selector === '#sig-paste' ? { value: ${JSON.stringify(JSON.stringify([{ id: "capture", author: "@publichandle", text: "Recover boards", sourceRef }]))} } : null`);
+  b.queuePost({ batchId: analyzedBatch._id, created: true });
+  await b.run<Promise<void>>("A.signalsImport({ disabled: false })");
+  const body = JSON.parse(b.fetch.mock.calls.find(([, init]) => init?.method === "POST")![1]!.body);
+  expect(body.posts[0].sourceRef).toBe(sourceRef);
+  expect(body.provenance.kind).toBe("operator-capture");
+  expect(b.fetch.mock.calls.filter(([, init]) => init?.method === "POST")).toHaveLength(1);
+});
+
+test("saved X selection persists across renders and imports only selected IDs with the captured app", async () => {
+  const b = await browser();
+  const source = { caseId: "c".repeat(32), author: "@savedhandle", text: "Recover boards", sourceRef: "https://x.com/savedhandle/status/123" };
+  b.fetch.mockImplementationOnce(async () => Response.json({ sources: [source] }));
+  await b.run<Promise<void>>("A.signalsPickNative()");
+  b.run(`A.signalsToggleNative({ dataset: { id: ${JSON.stringify(source.caseId)} } }); renderSignals()`);
+  expect(b.html()).toContain('aria-pressed="true"');
+  expect(b.html()).toContain(source.sourceRef);
+  b.queuePost({ batchId: analyzedBatch._id, created: true });
+  await b.run<Promise<void>>("A.signalsImport({ disabled: false })");
+  const posts = b.fetch.mock.calls.filter(([, init]) => init?.method === "POST");
+  expect(posts).toHaveLength(1);
+  expect(JSON.parse(posts[0][1]!.body)).toEqual({ action: "import-native", appId: "cue_app_test", requestKey: "fixture-v1", caseIds: [source.caseId] });
+});
+
+test("a pending native source load cannot carry old-app sources into a new app", async () => {
+  const b = await browser();
+  const response = Promise.withResolvers<Response>();
+  b.fetch.mockImplementationOnce(() => response.promise);
+  const pending = b.run<Promise<void>>("A.signalsPickNative()");
+  b.state.scopeApp = "different-app";
+  b.run("renderSignals()");
+  response.resolve(Response.json({ sources: [{ caseId: "old-app", author: "@old", text: "Wrong app", sourceRef: "private" }] }));
+  await pending;
+  expect(b.run("signalsForm.mode")).toBe("fixture");
+  expect(b.run("signalsForm.nativeSources.length")).toBe(0);
+  expect(b.html()).not.toContain("Wrong app");
+});
+
+test("real source review action binds exactly the displayed input and analysis revision without a model call", async () => {
+  const batch = { ...analyzedBatch, provenance: { kind: "native-x" }, posts: analyzedBatch.posts.map((post) => ({ ...post, sourceRef: "https://x.com/savedhandle/status/123" })) };
+  const b = await browser({ batch });
+  b.setBatch(batch);
+  b.run("renderSignals()");
+  expect(b.html()).toContain("Approve this exact input and analysis for public export");
+  expect(b.html()).toContain("Saved source:");
+  expect(b.html()).toContain("native provider provenance");
+  b.queuePost({ reviewed: true });
+  await b.run<Promise<void>>("A.signalsReviewExport({ disabled: false })");
+  const posts = b.fetch.mock.calls.filter(([, init]) => init?.method === "POST");
+  expect(posts).toHaveLength(1);
+  expect(JSON.parse(posts[0][1]!.body)).toEqual({ action: "review-export", batchId: batch._id, expectedFingerprint: batch.inputFingerprint, expectedAnalysisRevision: batch.analysis.revision });
+});
