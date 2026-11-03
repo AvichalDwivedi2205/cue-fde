@@ -47,7 +47,7 @@ async function browser(options: { apps?: string[]; allowed?: boolean; fingerprin
     curCase: () => undefined,
   });
   vm.runInContext(escapeSource, context);
-  const names = new Set(["cueAPI", "liveIssue", "legacyCodingIssue", "codingIssueEligible", "syncLiveRun", "selectCodingIssue", "liveAction", "openInvestigation", "existingCodingRun"]);
+  const names = new Set(["cueAPI", "liveIssue", "legacyCodingIssue", "codingIssueEligible", "syncLiveRun", "selectCodingIssue", "liveAction", "openInvestigation", "existingCodingRun", "approvalData"]);
   const file = ts.createSourceFile("cue.js", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
   const selected = file.statements.filter((node) => {
     if (ts.isFunctionDeclaration(node)) return !!node.name && names.has(node.name.text);

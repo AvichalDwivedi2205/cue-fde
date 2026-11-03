@@ -15,9 +15,9 @@ Keep the broken behavior until the recording's before scene is captured. The cus
 | 0:00–0:20 | Delete a LatchGrid node with the keyboard. Reload and show it return. | "Keyboard deletion looks successful, but the node returns after reload." | Live browser reproduction verified on synthetic data; video capture remains pending. |
 | 0:20–0:40 | Open the installed Cue widget. Send the report and its screenshot. Show the report in Cue under the correct application. | "The customer reports the failure where it happens. Cue keeps the app context and evidence." | VERIFIED actual widget case, screenshot, and correct workspace URL. Fresh-tab iframe failure remains unresolved; native comparison and recording are pending. |
 | 0:40–1:05 | Show Meta's diagnosis, cited authorized knowledge, and the engineering handoff. Keep uncertainty visible where evidence is missing. | "Meta reasons over this report. An acknowledged reproduction starts engineering work." | VERIFIED actual widget support reply, Spark classification, and hosted owner UI handoff. Cited-knowledge demonstration remains pending. |
-| 1:05–1:40 | Start the run. Show its selected and actual Meta model, baseline failure, independent menu control, sandbox IDs, and fresh-check results. | "Meta proposes a scoped change. The supervisor preserves the checks and reruns them in a fresh sandbox." | VERIFIED reproduction drawer submission, queued Meta coding run, and start of local Docker dependency preparation. Safe patch and passing independent checks remain pending. |
-| 1:40–2:10 | Show the private draft PR's status, changed-file count, exact SHA, and Cue's Engineering approval. Conceal private source and repository details. | "Engineering approves this exact commit. Approval alone does not release it." | PENDING the private PR and review event. |
-| 2:10–2:45 | Show the approved preview deployment and its browser acceptance evidence. Return to the same customer action, delete with the keyboard, and reload on the preview. | "The approved change passes the original action on this preview. After reload, the node stays deleted." | PENDING the safe patch, preview deployment, browser retry, and saved-state proof. |
+| 1:05–1:40 | Show the actual run's requested and serving Meta model, baseline controls, and fresh-check results. Mask private execution identifiers. | "Meta proposes a scoped change. The supervisor preserves the checks and reruns them in a fresh sandbox." | VERIFIED actual product run: 17 completed Wonder calls, TypeScript, 238 default tests, and all eight protected acceptance checks pass in the fresh verifier. |
+| 1:40–2:10 | Show the private draft PR's status and changed-file count with its repository and commit identifiers masked. Show the human review only after it exists. | "Engineering approves this exact commit. Approval alone does not release it." | VERIFIED private draft PR and matching head, one Canvas file with 49 added lines, and no new domain P1 or P2 findings. Human exact-commit approval is PENDING. |
+| 2:10–2:45 | Show the approved preview deployment and its browser acceptance evidence. Return to the same customer action, delete with the keyboard, and reload on the preview. | "The approved change passes the original action on this preview. After reload, the node stays deleted." | PENDING authenticated preview build and deployment, browser retry, and saved-state proof. The GitHub-triggered preview has an unverified commit-account failure, not a failed code test. |
 | 2:45–2:55 | Show the report, reviewed SHA, preview check, and customer outcome together. | "Cue keeps the report, reviewed commit, and preview acceptance together." | PENDING the complete linked preview record. |
 
 Cut long waits only after recording their real start and finish. Label elapsed time or speed changes. Never imply that a several-minute coding or deployment step completed instantly.
@@ -25,16 +25,18 @@ Cut long waits only after recording their real start and finish. Label elapsed t
 ## Record evidence that exists
 
 - VERIFIED: dedicated Meta calls returned the requested Muse Spark 1.3 and Muse Wonder 1.0 identities and actual token usage.
-- HISTORICAL: earlier Modal isolation checks passed, but Modal is now disabled after failed credit redemption. Verify the replacement local Docker path before showing current execution evidence.
-- VERIFIED: the private baseline installed locked Bun dependencies, passed TypeScript and all 238 default tests, failed the keyboard persistence assertion, and passed the menu control.
+- HISTORICAL: earlier Modal isolation checks passed, but Modal is now disabled after failed credit redemption. Current execution uses the verified local Docker path.
+- VERIFIED: the actual product baseline installed locked Bun dependencies and passed TypeScript and all 238 default tests. Two menu controls passed and six keyboard acceptance checks failed.
 - VERIFIED: selected local Docker isolation, running-check cancellation, controlled create/commit cancellation, and Bun cache placement. Ambiguous cleanup outcomes block further runs.
 - VERIFIED: live synthetic browser keyboard deletion returned after reload, while menu deletion persisted.
 - VERIFIED: actual installed-widget report, screenshot, Meta response/classification, application/workspace binding, and conversation persistence.
-- VERIFIED: hosted owner UI investigation start, reproduction drawer submission, queued Meta coding run, and start of local Docker dependency preparation.
+- VERIFIED: the third actual product run completed 17 Wonder calls with 673,361 reported input tokens and 9,497 output tokens. Its fresh verifier passed TypeScript, 238 default tests, and all eight protected acceptance checks before import and private draft PR creation.
+- VERIFIED: the original seven-check file remained unchanged. The eighth navigation regression followed a matched failure check and was frozen before the product run.
+- VERIFIED: the private PR head matches the frozen run. Only one Canvas file changed, with 49 added lines. Independent domain review found no new P1 or P2 issues.
 - PENDING: native comparison for the unresolved fresh-tab blank iframe.
-- PENDING: safe private patch, exact-commit review, preview deployment, browser acceptance, and original action after reload. Production release remains separate.
+- PENDING: human exact-commit review, authenticated preview deployment, browser acceptance, customer preview evidence, and the recording. Production release remains separate.
 
-Keep exact private SHAs, run IDs, raw logs, and PR access details in the private delivery record. Use sanitized proof in public materials. A failing acceptance test is not a verified fix.
+Keep exact private SHAs, case and run IDs, raw logs, and private PR identifiers in the private delivery record. Use sanitized proof in public materials. Do not substitute the second run's forensic reconstruction for the third run's actual product evidence.
 
 ## Keep the recording concrete
 
