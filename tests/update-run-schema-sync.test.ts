@@ -30,6 +30,8 @@ const NOT_PATCHABLE = new Set([
   "codingPolicy", // frozen from the application binding where the run is born
   "releaseCommit", // release-verifier only
   "releaseEvidence", // release-verifier only
+  "previewDeployment", // trusted preview deployment verifier only
+  "previewAcceptance", // dedicated operator browser-acceptance transition only
 ]);
 
 describe("updateRun fields validator stays in sync with the runs schema", () => {

@@ -77,7 +77,7 @@ import fs from 'node:fs';
 if (process.env.CUE_FORBIDDEN_ENV_LOAD) throw new Error('Fixture loaded an environment file');
 const fixture = JSON.parse(fs.readFileSync(process.env.CUE_PREVIEW_FIXTURE, 'utf8'));
 let snapshots = 0;
-export const api = { cue: { snapshot: 'snapshot', event: 'event' }, appPacks: { get: 'pack' } };
+export const api = { cue: { snapshot: 'snapshot', event: 'event' }, appPacks: { get: 'pack' }, previewAcceptance: { registerDeployment: 'registerPreview' } };
 export const secret = () => 'fixture-only';
 export const db = () => ({
   query: async (name) => {
@@ -88,6 +88,11 @@ export const db = () => ({
     return snapshot;
   },
   mutation: async (name, args) => {
+    if (name === 'registerPreview') {
+      if (args.runId !== fixture.snapshot.runs[0]._id || args.deployment.commit !== fixture.snapshot.runs[0].commit || args.deployment.id !== 'dpl_fixture') throw new Error('Incorrect registered preview identity');
+      fs.appendFileSync(fixture.directory + '/registered-preview.jsonl', JSON.stringify(args) + '\\n');
+      return null;
+    }
     if (name !== 'event' || args.title !== 'Preview deployment ready') throw new Error('Unexpected fixture mutation');
     fs.appendFileSync(fixture.directory + '/events.jsonl', JSON.stringify(args) + '\\n');
   },
@@ -167,6 +172,7 @@ test.each(["flat", "wrapped"] as const)("preview CLI deploys unchanged approved 
       phase: "ready", sourceTree: f.tree, commit: f.commit, projectId: "prj_verified", orgId: "team_verified",
     });
     expect(await fs.readFile(path.join(f.directory, "events.jsonl"), "utf8")).toContain("Browser acceptance pending");
+    expect(JSON.parse((await fs.readFile(path.join(f.directory, "registered-preview.jsonl"), "utf8")).trim())).toMatchObject({ runId, deployment: { id: "dpl_fixture", commit: f.commit, url: "https://fixture-preview.vercel.app" } });
   } finally { await f.cleanup(); }
 }, 30_000);
 
