@@ -260,6 +260,15 @@ async function answerImpl(
         appName: context.appName,
         brandStyle: brandStyle(brand),
         question: message,
+        report: context.case && {
+          title: context.case.title,
+          body: context.case.body,
+        },
+        issue: context.issue && {
+          title: context.issue.title,
+          description: context.issue.description,
+          fingerprint: context.issue.fingerprint,
+        },
         conversation: context.messages
           ?.filter((m) => ["customer", "staff", "cue"].includes(m.role || ""))
           .slice(-6)
