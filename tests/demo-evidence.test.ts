@@ -420,3 +420,42 @@ test("check summaries are redacted of paths and URLs before export", async () =>
   expect(sanitizeCheckSummary("   ")).toBeNull();
   expect(sanitizeCheckSummary("x".repeat(900))!.length).toBeLessThanOrEqual(600);
 });
+
+test("public run evidence never copies raw check logs", async () => {
+  const t = convexTest(schema, modules);
+  const { runId } = await seedRun(t);
+  const marker = "req_private_123 private@example.com 0123456789abcdef0123456789abcdef01234567";
+  await t.run(ctx => ctx.db.patch("runs", runId, { before: marker, after: marker }));
+  const result = await t.query(api.demoEvidence.runEvidence, { secret, runId });
+  expect(JSON.stringify(result)).not.toContain(marker);
+  expect(result.run.beforeSummary).toBeNull();
+  expect(result.run.afterSummary).toBeNull();
+});
+
+test("public signal aliases preserve exact quote and source links", async () => {
+  const { t, batchId } = await seedAnalyzedBatch();
+  const evidence = await t.query(api.demoEvidence.signalEvidence, { secret, batchId });
+  for (const value of ["p01", "p02", "p03", "c-recover", "Rhea M.", "Sam O.", "SpamBot"])
+    expect(JSON.stringify(evidence)).not.toContain(value);
+  for (const cluster of evidence.clusters) for (const source of cluster.sources) {
+    const post = evidence.posts.find(post => post.id === source.postId)!;
+    expect(post.author).toBe(source.author);
+    expect(post.text).toContain(source.quote);
+    expect(post.disposition.clusterId).toBe(cluster.id);
+  }
+});
+
+test("operator captures require a reviewed projection", async () => {
+  const { t, batchId } = await seedAnalyzedBatch();
+  await t.run(ctx => ctx.db.patch("signalBatches", batchId, { provenance: { kind: "operator-capture" } }));
+  await expect(t.query(api.demoEvidence.signalEvidence, { secret, batchId })).rejects.toThrow(/reviewed projection/);
+});
+
+test("a synthetic label does not permit private evidence text", async () => {
+  const { t, batchId } = await seedAnalyzedBatch();
+  await t.run(async ctx => {
+    const batch = (await ctx.db.get("signalBatches", batchId))!;
+    await ctx.db.patch("signalBatches", batchId, { posts: batch.posts.map((p, index) => index ? p : { ...p, text: `${p.text} Contact private@example.com req_private_123` }) });
+  });
+  await expect(t.query(api.demoEvidence.signalEvidence, { secret, batchId })).rejects.toThrow(/private identifier/);
+});
