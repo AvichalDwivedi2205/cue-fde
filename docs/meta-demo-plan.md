@@ -4,7 +4,7 @@ Draft checked November 3, 2026. Target 2 minutes 55 seconds within the three-min
 
 ## Show one complete customer journey
 
-Use one fresh LatchGrid visitor, one keyboard-deletion report, one coding run, and one reviewed release. Cue is the public entry. LatchGrid is the existing private customer application.
+Use one fresh LatchGrid visitor, one keyboard-deletion report, one coding run, one reviewed patch, and one verified preview. Cue is the public entry. LatchGrid is the existing private customer application. Record the preview acceptance scene only after the original action passes there. The demo does not establish a production release.
 
 Add a clear on-screen contribution label. Present only the Cue features and changes built during the event as hackathon work. Use LatchGrid's existing canvas only as customer context and a test of the new workflow. Map the new contributions to actual commits. The [participant guide](https://cerebralvalley.ai/e/meta-ai-developer-hackathon/details#4-hackathon-rules-8) requires clear separation and warns that unclear contributions can cause disqualification.
 
@@ -13,12 +13,12 @@ Keep the broken behavior until the recording's before scene is captured. The cus
 | Time | Show | Say | Current status |
 | --- | --- | --- | --- |
 | 0:00–0:20 | Delete a LatchGrid node with the keyboard. Reload and show it return. | "Keyboard deletion looks successful, but the node returns after reload." | Live browser reproduction verified on synthetic data; video capture remains pending. |
-| 0:20–0:40 | Open the installed Cue widget. Send the report and its screenshot. Show the report in Cue under the correct application. | "The customer reports the failure where it happens. Cue keeps the app context and evidence." | VERIFIED actual widget case, screenshot, and correct workspace URL; recording pending. |
-| 0:40–1:05 | Show Meta's diagnosis, cited authorized knowledge, and the engineering handoff. Keep uncertainty visible where evidence is missing. | "Meta reasons over this report. An acknowledged reproduction starts engineering work." | VERIFIED actual widget support reply and Spark classification; cited-knowledge demonstration remains pending. |
-| 1:05–1:40 | Start the run. Show its selected and actual Meta model, baseline failure, independent menu control, sandbox IDs, and fresh-check results. | "Meta proposes a scoped change. The supervisor preserves the checks and reruns them in a fresh sandbox." | PENDING an actual Meta patch and passing independent acceptance. |
+| 0:20–0:40 | Open the installed Cue widget. Send the report and its screenshot. Show the report in Cue under the correct application. | "The customer reports the failure where it happens. Cue keeps the app context and evidence." | VERIFIED actual widget case, screenshot, and correct workspace URL. Fresh-tab iframe failure remains unresolved; native comparison and recording are pending. |
+| 0:40–1:05 | Show Meta's diagnosis, cited authorized knowledge, and the engineering handoff. Keep uncertainty visible where evidence is missing. | "Meta reasons over this report. An acknowledged reproduction starts engineering work." | VERIFIED actual widget support reply, Spark classification, and hosted owner UI handoff. Cited-knowledge demonstration remains pending. |
+| 1:05–1:40 | Start the run. Show its selected and actual Meta model, baseline failure, independent menu control, sandbox IDs, and fresh-check results. | "Meta proposes a scoped change. The supervisor preserves the checks and reruns them in a fresh sandbox." | VERIFIED reproduction drawer submission, queued Meta coding run, and start of local Docker dependency preparation. Safe patch and passing independent checks remain pending. |
 | 1:40–2:10 | Show the private draft PR's status, changed-file count, exact SHA, and Cue's Engineering approval. Conceal private source and repository details. | "Engineering approves this exact commit. Approval alone does not release it." | PENDING the private PR and review event. |
-| 2:10–2:45 | Show the approved release's acceptance evidence. Return to the same customer action, delete with the keyboard, and reload. | "The released change passes the original action. After reload, the node stays deleted." | PENDING the released commit, browser retry, and saved-state proof. |
-| 2:45–2:55 | Show the report, reviewed SHA, release check, and customer outcome together. | "Cue keeps the report, reviewed commit, and release evidence together." | PENDING the complete linked record. |
+| 2:10–2:45 | Show the approved preview deployment and its browser acceptance evidence. Return to the same customer action, delete with the keyboard, and reload on the preview. | "The approved change passes the original action on this preview. After reload, the node stays deleted." | PENDING the safe patch, preview deployment, browser retry, and saved-state proof. |
+| 2:45–2:55 | Show the report, reviewed SHA, preview check, and customer outcome together. | "Cue keeps the report, reviewed commit, and preview acceptance together." | PENDING the complete linked preview record. |
 
 Cut long waits only after recording their real start and finish. Label elapsed time or speed changes. Never imply that a several-minute coding or deployment step completed instantly.
 
@@ -29,8 +29,10 @@ Cut long waits only after recording their real start and finish. Label elapsed t
 - VERIFIED: the private baseline installed locked Bun dependencies, passed TypeScript and all 238 default tests, failed the keyboard persistence assertion, and passed the menu control.
 - VERIFIED: selected local Docker isolation, running-check cancellation, controlled create/commit cancellation, and Bun cache placement. Ambiguous cleanup outcomes block further runs.
 - VERIFIED: live synthetic browser keyboard deletion returned after reload, while menu deletion persisted.
-- VERIFIED: fresh installed-widget report, screenshot, Meta response/classification, application/workspace binding, and conversation persistence.
-- PENDING: safe private patch, exact-commit review, released acceptance, and original browser action after reload.
+- VERIFIED: actual installed-widget report, screenshot, Meta response/classification, application/workspace binding, and conversation persistence.
+- VERIFIED: hosted owner UI investigation start, reproduction drawer submission, queued Meta coding run, and start of local Docker dependency preparation.
+- PENDING: native comparison for the unresolved fresh-tab blank iframe.
+- PENDING: safe private patch, exact-commit review, preview deployment, browser acceptance, and original action after reload. Production release remains separate.
 
 Keep exact private SHAs, run IDs, raw logs, and PR access details in the private delivery record. Use sanitized proof in public materials. A failing acceptance test is not a verified fix.
 
@@ -49,7 +51,7 @@ The [official waiver](https://cerebralvalley.ai/e/meta-ai-developer-hackathon/wa
 | Impact | 30% | A real persistence defect in an existing customer application. Do not invent adoption or revenue. |
 | Meta tooling | 25% | Actual Meta diagnosis and coding receipts, scoped tools, and the resulting change. |
 | Technical execution | 20% | Protected checks, fresh verification, exact-commit review, and separate release evidence. |
-| Demo | 25% | The original action succeeds after reload in the verified release. |
+| Demo | 25% | The original action succeeds after reload on the approved preview. |
 
 ## Preserve the actual build history
 

@@ -35,7 +35,9 @@ const setup = () => ({
     check: vi.fn(async () => ({ passed: true, output: "pass" })),
   },
   signal: new AbortController().signal,
-  event: vi.fn(async () => {}),
+  event: vi.fn<Parameters<typeof runMetaCodingAgent>[0]["event"]>(
+    async () => {},
+  ),
   receipt: vi.fn(async () => {}),
 });
 const response = (output: unknown[], text = "") => ({
@@ -130,6 +132,85 @@ test("missing reported usage cannot become invented zero usage", async () => {
   });
   await expect(runMetaCodingAgent(setup())).rejects.toThrow();
 });
+test.each([
+  {
+    status: "incomplete",
+    reason: "max_output_tokens",
+    expectedStatus: "incomplete",
+    expectedReason: "max_output_tokens",
+  },
+  {
+    status: "failed",
+    reason: undefined,
+    expectedStatus: "failed",
+    expectedReason: null,
+  },
+  {
+    status: null,
+    reason: undefined,
+    expectedStatus: null,
+    expectedReason: null,
+  },
+  {
+    status: "PRIVATE-UNKNOWN-STATUS",
+    reason: "PRIVATE-UNKNOWN-REASON",
+    expectedStatus: "unknown",
+    expectedReason: "unknown",
+  },
+  {
+    status: undefined,
+    reason: undefined,
+    expectedStatus: "unknown",
+    expectedReason: null,
+  },
+])(
+  "a non-completed response records aggregate usage and safe diagnostics before rejecting tools: $expectedStatus",
+  async ({ status, reason, expectedStatus, expectedReason }) => {
+    const input = setup();
+    transport.create
+      .mockResolvedValueOnce(
+        response([call("read_file", "read", { path: "src/value.ts" })]),
+      )
+      .mockResolvedValueOnce({
+        ...response([
+          { type: "reasoning", encrypted_content: "PRIVATE-REASONING-CONTENT" },
+          call("replace_text", "partial-edit", {
+            path: "src/value.ts",
+            oldText: "value = 1",
+            newText: "PRIVATE-EDIT-CONTENT",
+          }),
+        ]),
+        status,
+        usage: { input_tokens: 25, output_tokens: 7 },
+        incomplete_details: reason === undefined ? null : { reason },
+        _request_id: "synthetic-request-id",
+        error: { message: "PRIVATE-PROVIDER-ERROR" },
+      });
+    await expect(runMetaCodingAgent(input)).rejects.toThrow("not completed");
+    expect(input.receipt).toHaveBeenLastCalledWith({
+      requestedModel: "muse-wonder-1.0",
+      model: "muse-wonder-1.0",
+      inputTokens: 35,
+      outputTokens: 12,
+      modelCalls: 2,
+    });
+    const event = input.event.mock.calls.findLast(
+      ([title]) => title === "Meta coding response",
+    );
+    expect(event).toBeDefined();
+    expect(JSON.parse(String(event?.[1]))).toMatchObject({
+      status: expectedStatus,
+      incompleteReason: expectedReason,
+      requestId: "synthetic-request-id",
+      inputTokens: 35,
+      outputTokens: 12,
+      modelCalls: 2,
+    });
+    expect(input.workspace.write).not.toHaveBeenCalled();
+    expect(transport.create).toHaveBeenCalledTimes(2);
+    expect(JSON.stringify(input.event.mock.calls)).not.toContain("PRIVATE-");
+  },
+);
 test("the cumulative million-token guard records actual usage before rejecting further edits", async () => {
   const input = setup();
   transport.create

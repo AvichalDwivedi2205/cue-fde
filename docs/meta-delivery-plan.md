@@ -2,7 +2,7 @@
 
 ## Objective and gates
 
-Deliver Cue's Meta-powered report-to-fix workflow using LatchGrid as the private customer application. Record the demo after a real widget report, safe patch, exact-commit review, release acceptance, and original action after reload.
+Deliver Cue's Meta-powered report-to-fix workflow using LatchGrid as the private customer application. Record the demo after a real widget report, safe patch, exact-commit review, preview acceptance, and original action after reload.
 
 - [x] Inspect implementation, compare architectures, and assign separate model, execution, and customer-app work.
 - [x] Verify dedicated Meta credentials, actual Spark/Wonder identities, and usage live.
@@ -10,13 +10,15 @@ Deliver Cue's Meta-powered report-to-fix workflow using LatchGrid as the private
 - [x] Install the widget on the owned LatchGrid preview.
 - [x] Reproduce the Note persistence failure and passing menu control in the actual browser with synthetic data.
 - [x] Persist a fresh widget report and screenshot under the correct app and workspace path; complete actual Spark classification.
+- [x] Start the generic investigation through Cue's hosted owner UI. Submit the reproduction drawer, queue the Meta coding run, and observe local Docker dependency preparation start.
 - [x] Replace disabled Modal execution with a local Docker adapter; verify isolation and cancellation after a running check.
 - [x] Fix cancellation during create/commit and block new runs on unresolved cleanup uncertainty.
 - [x] Verify the full private locked Bun install after moving its preparation cache to disk; its full fixed baseline also passes TypeScript and 238 default tests while preserving the expected acceptance failures.
 - [ ] Obtain a safe Meta patch passing all seven unchanged private acceptance checks.
-- [ ] Publish the private patch, obtain exact-commit human review, and verify the preview release.
-- [ ] Repeat the original browser action and reload on the released commit; record the linked customer outcome.
-- [ ] Finish current hosted authentication checks, all refusal paths, and the demo recording handoff.
+- [ ] Publish the private patch, obtain exact-commit human review, and verify the preview deployment.
+- [ ] Repeat the original browser action and reload on the approved preview commit; record the linked customer outcome as preview evidence.
+- [x] Switch the verified Cue web candidate into traffic and repeat hosted negative checks without creating extra cases.
+- [ ] Complete the native browser comparison for the unresolved fresh-tab iframe failure, then finish the demo recording handoff.
 
 Wrong origins/apps, protected edits, stale approvals, and failed release acceptance must remain denied. A patch, approval, preview deployment, and customer outcome are separate records. Agent summaries cannot establish any later gate.
 
@@ -36,7 +38,7 @@ The replacement uses a dedicated local Colima Linux VM and explicit Docker conte
 
 ## Observed verification
 
-Before the Meta build, 454 tests across 77 files and TypeScript passed. Published source [30d1c14](https://github.com/AvichalDwivedi2205/cue-fde/commit/30d1c14) passed 608 tests across 90 files, TypeScript, lint, and the production build; lint retained six warnings. Runtime dependencies had no known vulnerabilities at the earlier audit; that is a point-in-time result. The Docker/auth/widget and generic investigation follow-up passes 675 tests across 98 files, TypeScript, lint, and the production build; source hashes were unchanged during verification.
+Before the Meta build, 454 tests across 77 files and TypeScript passed. Published source [30d1c14](https://github.com/AvichalDwivedi2205/cue-fde/commit/30d1c14) passed 608 tests across 90 files, TypeScript, lint, and the production build; lint retained six warnings. Runtime dependencies had no known vulnerabilities at the earlier audit; that is a point-in-time result. Source [e0e9165](https://github.com/AvichalDwivedi2205/cue-fde/commit/e0e9165) passed 675 tests across 98 files, TypeScript, lint, and the production build. Source hashes were unchanged during verification. That web revision now serves all gateway traffic. Candidate privacy/authentication checks and six live access checks passed; rejected input created no cases.
 
 Hosted gateway source [3c55e23](https://github.com/AvichalDwivedi2205/cue-fde/commit/3c55e23) passed six access checks before rollout. Rejected requests created no cases. A fresh installed-widget conversation now includes one actual screenshot, the correct LatchGrid application and preview workspace URL, a support reply, and completed Spark classification with reported usage. Customer feedback requests further help; the case remains open.
 
@@ -50,17 +52,19 @@ Actual Spark payloads exhausted the original 1,000-token completion budget in re
 
 Coding uses full stateless replay with encrypted reasoning items, a separate 120-second request timeout, cancellation, bounded baseline observations, and limits of 20 model calls, 60 tools, and one million cumulative reported tokens. A 32 KiB replay-compaction prototype caused repeat discovery and was removed. Smaller token thresholds stopped legitimate discovery before edits.
 
-A real Wonder component candidate eventually passed its original two acceptance checks, but domain review found that group deletion could permanently remove unselected children. It was rejected. Seven protected checks now cover Note persistence, preserving unselected children and their links, and deleting explicitly selected children. A clean revision reached the call limit without edits. The next product run keeps resource limits and tests fixed while supplying bounded factual source/dependency review evidence in the operator reproduction field. The mandatory execution-backend replacement means this is an operational validation, not a matched causal model comparison. Success requires all seven checks and independent review; failure does not authorize weakening checks or repeatedly raising limits.
+A real Wonder component candidate eventually passed its original two acceptance checks, but domain review found that group deletion could permanently remove unselected children. It was rejected. Seven protected checks now cover Note persistence, preserving unselected children and their links, and deleting explicitly selected children. A clean revision reached the call limit without edits. The actual product run kept resource limits and tests fixed while supplying bounded factual source/dependency review evidence in the operator reproduction field. It installed dependencies, passed TypeScript and 238 default tests, and reproduced the five expected keyboard failures with two passing menu controls. Five completed Meta responses were recorded before the client rejected a non-completed response. No safe patch or fix PR resulted, and execution resources were cleaned up. The old parser discarded the rejected response's status and usage; a narrow follow-up records safe metadata before failing closed. Its cause cannot be recovered from the old records. The next bounded attempt retains the same limits. The mandatory execution-backend replacement means this is an operational validation, not a matched causal model comparison. Success requires all seven checks and independent review; failure does not authorize weakening checks or repeatedly raising limits.
+
+The response-boundary follow-up passed 680 tests across 98 files, TypeScript, lint, and the production build. Five new regression cases verify that incomplete, failed, null, missing, or unknown status cannot execute partial tools, while valid reported usage is retained. Unknown status/reason text, reasoning, partial edits, and provider error bodies are excluded from the diagnostic event. No retry policy or resource limit changed.
 
 ## Generic investigation UI
 
-Live testing found the old browser gate recognized only fixture/rehearsal issues, even when a generic repository was connected. The follow-up sends active repository-bound app IDs from the authorized server, requires investigate permission, and opens a labelled reproduction-evidence drawer for generic bugs. It submits the frozen issue ID and 20–4,000 characters of operator evidence, preserves Cancel and failed-request drafts, and prevents duplicate starts. The transactional backend also blocks approved patches awaiting release. Real-handler VM tests and the full suite pass; the new browser handoff still requires hosted validation.
+Live testing found the old browser gate recognized only fixture/rehearsal issues, even when a generic repository was connected. The follow-up sends active repository-bound app IDs from the authorized server, requires investigate permission, and opens a labelled reproduction-evidence drawer for generic bugs. It submits the frozen issue ID and 20–4,000 characters of operator evidence, preserves Cancel and failed-request drafts, and prevents duplicate starts. The transactional backend also blocks approved patches awaiting release. Real-handler VM tests and the full suite pass. Hosted validation now confirms the owner UI handoff: after the operator reloaded Cue, **Start investigation** appeared, the reproduction drawer submitted, the Meta coding run queued, and local Docker dependency preparation started. Safe patch completion, exact-commit review, preview deployment, and browser acceptance remain pending.
 
 ## Authentication and remaining release evidence
 
-After the Cue operator session was cleared, the embedded widget loaded and the fresh report succeeded. It also worked after a fresh owner sign-in and reload, retaining the same conversation. The earlier blank frame is not currently reproducible; no definitive cause or speculative middleware change is claimed.
+After the Cue operator session was cleared, the embedded widget loaded and the actual report succeeded. It also worked after a fresh owner sign-in and reload, retaining the same conversation. A separate fresh-tab check still showed a blank iframe. That failure remains unresolved, and native browser comparison is pending. No definitive cause or speculative middleware change is claimed.
 
-Fresh hosted logout exposed a concrete page-render cookie error. Offline reproduction with the installed WorkOS SDK and Next's sealed cookie adapter produced the same error from strict page-level sign-in. The follow-up reads the session without mutation and redirects anonymous Connections visitors to the existing login Route Handler, where PKCE cookies can legally be written. Operator restrictions remain in place. The deployed follow-up routes anonymous Connections requests through the login handler, returns a public callback, and signs the owner out to the sign-in screen without the former server error. Existing-tab widget coexistence works after fresh sign-in; a fresh tab again showed a blank frame and still needs native comparison. No unrelated WorkOS workspace was changed.
+Fresh hosted logout exposed a concrete page-render cookie error. Offline reproduction with the installed WorkOS SDK and Next's sealed cookie adapter produced the same error from strict page-level sign-in. The follow-up reads the session without mutation and redirects anonymous Connections visitors to the existing login Route Handler, where PKCE cookies can legally be written. Operator restrictions remain in place. The deployed follow-up routes anonymous Connections requests through the login handler, returns a public callback, and signs the owner out to the sign-in screen without the former server error. No unrelated WorkOS workspace was changed.
 
 Keep exact case/run IDs, source and patch SHAs, actual model usage, review event, environment/deployed SHA, and browser retry evidence in private records. The actual install was acknowledged in the owner UI and the LatchGrid app is now active; repository policy is unchanged. The private preview helper requires approved exact code and records preview deployment separately from browser acceptance. No hackathon form, legal acceptance, or social post has been submitted.
 

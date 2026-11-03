@@ -59,10 +59,15 @@ These are unconfirmed personal facts. The user must confirm selection, eligibili
 
 ## Verify the actual entry
 
-- [ ] Finish the fresh widget report, Meta diagnosis, scoped private patch, exact-commit review, release acceptance, and original action after reload. Follow the [demo plan](meta-demo-plan.md).
+- [x] Save the actual installed-widget report and screenshot under the correct application and workspace path. Verify its Meta support reply, Spark classification, and conversation persistence.
+- [x] Verify the generic investigation start through Cue's hosted owner UI. The reproduction drawer submitted, the Meta coding run queued, and local Docker dependency preparation started.
+- [ ] Complete native browser comparison for the unresolved fresh-tab blank iframe.
+- [ ] Obtain the safe private patch, exact-commit review, preview deployment, browser acceptance, and original action after reload. Follow the [demo plan](meta-demo-plan.md). Production release remains separate.
+- [x] Verify Cue source `e0e9165` with 675 tests across 98 files, TypeScript, lint, and the production build. Its web candidate deployed successfully.
+- [x] Switch the verified Cue web candidate into traffic and repeat hosted negative checks without creating extra cases.
 - [x] Retain private baseline proof: locked Bun installation, TypeScript, and 238 default tests pass. Keyboard persistence fails its expected assertion while the menu control passes.
 - [x] Verify selected local Docker isolation, running-check cancellation, create/commit cancellation handling, and Bun cache placement. Uncertain cleanup blocks new runs.
-- [ ] Record case ID, run ID, selected and actual model, usage, base and patch SHAs, review event, released SHA, and browser retry evidence privately.
+- [ ] Record case ID, run ID, selected and actual model, usage, base and patch SHAs, review event, preview deployment ID and URL, and browser retry evidence privately.
 - [ ] Publish the reviewed Cue commit and verify the public repository URL from a fresh signed-out session.
 - [ ] Test demo and product links as a reviewer. Supply necessary authorized access instructions without adding an authentication bypass.
 - [ ] Keep LatchGrid source, private diffs, credentials, and raw customer logs out of Cue's public repository and video. Sanitize the PR scene.

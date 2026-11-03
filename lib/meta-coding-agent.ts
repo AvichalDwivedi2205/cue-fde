@@ -29,13 +29,22 @@ const modelInput = z.enum(META_MODELS);
 export const codingModel = () =>
   modelInput.parse(process.env.CUE_CODING_MODEL || META_WONDER_MODEL);
 const receiptInput = z.object({
-  model: modelInput,
-  status: z.literal("completed"),
+  model: z.string().trim().min(1).max(200),
   usage: z.object({
     input_tokens: z.number().int().nonnegative(),
     output_tokens: z.number().int().nonnegative(),
   }),
 });
+const responseStatusInput = z.enum([
+  "completed",
+  "incomplete",
+  "failed",
+  "cancelled",
+  "queued",
+  "in_progress",
+]);
+const incompleteReasonInput = z.enum(["max_output_tokens", "content_filter"]);
+const requestIdInput = z.string().min(1).max(200);
 const tools: FunctionTool[] = [
   {
     type: "function",
@@ -325,6 +334,22 @@ export async function runMetaCodingAgent(input: {
       { signal: input.signal, timeout: 120_000 },
     );
     const receipt = receiptInput.parse(response);
+    const parsedStatus = responseStatusInput.safeParse(response.status);
+    const status =
+      response.status === null
+        ? null
+        : parsedStatus.success
+          ? parsedStatus.data
+          : "unknown";
+    const rawReason = response.incomplete_details?.reason;
+    const parsedReason = incompleteReasonInput.safeParse(rawReason);
+    const incompleteReason =
+      rawReason == null
+        ? null
+        : parsedReason.success
+          ? parsedReason.data
+          : "unknown";
+    const requestId = requestIdInput.safeParse(response._request_id);
     inputTokens += receipt.usage.input_tokens;
     outputTokens += receipt.usage.output_tokens;
     const total = {
@@ -343,8 +368,10 @@ export async function runMetaCodingAgent(input: {
       "Meta coding response",
       JSON.stringify({
         ...total,
-        requestId: response._request_id ?? null,
+        requestId: requestId.success ? requestId.data : null,
         modelMatched: receipt.model === model,
+        status,
+        incompleteReason,
       }),
       "agent",
     );
@@ -352,6 +379,10 @@ export async function runMetaCodingAgent(input: {
       throw new Error("Meta coding returned a different model than requested");
     if (inputTokens + outputTokens > MAX_TOKENS)
       throw new Error("Meta coding token budget exhausted");
+    if (status !== "completed")
+      throw new Error(
+        `Meta coding response not completed (status: ${status}; incomplete reason: ${incompleteReason ?? "not reported"})`,
+      );
     const calls = response.output.filter(
       (item) => item.type === "function_call",
     );
