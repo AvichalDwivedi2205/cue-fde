@@ -339,3 +339,12 @@ describe("public check summaries", () => {
       expect(summary).not.toContain(value);
   });
 });
+
+test.each([
+  "Location: `/Users/alice/private/checkout`",
+  "Location:[/Users/alice/private/checkout]",
+  "Location:/Users/alice/private/checkout",
+])("absolute paths remain private inside punctuation: %s", (text) => {
+  expect(() => assertPublicText(text)).toThrow(/private identifier/);
+  expect(redactPublicText(text)).not.toContain("/Users/alice");
+});
