@@ -33,7 +33,6 @@ const isNumber = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value);
 const isString = (value: unknown): value is string => typeof value === "string";
 
-// Operator-private raw records. Never include these strings in public exports.
 export const runEvents = query({
   args: {
     secret: v.string(),
@@ -442,7 +441,7 @@ export const signalEvidence = query({
       batch.appId,
       batch.requestKey,
       batch.creator,
-      ...batch.posts.flatMap((post) => [post.id, post.author, post.sourceRef]),
+      ...batch.posts.flatMap((post) => [post.id, post.sourceRef]),
       ...analysis.clusters.map((cluster) => cluster.id),
       ...batch.promoted.map((promotion) => promotion.issueId),
       analysis.receipt?.requestId,
@@ -476,6 +475,9 @@ export const signalEvidence = query({
 
     const dispositionsByPost = new Map(
       analysis.dispositions.map((d) => [d.postId, d]),
+    );
+    const promotedIssues = await Promise.all(
+      batch.promoted.map((promotion) => ctx.db.get("issues", promotion.issueId)),
     );
     const promotionNumber = (clusterId: string) => {
       const index = batch.promoted.findIndex(
@@ -522,6 +524,7 @@ export const signalEvidence = query({
       }),
       clusters: analysis.clusters.map((cluster) => {
         const promoted = promotionNumber(cluster.id);
+        const issue = promoted === null ? null : promotedIssues[promoted - 1];
         return {
           id: alias(clusterAliases, cluster.id),
           need: publicText(cluster.need),
@@ -563,7 +566,7 @@ export const signalEvidence = query({
             },
           },
           handoffLabel: promoted === null ? null : `handoff-${promoted}`,
-          handoffState: promoted === null ? null : "ready",
+          handoffState: issue ? publicText(issue.status) : null,
         };
       }),
       // Receipt is picked field-by-field: requestId/traceId never leave.
