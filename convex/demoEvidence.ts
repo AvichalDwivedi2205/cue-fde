@@ -473,6 +473,21 @@ export const signalEvidence = query({
       return label;
     };
 
+    const narrativeAliases = [...postAliases, ...clusterAliases].sort(
+      ([left], [right]) => right.length - left.length,
+    );
+    const publicNarrative = (text: string) => {
+      let result = text;
+      for (const [id, alias] of narrativeAliases) {
+        const literal = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        result = result.replace(
+          new RegExp(`(^|[^A-Za-z0-9_-])${literal}(?=$|[^A-Za-z0-9_-])`, "g"),
+          (_, prefix: string) => prefix + alias,
+        );
+      }
+      return publicText(result);
+    };
+
     const dispositionsByPost = new Map(
       analysis.dispositions.map((d) => [d.postId, d]),
     );
@@ -518,7 +533,7 @@ export const signalEvidence = query({
               disposition.quote === undefined
                 ? null
                 : publicText(disposition.quote),
-            reason: publicText(disposition.reason),
+            reason: publicNarrative(disposition.reason),
           },
         };
       }),
@@ -527,8 +542,8 @@ export const signalEvidence = query({
         const issue = promoted === null ? null : promotedIssues[promoted - 1];
         return {
           id: alias(clusterAliases, cluster.id),
-          need: publicText(cluster.need),
-          rationale: publicText(cluster.rationale),
+          need: publicNarrative(cluster.need),
+          rationale: publicNarrative(cluster.rationale),
           sentiment:
             cluster.sentiment === undefined
               ? null
@@ -552,16 +567,16 @@ export const signalEvidence = query({
           distinctAuthors: cluster.distinctAuthors,
           repeatedEvidence: cluster.repeatedEvidence,
           proposal: {
-            title: publicText(cluster.proposal.title),
-            assumptions: cluster.proposal.assumptions.map(publicText),
+            title: publicNarrative(cluster.proposal.title),
+            assumptions: cluster.proposal.assumptions.map(publicNarrative),
             specification: {
-              need: publicText(cluster.proposal.specification.need),
-              specification: publicText(
+              need: publicNarrative(cluster.proposal.specification.need),
+              specification: publicNarrative(
                 cluster.proposal.specification.specification,
               ),
               acceptanceCriteria:
                 cluster.proposal.specification.acceptanceCriteria.map(
-                  publicText,
+                  publicNarrative,
                 ),
             },
           },

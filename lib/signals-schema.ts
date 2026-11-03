@@ -475,7 +475,7 @@ export function redactPublicText(text: string): string {
       /\b[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9-]+(?:\.[A-Z0-9-]+)+\b/gi,
       "[email]",
     )
-    .replace(/(?:\/(?:[A-Za-z0-9._-]+\/)+[A-Za-z0-9._-]+)/g, "[path]")
+    .replace(/(^|[\s'"(=])\/(?:[A-Za-z0-9._-]+\/)+[A-Za-z0-9._-]+/g, "$1[path]")
     .replace(/\b[A-Za-z]:\\(?:[^\\/\s]+\\)*[^\\/\s]+/g, "[path]")
     .replace(
       /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi,
