@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import { readFileSync } from "node:fs";
 import { convexTest } from "convex-test";
 import { beforeEach, afterEach, describe, expect, test, vi } from "vitest";
 import schema from "../convex/schema";
@@ -204,7 +205,7 @@ const receipt = {
   durationMs: 2400,
 };
 
-const seedAnalyzedBatch = async () => {
+const seedAnalyzedBatch = async (inputPosts = posts, output = goodOutput) => {
   const t = convexTest(schema, modules);
   const { appId } = await t.mutation(api.appPacks.register, {
     secret,
@@ -220,7 +221,7 @@ const seedAnalyzedBatch = async () => {
       fixture: "quiet-signals-evaluation",
       version: "v1",
     },
-    posts,
+    posts: inputPosts,
     actor: "Avi Dwivedi",
   });
   const claim = await t.mutation(api.signals.analyzeSignalBatch, {
@@ -238,7 +239,7 @@ const seedAnalyzedBatch = async () => {
     secret,
     batchId: batchId as never,
     token,
-    output: goodOutput,
+    output,
     receipt,
   });
   return { t, batchId: batchId as never };
@@ -381,7 +382,7 @@ describe("demo evidence export", () => {
     ]);
     expect(before.completedAt).not.toBeNull();
 
-    await t.mutation(api.signals.promoteSignalProposal, {
+    const issueId = await t.mutation(api.signals.promoteSignalProposal, {
       secret,
       batchId,
       expectedAnalysisRevision: 1,
@@ -392,7 +393,13 @@ describe("demo evidence export", () => {
       await t.query(api.demoEvidence.signalEvidence, { secret, batchId }),
     );
     expect(after.clusters[0].handoffLabel).toBe("handoff-1");
-    expect(after.clusters[0].handoffState).toBe("ready");
+    expect(after.clusters[0].handoffState).toBe("spec_ready");
+    await t.run((ctx) => ctx.db.patch("issues", issueId, { status: "approved" }));
+    const approved = await t.query(api.demoEvidence.signalEvidence, { secret, batchId });
+    expect(approved.clusters[0].handoffState).toBe("approved");
+    await t.run((ctx) => ctx.db.delete("issues", issueId));
+    const missing = await t.query(api.demoEvidence.signalEvidence, { secret, batchId });
+    expect(missing.clusters[0].handoffState).toBeNull();
     expect(after.posts.find((p) => p.id === "post-3")!.disposition).toEqual({
       outcome: "spam",
       clusterId: null,
@@ -624,3 +631,16 @@ test("actual query output becomes a schema-valid export without trusting summary
   expect(JSON.stringify(exported)).not.toContain("private@example.com");
   expect(JSON.stringify(exported)).not.toContain("/private/checkout");
 });
+
+for (const version of ["v1", "v2-heldout", "v3-all-noise"]) {
+  test(`public ${version} fixture exports exact source text with aliased authors`, async () => {
+    const fixture = JSON.parse(readFileSync(new URL(`../public/quiet-signals-fixture-${version}.json`, import.meta.url), "utf8"));
+    const { t, batchId } = await seedAnalyzedBatch(fixture.posts, {
+      dispositions: fixture.posts.map((post: { id: string }) => ({ postId: post.id, outcome: "spam", reason: "Synthetic export test disposition" })),
+      clusters: [],
+    });
+    const result = signalsExportSchema.parse(await t.query(api.demoEvidence.signalEvidence, { secret, batchId }));
+    expect(result.posts.map((post) => post.text)).toEqual(fixture.posts.map((post: { text: string }) => post.text));
+    expect(result.posts.every((post) => /^Author [0-9]+$/.test(post.author))).toBe(true);
+  });
+}
