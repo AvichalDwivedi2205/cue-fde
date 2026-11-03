@@ -566,7 +566,7 @@ test("rotated same-target credentials reconcile unknown or accepted sends withou
       expect(s.verify).toHaveBeenCalledTimes(3);
       expect(s.readback).toHaveBeenCalledTimes(readsBefore + 1);
       expect(s.verify.mock.invocationCallOrder.at(-1)).toBeLessThan(
-        s.readback.mock.invocationCallOrder.at(-1)!,
+        s.readback.mock.invocationCallOrder.at(-1) ?? -1,
       );
       expect(
         (await s.t.query(api.supportDeliveries.get, { ...auth, id: review.id }))
