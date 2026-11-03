@@ -304,7 +304,10 @@ export const receive = mutation({
         throw new ConvexError("Application is not active");
     }
     const assertScope = (c: Doc<"cases"> | null) => {
-      if (!c || c.appId !== a.appId || c.channel !== a.channel)
+      // Signed Slack follow-ups already identify one bound thread. Its saved
+      // app remains authoritative when the legacy gateway has no app route.
+      const appMatches = c && (c.appId === a.appId || (a.channel === "slack" && a.appId === undefined));
+      if (!c || !appMatches || c.channel !== a.channel)
         throw new ConvexError("Wrong app or channel for provider event");
       return c;
     };

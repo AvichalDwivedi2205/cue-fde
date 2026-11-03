@@ -164,6 +164,15 @@ test("email receipts, source keys and RFC references never cross an app boundary
   expect(stranger.caseId).not.toBe(first.caseId);
   expect(await t.run((ctx) => ctx.db.query("cases").take(10))).toHaveLength(2);
 });
+test("legacy signed Slack follow-ups preserve their saved app while explicit mismatches fail", async () => {
+  const t = await setup();
+  const report = { ...auth, channel: "slack" as const, sourceKey: "slack:TTEAM:CSUPPORT:1.0", eventKey: "slack:TTEAM:CSUPPORT:1.0", customer: "Slack UREPORTER", title: "Search bug", body: "Search still fails" };
+  const first = await t.mutation(api.intake.receive, { ...report, appId: "app-a" });
+  const followup = await t.mutation(api.intake.receive, { ...report, eventKey: "slack:TTEAM:CSUPPORT:2.0" });
+  expect(followup.caseId).toBe(first.caseId);
+  expect((await t.run((ctx) => ctx.db.get("cases", first.caseId)))?.appId).toBe("app-a");
+  await expect(t.mutation(api.intake.receive, { ...report, appId: "app-b", eventKey: "slack:TTEAM:CSUPPORT:3.0" })).rejects.toThrow();
+});
 
 test("only official X transport may assert a provider author; unbound historical records remain usable", async () => {
   const t = await setup();
