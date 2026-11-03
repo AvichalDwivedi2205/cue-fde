@@ -5,23 +5,16 @@ import {
   taskState,
   taskAction,
   engineeringBinding,
+  generationReceipt,
 } from "./workspaceValidators";
 import { growthTables } from "./growthSchema";
 import { prospectTables } from "./prospectSchema";
 import { knowledgeTables } from "./knowledgeSchema";
 import { companyContextTables } from "./companyContextSchema";
 import { feedbackTables } from "./feedbackSchema";
+import { signalTables } from "./signalSchema";
 
-export const triageGeneration = v.object({
-  provider: v.string(),
-  model: v.string(),
-  requestedModel: v.string(),
-  inputTokens: v.number(),
-  outputTokens: v.number(),
-  durationMs: v.number(),
-  requestId: v.optional(v.string()),
-  traceId: v.optional(v.string()),
-});
+export const triageGeneration = generationReceipt;
 
 export default defineSchema({
   waitlist: defineTable({
@@ -34,6 +27,7 @@ export default defineSchema({
   ...knowledgeTables,
   ...growthTables,
   ...prospectTables,
+  ...signalTables,
   agentConversations: defineTable({
     appId: v.string(),
     agent: agentId,
@@ -200,6 +194,17 @@ export default defineSchema({
     // Additive receipt for the generation that produced the current spec text.
     // Cleared whenever the spec text is saved without a new receipt.
     specGeneration: v.optional(triageGeneration),
+    // Additive lineage for features promoted from a Quiet signals batch. The
+    // analysis revision is immutable, so an approval cannot silently move to
+    // different source output.
+    sourceSignals: v.optional(
+      v.object({
+        batchId: v.id("signalBatches"),
+        inputFingerprint: v.string(),
+        analysisRevision: v.number(),
+        clusterId: v.string(),
+      }),
+    ),
   }).index("by_fingerprint", ["fingerprint"]),
   messages: defineTable({
     caseId: v.id("cases"),

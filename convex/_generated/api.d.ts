@@ -38,6 +38,8 @@ import type * as rehearsalScope from "../rehearsalScope.js";
 import type * as rehearsals from "../rehearsals.js";
 import type * as releases from "../releases.js";
 import type * as serverState from "../serverState.js";
+import type * as signalSchema from "../signalSchema.js";
+import type * as signals from "../signals.js";
 import type * as triageQueue from "../triageQueue.js";
 import type * as voice from "../voice.js";
 import type * as waitlist from "../waitlist.js";
@@ -82,6 +84,8 @@ declare const fullApi: ApiFromModules<{
   rehearsals: typeof rehearsals;
   releases: typeof releases;
   serverState: typeof serverState;
+  signalSchema: typeof signalSchema;
+  signals: typeof signals;
   triageQueue: typeof triageQueue;
   voice: typeof voice;
   waitlist: typeof waitlist;
