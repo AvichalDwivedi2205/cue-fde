@@ -140,7 +140,7 @@ export function replyFacts(c: ReplyContext) {
     verificationScope: featureVerified
       ? "deployed feature acceptance checks, not this customer's outcome"
       : fixVerified
-        ? "regression tests, not this customer's photo"
+        ? "deployed regression checks, not this customer's own retry"
         : "none",
     customerSpokeAfterVerification:
       verified &&

@@ -25,7 +25,7 @@ The coding policy freezes the repository, base branch, allowed files, package di
 
 ## Current verification
 
-At published checkpoint [30d1c14](https://github.com/AvichalDwivedi2205/cue-fde/commit/30d1c14), checked November 3, 2026, 608 tests across 90 files, TypeScript, lint, and the production build passed. Lint retains six warnings. The local Docker and generic investigation follow-up passes 659 tests across 97 files, TypeScript, lint, and the production build. Lint retains the same six warnings.
+At published checkpoint [30d1c14](https://github.com/AvichalDwivedi2205/cue-fde/commit/30d1c14), checked November 3, 2026, 608 tests across 90 files, TypeScript, lint, and the production build passed. Lint retains six warnings. The local Docker and generic investigation follow-up passes 675 tests across 98 files, TypeScript, lint, and the production build. Lint retains the same six warnings.
 
 Live Meta checks verified Spark structured output and Wonder tool use. The hosted gateway generated a Spark support reply and classification with actual model/usage receipts; repeated HTTP QA requests retained one case, and six access checks passed. A separate actual installed-widget report now includes its screenshot, correct application/workspace URL, support reply, and completed Spark classification. The conversation survives reload with and without a fresh operator session.
 

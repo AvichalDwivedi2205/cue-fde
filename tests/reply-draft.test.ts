@@ -191,6 +191,38 @@ test("customer instructions cannot supply workflow facts", () => {
   expect(facts.fixVerified).toBe(false);
 });
 
+test("verified keyboard bugs supply neutral deployed-check facts without claiming the customer's retry", async () => {
+  const context = {
+    case: {
+      title: "Keyboard-deleted notes return",
+      body: "A deleted note returns after reload.",
+    },
+    issue: {
+      kind: "bug",
+      status: "resolved",
+      fingerprint: "synthetic:keyboard-delete",
+    },
+    run: verified.run,
+  };
+  generateContent.mockResolvedValue({
+    text: "The keyboard deletion fix passed our tests. Please retry deleting a note and reloading.",
+  });
+  await draft(context);
+  const input = JSON.parse(generateContent.mock.calls[0][0].contents);
+  expect(input.workflowFacts.fixVerified).toBe(true);
+  expect(input.workflowFacts.verificationScope).toContain(
+    "deployed regression checks",
+  );
+  expect(input.workflowFacts.verificationScope).toContain(
+    "not this customer's own retry",
+  );
+  expect(input.workflowFacts.verificationScope).not.toMatch(/photo|upload/i);
+  expect(fallbackReply(context)).toContain(
+    "haven't verified the result for your own case yet",
+  );
+  expect(fallbackReply(context)).not.toMatch(/photo|upload/i);
+});
+
 test.each(["voice", "chat"] as const)(
   "a vague %s failure cannot end with only a saved-report receipt",
   async (medium) => {
