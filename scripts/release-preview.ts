@@ -30,9 +30,9 @@ async function main() {
   const cliEnv: NodeJS.ProcessEnv = { ...process.env, CI: "true", NO_COLOR: "1", VERCEL_TELEMETRY_DISABLED: "1" };
   delete cliEnv.VERCEL_PROJECT_ID;
   delete cliEnv.VERCEL_ORG_ID;
-  const command = async (program: string, args: string[], cwd = root, timeout = 90_000) => {
+  const command = async (program: string, args: string[], cwd = root, timeout = 90_000, env = cliEnv) => {
     try {
-      const result = await exec(program, args, { cwd, env: cliEnv, timeout, maxBuffer: 4 * 1024 * 1024 });
+      const result = await exec(program, args, { cwd, env, timeout, maxBuffer: 4 * 1024 * 1024 });
       return result.stdout.trim();
     } catch {
       throw new Error(`${program} ${args[0]} failed; inspect the provider privately before retrying`);
@@ -106,13 +106,6 @@ async function main() {
       const packagePath = await fs.realpath(path.join(repo, project.packageDirectory));
       if (packagePath !== repo && !packagePath.startsWith(repo + path.sep)) throw new Error("Package directory escapes checkout");
       await assertCurrent();
-      // Existing project only; no --create-if-missing and no environment pull.
-      await command("vercel", ["link", "--yes", "--project", settings.project, "--scope", settings.scope, "--cwd", repo]);
-      const linked = z.object({ projectId: z.string(), orgId: z.string() }).parse(
-        JSON.parse(await fs.readFile(path.join(repo, ".vercel", "project.json"), "utf8")),
-      );
-      if (linked.projectId !== project.projectId || linked.orgId !== project.orgId)
-        throw new Error("Vercel link selected a different project or scope");
       await command("git", ["diff", "--exit-code", "HEAD"], repo);
       const untracked = await command("git", ["ls-files", "--others", "--exclude-standard"], repo);
       if (untracked.split("\n").some((file) => file && !file.startsWith(".vercel/")))
@@ -125,12 +118,17 @@ async function main() {
       // Persist intent first. A crash before learning the deployment ID never
       // silently creates another preview on retry.
       await save(previewStateInput.parse({ ...base, phase: "creating" }));
+      // Bind only this deployment to the authenticated existing project. `link`
+      // refreshes OIDC/env files and mutates .gitignore in the approved checkout.
+      const deployEnv: NodeJS.ProcessEnv = {
+        ...cliEnv, VERCEL_PROJECT_ID: project.projectId, VERCEL_ORG_ID: project.orgId,
+      };
       const output = await command("vercel", [
         "deploy", "--yes", "--no-wait", "--environment", "preview", "--scope", settings.scope, "--cwd", repo,
         "--meta", `cueRunId=${plan.runId}`, "--meta", `cueApprovedCommit=${plan.commit}`,
         "--meta", `cuePolicyDigest=${plan.policyDigest}`, "--meta", `cueSourceTree=${sourceTree}`,
         "--meta", `githubCommitSha=${plan.commit}`,
-      ], root, 180_000);
+      ], root, 180_000, deployEnv);
       // stdout supplies a locator only. The authenticated API verifies provider
       // identity/readiness and round-trips the trusted checkout attestation.
       // gitSource, when supplied by Vercel, separately checks its source SHA.
