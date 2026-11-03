@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { api, db, secret } from "@/lib/server-store";
 import { operator, sameOrigin } from "@/lib/access";
-import { actionPermission, requirePermission } from "@/lib/roles";
+import { requirePermission } from "@/lib/roles";
 import { listPacks } from "@/lib/app-pack";
 import { z } from "zod";
 import {
