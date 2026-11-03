@@ -60,6 +60,7 @@ export async function implementInModal(input: {
       model,
       source,
       workspace: coding,
+      baselineEvidence: before,
     });
     await execution.close(coding);
     input.signal.throwIfAborted();

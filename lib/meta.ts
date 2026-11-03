@@ -107,6 +107,7 @@ export async function metaCompletion(args: {
       { role: "user", content },
     ],
     temperature: args.temperature,
+    reasoning_effort: "low",
     max_tokens: Math.max(META_MIN_COMPLETION_TOKENS, args.maxOutputTokens),
     ...(args.schema
       ? {

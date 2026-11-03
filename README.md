@@ -25,11 +25,12 @@ The coding policy freezes the repository, base branch, allowed files, package di
 
 ## Current verification
 
-At reviewed source [1136763](https://github.com/AvichalDwivedi2205/cue-fde/commit/1136763), checked November 3, 2026:
+At published checkpoint [29b7ba4](https://github.com/AvichalDwivedi2205/cue-fde/commit/29b7ba4), checked November 3, 2026:
 
-- 565 automated tests across 87 files, TypeScript, lint, and the production build passed. The production dependency audit reported zero known vulnerabilities at that check.
+- 594 automated tests across 88 files, TypeScript, lint, and the production build passed. Lint retains six warnings. The production dependency audit reported zero known vulnerabilities at its earlier check.
 - Live provider checks verified Spark strict-schema JSON and a complete two-turn Wonder tool loop. Modal checks verified three separate workspaces and actual cancellation.
-- The hosted web process serves the Meta configuration, and the IAM-protected cloud coding worker is online.
+- A labelled hosted HTTP QA report received a Spark reply and classification with actual model and usage receipts. Retries retained one case, and six live access checks passed. The existing owner can inspect that case in Cue. This does not establish browser widget intake.
+- The hosted gateway serves this checkpoint. The IAM-protected cloud coding worker is online, but the real private coding rehearsal has not produced a verified patch.
 - The private customer baseline passed 238 tests and TypeScript. Its keyboard-deletion acceptance check still fails the reload assertion. The menu-deletion control passes.
 
 The fresh widget report, Meta-generated private PR, human review, verified release, and customer retry remain **pending**. These component checks do not establish a completed customer journey. Follow the [demo plan](docs/meta-demo-plan.md) and [submission checklist](docs/meta-submission-checklist.md) for the remaining evidence.

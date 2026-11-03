@@ -115,12 +115,43 @@ The fix preserves measured model usage when a completion is rejected or a reply
 retry later fails. Successful current classification receipts now retain the
 actual provider, reported model, requested model, usage, and duration. Legacy
 notes no longer name Gemini when the serving model is unknown. Local verification
-passed 594 tests across 88 files and TypeScript; hosted verification is pending
-deployment of this follow-up.
+passed 594 tests across 88 files and TypeScript. The follow-up is now deployed as
+the hosted gateway's active revision. A labelled HTTP QA retry retained the same
+case, saved a Spark-generated reply, and completed classification with actual
+provider/model/usage evidence. Six candidate access checks passed before rollout.
+The existing owner signed in and viewed the LatchGrid case; a nonmember's sign-in
+was denied operator access. No operator membership or application activation was
+changed.
 
 A separate Wonder/Modal component rehearsal reached the genuine failing private
 baseline, then stopped at its cumulative token budget before a verified patch.
 It reported ten calls, 211,539 input tokens, and 2,674 output tokens. No product
 run, install verification, approval, PR, or release was created by this component
-test. A second instrumented rehearsal is investigating tool-contract and context
-growth failures under the same budget. The draft application remains inactive.
+test. Instrumented follow-ups found legitimate source discovery and repeated
+context costs, rather than rejected edits. A 32 KiB replay-compaction prototype
+introduced repeated source reads and still failed; it was removed before
+publication. A simpler 500k-token stop threshold also failed before an edit.
+Current experiments compare models and explicit resource observations. These are
+development rehearsals, not a held-out product-success estimate. The draft
+application remains inactive, and no verified private patch exists yet.
+
+Default reasoning also timed out on one of two initially held-out synthetic
+support flows. Meta's documented low Chat reasoning effort passed those two
+flows, and then two fresh synthetic bug/feature flows passed classification and
+reply-policy checks without a diagnostic override. This small sample does not
+establish general reliability. Coding Responses retain separate settings. See
+[Meta reasoning controls](https://dev.meta.ai/docs/reasoning) and
+[stateless reasoning replay](https://dev.meta.ai/docs/protocols/responses).
+
+Browser verification also found that a hosted sign-out ended at localhost. The
+installed SDK and the current action preserve the explicit public return URL;
+the actual redirect hop still needs inspection. No speculative WorkOS settings
+change has been made. The connected management workspace has a different client
+ID from Cue and was not used to change Cue's authentication configuration.
+
+The next source follow-up passes 607 tests across 90 files, TypeScript, and a
+production build. It adds low-effort Chat generation, preserves full coding tool
+history while requesting encrypted reasoning, gives coding requests a separate
+120-second timeout under the job cancellation signal, supplies actual baseline
+evidence, and protects the connections page with the existing operator policy.
+These changes do not establish a successful coding run or release.

@@ -62,7 +62,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-test("real SDK request sends a strict schema and returns reported Meta identity and usage", async () => {
+test("real SDK request uses low reasoning effort, strict schema and the measured-token budget", async () => {
   const result = await generateObject(request);
   expect(result).toMatchObject({
     value: { answer: "Saved" },
@@ -81,6 +81,7 @@ test("real SDK request sends a strict schema and returns reported Meta identity 
   const body = JSON.parse(String(init?.body));
   expect(body).toMatchObject({
     model: META_SPARK_MODEL,
+    reasoning_effort: "low",
     max_tokens: 4096,
     response_format: {
       type: "json_schema",
