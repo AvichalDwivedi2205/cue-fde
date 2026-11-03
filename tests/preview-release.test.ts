@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
-  assertPreviewPullRequest, createPreviewPlan, previewFingerprint, previewSelector,
+  assertPreviewPullRequest, createPreviewPlan, previewDeploySelector, previewFingerprint, previewSelector,
   previewStateInput, verifyPreviewDeployment, verifyPreviewProject,
 } from "../lib/preview-release";
 
@@ -95,6 +95,37 @@ describe("trusted preview boundary", () => {
   });
   test.each(["https://evil.example", "https://safe.vercel.app/path", "https://safe.vercel.app/?token=secret", "https://safe.vercel.app@evil.example", "http://safe.vercel.app"])("rejects arbitrary deployment locator %s", (url) => {
     expect(() => previewSelector(url)).toThrow();
+  });
+  test("selects only the canonical deployment URL from supported flat or wrapped CLI JSON", () => {
+    const locator = { id: "dpl_demo123", url: "https://safe.vercel.app", readyState: "BUILDING",
+      productionUrl: "https://production.vercel.app", inspectorUrl: "https://vercel.com/inspection" };
+    expect(previewDeploySelector(JSON.stringify(locator))).toBe("safe.vercel.app");
+    expect(previewDeploySelector(JSON.stringify({ status: "ok", deployment: locator,
+      next: [{ command: "vercel inspect https://another.vercel.app" }] }))).toBe("safe.vercel.app");
+  });
+  test.each([
+    { status: "error", deployment: { id: "dpl_demo123", url: "https://safe.vercel.app" } },
+    { status: "action_required", deployment: { id: "dpl_demo123", url: "https://safe.vercel.app" } },
+    { id: "dpl_demo123", url: "https://safe.vercel.app", error: { message: "failed" } },
+    { status: "ok", id: "dpl_one", url: "https://one.vercel.app", deployment: { id: "dpl_two", url: "https://two.vercel.app" } },
+    [{ id: "dpl_one", url: "https://one.vercel.app" }, { id: "dpl_two", url: "https://two.vercel.app" }],
+    { url: "https://safe.vercel.app" },
+    { id: "invalid", url: "https://safe.vercel.app" },
+    { id: "dpl_demo123", productionUrl: "https://safe.vercel.app" },
+    { id: "dpl_demo123", url: "https://safe.vercel.app", readyState: "ERROR" },
+    { id: "dpl_demo123", url: "https://evil.example" },
+    { id: "dpl_demo123", url: "http://safe.vercel.app" },
+    { id: "dpl_demo123", url: "https://safe.vercel.app/?token=secret" },
+  ])("rejects CLI output without one unambiguous successful deployment: %j", (output) => {
+    expect(() => previewDeploySelector(JSON.stringify(output))).toThrow("one successful Vercel deployment JSON result");
+  });
+  test("rejects malformed, concatenated and oversized CLI JSON without scanning prose for URLs", () => {
+    const locator = { id: "dpl_demo123", url: "https://safe.vercel.app" };
+    for (const value of ["https://safe.vercel.app", "Deployment: https://safe.vercel.app", "{", JSON.stringify(locator) + "\n" + JSON.stringify(locator)])
+      expect(() => previewDeploySelector(value)).toThrow("one successful Vercel deployment JSON result");
+    const oversized = JSON.stringify({ ...locator, message: "é".repeat(33 * 1024) });
+    expect(oversized.length).toBeLessThan(64 * 1024);
+    expect(() => previewDeploySelector(oversized)).toThrow("exceeds 64 KiB");
   });
   test("receipt preserves preview stage without any resolution field", () => {
     const plan = createPreviewPlan(input()), project = verifyPreviewProject(projectResponse, plan);

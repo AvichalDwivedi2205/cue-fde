@@ -11,7 +11,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import {
-  assertPreviewPullRequest, createPreviewPlan, previewFingerprint, previewRunIdInput,
+  assertPreviewPullRequest, createPreviewPlan, previewDeploySelector, previewFingerprint, previewRunIdInput,
   previewSelector, previewSettingsInput, previewStateInput, verifyPreviewDeployment,
   verifyPreviewProject, type PreviewState,
 } from "../lib/preview-release";
@@ -124,7 +124,7 @@ async function main() {
         ...cliEnv, VERCEL_PROJECT_ID: project.projectId, VERCEL_ORG_ID: project.orgId,
       };
       const output = await command("vercel", [
-        "deploy", "--yes", "--no-wait", "--environment", "preview", "--scope", settings.scope, "--cwd", repo,
+        "deploy", "--json", "--yes", "--no-wait", "--environment", "preview", "--scope", settings.scope, "--cwd", repo,
         "--meta", `cueRunId=${plan.runId}`, "--meta", `cueApprovedCommit=${plan.commit}`,
         "--meta", `cuePolicyDigest=${plan.policyDigest}`, "--meta", `cueSourceTree=${sourceTree}`,
         "--meta", `githubCommitSha=${plan.commit}`,
@@ -132,7 +132,7 @@ async function main() {
       // stdout supplies a locator only. The authenticated API verifies provider
       // identity/readiness and round-trips the trusted checkout attestation.
       // gitSource, when supplied by Vercel, separately checks its source SHA.
-      const selector = previewSelector(output);
+      const selector = previewDeploySelector(output);
       saved = previewStateInput.parse({ ...base, phase: "submitted", selector });
       await save(saved);
     }

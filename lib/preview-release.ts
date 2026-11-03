@@ -4,6 +4,7 @@ import { engineeringInput, packageDirectoryInput } from "./app-pack-schema";
 
 const sha = z.string().regex(/^[a-f0-9]{40}$/);
 const digest = z.string().regex(/^[a-f0-9]{64}$/);
+const deploymentId = z.string().regex(/^dpl_[A-Za-z0-9]+$/);
 export const previewRunIdInput = z.string().regex(/^[A-Za-z0-9_]{8,128}$/);
 export const previewSettingsInput = z.object({
   project: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/),
@@ -82,8 +83,30 @@ export function previewSelector(value: string) {
   return url.hostname;
 }
 
+const cliDeploymentLocator = z.object({
+  id: deploymentId, url: z.string().url(),
+  readyState: z.enum(["QUEUED", "INITIALIZING", "BUILDING", "READY"]).optional(),
+  status: z.never().optional(), deployment: z.never().optional(), error: z.never().optional(),
+});
+const cliDeploymentOutput = z.union([
+  cliDeploymentLocator.transform((deployment) => deployment.url),
+  z.object({
+    status: z.literal("ok"), deployment: cliDeploymentLocator,
+    id: z.never().optional(), url: z.never().optional(), error: z.never().optional(),
+  }).transform((result) => result.deployment.url),
+]);
+export function previewDeploySelector(value: string) {
+  if (Buffer.byteLength(value, "utf8") > 64 * 1024)
+    throw new Error("Vercel deployment JSON exceeds 64 KiB; reconcile the saved creation intent before retrying");
+  try {
+    return previewSelector(cliDeploymentOutput.parse(JSON.parse(value)));
+  } catch {
+    throw new Error("Expected one successful Vercel deployment JSON result; reconcile the saved creation intent before retrying");
+  }
+}
+
 const deploymentInput = z.object({
-  id: z.string().regex(/^dpl_[A-Za-z0-9]+$/), url: z.string(), readyState: z.string(),
+  id: deploymentId, url: z.string(), readyState: z.string(),
   target: z.string().nullable().optional(), customEnvironment: z.unknown().optional(),
   projectId: z.string().optional(), project: z.object({ id: z.string() }).optional(),
   ownerId: z.string().optional(), teamId: z.string().optional(),

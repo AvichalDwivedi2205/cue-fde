@@ -19,7 +19,10 @@ const uploadInput = z.object({
   gitignore: z.string(), envFile: z.boolean(), linkFile: z.boolean(),
 });
 
-async function fixture(change: "none" | "approval" | "project" | "source" = "none") {
+async function fixture({ change = "none", output = "flat" }: {
+  change?: "none" | "approval" | "project" | "source";
+  output?: "flat" | "wrapped" | "malformed";
+} = {}) {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "cue-preview-cli-"));
   const repository = path.join(directory, "origin"), gateway = path.join(directory, "gateway");
   const bin = path.join(directory, "bin"), callsPath = path.join(directory, "calls.jsonl");
@@ -50,7 +53,7 @@ async function fixture(change: "none" | "approval" | "project" | "source" = "non
     };
     const project = { id: "prj_verified", name: "preview-fixture", accountId: "team_verified", rootDirectory: "frontend" };
     await fs.writeFile(fixturePath, JSON.stringify({
-      change, directory, repository, callsPath, project,
+      change, output, directory, repository, callsPath, project,
       snapshot: {
         runs: [{ _id: runId, issueId: "issue1", targetId: "app1", status: "approved", approval: "Engineer", kind: "bug",
           deploymentMode: "pull_request", commit, repository: policy.repository,
@@ -120,7 +123,8 @@ else if (program === 'gh' && args[0] === 'repo' && args[1] === 'clone') {
   const meta = {};
   args.forEach((arg, i) => {if(arg === '--meta') {const [key,value] = args[i+1].split('='); meta[key] = value;}});
   fs.writeFileSync(fixture.directory + '/deployment.json', JSON.stringify({id:'dpl_fixture',url:'fixture-preview.vercel.app',readyState:'READY',target:null,projectId:fixture.project.id,team:{id:fixture.project.accountId},meta}));
-  process.stdout.write('https://fixture-preview.vercel.app');
+  const locator = {id:'dpl_fixture',url:'https://fixture-preview.vercel.app',productionUrl:'https://another-url.vercel.app',inspectorUrl:'https://vercel.com/fixture/deployment'};
+  process.stdout.write(fixture.output === 'malformed' ? 'unparseable fixture output' : JSON.stringify(fixture.output === 'wrapped' ? {status:'ok',deployment:locator,next:[{command:'vercel inspect fixture-preview.vercel.app'}]} : locator));
 } else if (program === 'vercel' && args[0] === 'api' && args[1].startsWith('/v13/deployments/')) process.stdout.write(fs.readFileSync(fixture.directory + '/deployment.json'));
 else throw new Error('Unexpected fixture CLI invocation');
 `;
@@ -145,15 +149,15 @@ else throw new Error('Unexpected fixture CLI invocation');
   }
 }
 
-test("preview CLI deploys unchanged approved source using only authenticated project IDs", async () => {
-  const f = await fixture();
+test.each(["flat", "wrapped"] as const)("preview CLI deploys unchanged approved source using authenticated IDs and %s JSON", async (output) => {
+  const f = await fixture({ output });
   try {
     const result = await f.run();
     expect(result, result.stderr).toMatchObject({ code: 0 });
     const calls = await f.calls(), deploy = calls.find((call) => call.program === "vercel" && call.args[0] === "deploy");
     expect(calls.some((call) => ["link", "pull", "env"].includes(call.args[0]))).toBe(false);
     expect(deploy).toMatchObject({ projectId: "prj_verified", orgId: "team_verified" });
-    expect(deploy?.args).toEqual(expect.arrayContaining(["--scope", "trusted-fixture", "--environment", "preview", `cueSourceTree=${f.tree}`, `cueApprovedCommit=${f.commit}`]));
+    expect(deploy?.args).toEqual(expect.arrayContaining(["--json", "--scope", "trusted-fixture", "--environment", "preview", `cueSourceTree=${f.tree}`, `cueApprovedCommit=${f.commit}`]));
     expect(calls.filter((call) => call !== deploy).every((call) => call.projectId === null && call.orgId === null)).toBe(true);
     expect(uploadInput.parse(JSON.parse(await fs.readFile(path.join(f.directory, "upload.json"), "utf8")))).toEqual({
       head: f.commit, tree: f.tree, status: "", gitignore: ".vercel/\n.env.local\n", envFile: false, linkFile: false,
@@ -167,7 +171,7 @@ test("preview CLI deploys unchanged approved source using only authenticated pro
 }, 30_000);
 
 test.each(["approval", "project", "source"] as const)("preview CLI refuses changed %s before deployment intent", async (change) => {
-  const f = await fixture(change);
+  const f = await fixture({ change });
   try {
     const result = await f.run();
     expect(result.code).not.toBe(0);
@@ -178,6 +182,24 @@ test.each(["approval", "project", "source"] as const)("preview CLI refuses chang
     else expect(result.stderr).toContain(change === "project" ? "Approved preview inputs changed" : "git diff failed");
     expect((await f.calls()).some((call) => call.args[0] === "deploy")).toBe(false);
     await expect(fs.stat(path.join(f.gateway, ".cue", "previews", `${runId}.json`))).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(fs.stat(path.join(f.directory, "events.jsonl"))).rejects.toMatchObject({ code: "ENOENT" });
+  } finally { await f.cleanup(); }
+}, 30_000);
+
+test("unparseable deployment stdout preserves creation intent and refuses a second submission", async () => {
+  const f = await fixture({ output: "malformed" });
+  try {
+    const first = await f.run();
+    expect(first.code).not.toBe(0);
+    expect(first.stderr).toContain("one successful Vercel deployment JSON result");
+    const receiptPath = path.join(f.gateway, ".cue", "previews", `${runId}.json`);
+    const receipt = await fs.readFile(receiptPath, "utf8");
+    expect(JSON.parse(receipt)).toMatchObject({ phase: "creating", commit: f.commit, sourceTree: f.tree });
+    const retry = await f.run();
+    expect(retry.code).not.toBe(0);
+    expect(retry.stderr).toContain("Previous preview submission outcome is unknown");
+    expect((await f.calls()).filter((call) => call.program === "vercel" && call.args[0] === "deploy")).toHaveLength(1);
+    expect(await fs.readFile(receiptPath, "utf8")).toBe(receipt);
     await expect(fs.stat(path.join(f.directory, "events.jsonl"))).rejects.toMatchObject({ code: "ENOENT" });
   } finally { await f.cleanup(); }
 }, 30_000);
