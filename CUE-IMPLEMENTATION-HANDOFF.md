@@ -1,6 +1,6 @@
 # Cue implementation handoff — public-source workspace
 
-Status: **Units B–G complete and committed; Unit H (generic evidence export) is being finalized in this workspace and its section below will be refreshed before handback.** Local checks are green (numbers below are fresh). Deployment, live provider verification, browser footage, narration, and hosted acceptance remain with the operator (Codex) and the user, per the delivery plan.
+Status: **Units B–H complete and committed. All local checks are green (numbers below are fresh).** Deployment, live provider verification, browser footage, narration, and hosted acceptance remain with the operator (Codex) and the user, per the delivery plan.
 
 ## 1. Branch, commits, and tree
 
@@ -17,10 +17,11 @@ Status: **Units B–G complete and committed; Unit H (generic evidence export) i
 | `954eaf7` | F | `/api/signals` HTTP boundary + Quiet signals workspace surface |
 | `308daa4` | G | Batch-evidence projection, honest queued/claimed job states, batch-based spec regeneration |
 | `e71abee` | B/F | Unused import cleanup |
-| `e7c84d0` | G | syncCue keeps promoted signal features visible (regression fix + test) |
+| `e7c84d0` | G | syncCue keeps promoted signal features visible (regression fix + test; also carries the Unit H events index line) |
+| (HEAD) | H | `demoEvidence.ts` + export CLI + sanitizer (run/signal evidence exports) |
 
-- Uncommitted: Unit H files (`convex/demoEvidence.ts`, `scripts/export-demo-evidence.ts`, events index in `convex/schema.ts`, `lib/signals-schema.ts` append, `tests/demo-evidence.test.ts`) land as one final commit before handback.
 - All commits authored as `AvichalDwivedi2205 <150160561+AvichalDwivedi2205@users.noreply.github.com>`.
+- The working tree at handback contains only `CUE-IMPLEMENTATION-HANDOFF.md` (this file) if uncommitted; product code is fully committed.
 
 ## 2. Implemented behavior
 
@@ -54,7 +55,7 @@ Status: **Units B–G complete and committed; Unit H (generic evidence export) i
 | --- | --- |
 | `npm run ui:build` | PASS (Tailwind + landing bundle build cleanly) |
 | `npm run typecheck` | PASS (0 errors) |
-| `npm run test:backend` | **849 passed / 0 failed** across 107 files (prior public checkpoint: 785 — new tests account for the difference; no old test was weakened or deleted) |
+| `npm run test:backend` | **855 passed / 0 failed** across 108 files (prior public checkpoint: 785 — new tests account for the difference; no old test was weakened or deleted) |
 | `npm run lint` | 0 errors; 6 pre-existing warnings in untouched files |
 | `npm run build` | PASS (Next.js production build) |
 
@@ -103,7 +104,12 @@ npm run dev            # web + worker only (existing hosted Convex)
 
 ## 8. Generic evidence query/export interfaces
 
-See §Unit H below (finalized at handback): `convex/demoEvidence.ts` (`runEvents`, `runEvidence`, `signalEvidence`), the `events.by_runId_and_createdAt` index, and `scripts/export-demo-evidence.ts` producing operator-reviewed `run.json` / `signals.json`. All are secret-authorized and allowlist-projected; synthetic tests cover pagination, complete-vs-incomplete history, aggregate agreement, and private-field exclusion.
+- `convex/demoEvidence.ts` — three secret-authorized queries:
+  - `runEvents` — paginated run-specific events via the new `events.by_runId_and_createdAt` index (numItems default 200, max 500; verifies the run exists).
+  - `runEvidence` — decodes "Meta coding response" events, requires a contiguous 1..N chain, completed status, model agreement, and monotone cumulative usage; per-call deltas are derived **only** when the whole chain is valid; cross-checks final cumulative totals against the run's own recorded aggregates (`aggregateAgreement`); returns an `issues[]` list describing any validation problem instead of hiding it.
+  - `signalEvidence` — allowlist projection of one analyzed batch shaped exactly like `signalsExportSchema` (receipt picked field-by-field so provider `requestId`/`traceId` never leave; stable `handoff-<n>` labels from the promotion ledger).
+- `scripts/export-demo-evidence.ts` — operator CLI (`--run-id` / `--batch-id` / `--out`): writes validated `run.json` (status `complete-history` only when the chain is complete AND agrees with the aggregates; otherwise `aggregate-only` with no per-call rows — never invented timings) and `signals.json`; exits 1 loudly on any validation failure. `sanitizeCheckSummary` redacts local filesystem paths and URLs from before/after check output before export.
+- Synthetic coverage in `tests/demo-evidence.test.ts`: pagination/ordering, the complete 17-call chain (deltas sum to the aggregates; no `repoPath`/`commit`/`prUrl`/`requestId` keys anywhere), broken-chain degradation, signals export before/after promotion, wrong-secret rejections, and path/URL redaction.
 
 ## 9. Suggested hosted acceptance steps for Codex (identifiers are placeholders)
 
