@@ -313,6 +313,99 @@ test("a late detail response cannot reopen a batch after switching applications"
   expect(b.html()).not.toContain("Any recovery path?");
 });
 
+test("Back during a pending detail load keeps the batch list open and clears the saved selection", async () => {
+  const b = await browser();
+  const response = Promise.withResolvers<Response>();
+  b.fetch.mockImplementationOnce(() => response.promise);
+  const pending = b.run<Promise<void>>(`A.signalsSelect({ dataset: { id: ${JSON.stringify(analyzedBatch._id)} } })`);
+  b.run("A.signalsBack()");
+  response.resolve(Response.json({ batch: analyzedBatch }));
+  await pending;
+  expect(b.run("signalsBatch")).toBeNull();
+  expect(b.run('sessionStorage.getItem("cue-signals-batch:cue_app_test")')).toBeNull();
+  expect(b.html()).toContain("Import a bounded batch");
+  expect(b.html()).not.toContain("Any recovery path?");
+});
+
+test("two batch selections keep the newer choice when responses arrive in reverse order", async () => {
+  const b = await browser();
+  const older = Promise.withResolvers<Response>();
+  const newer = Promise.withResolvers<Response>();
+  const newerBatch = { ...analyzedBatch, _id: "b" + "1".repeat(31) };
+  b.fetch.mockImplementationOnce(() => older.promise).mockImplementationOnce(() => newer.promise);
+  const oldLoad = b.run<Promise<void>>(`A.signalsSelect({ dataset: { id: ${JSON.stringify(analyzedBatch._id)} } })`);
+  const newLoad = b.run<Promise<void>>(`A.signalsSelect({ dataset: { id: ${JSON.stringify(newerBatch._id)} } })`);
+  newer.resolve(Response.json({ batch: newerBatch }));
+  await newLoad;
+  older.resolve(Response.json({ batch: analyzedBatch }));
+  await oldLoad;
+  expect(b.run("signalsBatch._id")).toBe(newerBatch._id);
+  expect(b.run('sessionStorage.getItem("cue-signals-batch:cue_app_test")')).toBe(newerBatch._id);
+});
+
+test.each(["list", "detail"])("a pending poll %s cannot restore the old batch after a newer selection", async (phase) => {
+  const b = await browser({ batch: analyzedBatch });
+  await b.run<Promise<void>>(`loadSignalsBatch(${JSON.stringify(analyzedBatch._id)})`);
+  const response = Promise.withResolvers<Response>();
+  const newerBatch = { ...analyzedBatch, _id: "b" + "1".repeat(31) };
+  const list = { batches: [{ batchId: analyzedBatch._id, requestKey: "fixture-v1", state: "analyzed" }] };
+  if (phase === "detail") b.fetch.mockImplementationOnce(async () => Response.json(list));
+  b.fetch.mockImplementationOnce(() => response.promise);
+  const poll = b.run<Promise<void>>("loadSignals()");
+  if (phase === "detail") await vi.waitFor(() => expect(b.fetch).toHaveBeenCalledTimes(3));
+  b.fetch.mockImplementationOnce(async () => Response.json({ batch: newerBatch }));
+  await b.run<Promise<void>>(`A.signalsSelect({ dataset: { id: ${JSON.stringify(newerBatch._id)} } })`);
+  response.resolve(Response.json(phase === "list" ? list : { batch: analyzedBatch }));
+  await poll;
+  expect(b.run("signalsBatch._id")).toBe(newerBatch._id);
+  expect(b.run('sessionStorage.getItem("cue-signals-batch:cue_app_test")')).toBe(newerBatch._id);
+});
+
+test("analysis completion cannot reopen or report success after Back during its detail refresh", async () => {
+  const b = await browser();
+  b.setBatch({ ...analyzedBatch, state: "ready", analysis: undefined, attempts: [] });
+  const response = Promise.withResolvers<Response>();
+  b.fetch.mockImplementationOnce(async () => Response.json({ state: "analyzed", attemptNumber: 1 }));
+  b.fetch.mockImplementationOnce(() => response.promise);
+  const pending = b.run<Promise<void>>("A.signalsAnalyze({ disabled: false })");
+  await vi.waitFor(() => expect(b.fetch).toHaveBeenCalledTimes(2));
+  b.run("A.signalsBack()");
+  response.resolve(Response.json({ batch: analyzedBatch }));
+  await pending;
+  expect(b.run("signalsBatch")).toBeNull();
+  expect(b.run('sessionStorage.getItem("cue-signals-batch:cue_app_test")')).toBeNull();
+  expect(b.toast).not.toHaveBeenCalled();
+});
+
+test("an older failed selection cannot show an error after a newer selection succeeds", async () => {
+  const b = await browser();
+  const response = Promise.withResolvers<Response>();
+  b.fetch.mockImplementationOnce(() => response.promise);
+  const pending = b.run<Promise<void>>("A.signalsSelect({ dataset: { id: 'missing-batch' } })");
+  b.fetch.mockImplementationOnce(async () => Response.json({ batch: analyzedBatch }));
+  await b.run<Promise<void>>(`A.signalsSelect({ dataset: { id: ${JSON.stringify(analyzedBatch._id)} } })`);
+  response.resolve(Response.json({ error: "Old selection unavailable" }, { status: 404 }));
+  await pending;
+  expect(b.run("signalsBatch._id")).toBe(analyzedBatch._id);
+  expect(b.toast).not.toHaveBeenCalled();
+});
+
+test("a promotion detail refresh cannot navigate after Back", async () => {
+  const b = await browser({ features: [{ _backend: "issue-1", id: "FR-12" }] });
+  b.setBatch(analyzedBatch);
+  const response = Promise.withResolvers<Response>();
+  b.fetch.mockImplementationOnce(async () => Response.json({ issueId: "issue-1" }));
+  b.fetch.mockImplementationOnce(() => response.promise);
+  const pending = b.run<Promise<void>>("A.signalsPromote({ dataset: { id: 'c-recover' }, disabled: false })");
+  await vi.waitFor(() => expect(b.fetch).toHaveBeenCalledTimes(2));
+  b.run("A.signalsBack()");
+  response.resolve(Response.json({ batch: analyzedBatch }));
+  await pending;
+  expect(b.run("signalsBatch")).toBeNull();
+  expect(b.navigations).toEqual([]);
+  expect(b.toast).not.toHaveBeenCalled();
+});
+
 test("an expired attempt offers explicit recovery and an active attempt cannot retry", async () => {
   const b = await browser();
   b.setBatch({ ...analyzedBatch, state: "analyzing", analysis: undefined, attempt: { number: 1, token: "test", expiresAt: Date.now() - 1000 }, attempts: [{ number: 1, status: "running", startedAt: 1 }] });
