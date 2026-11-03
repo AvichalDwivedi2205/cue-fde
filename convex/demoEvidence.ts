@@ -473,20 +473,23 @@ export const signalEvidence = query({
       return label;
     };
 
-    const narrativeAliases = [...postAliases, ...clusterAliases].sort(
-      ([left], [right]) => right.length - left.length,
+    const narrativeAliases = new Map([...postAliases, ...clusterAliases]);
+    const narrativePattern = new RegExp(
+      `(^|[^A-Za-z0-9_-])(${[...narrativeAliases.keys()]
+        .sort((left, right) => right.length - left.length)
+        .map((id) => id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+        .join("|")})(?=$|[^A-Za-z0-9_-])`,
+      "g",
     );
-    const publicNarrative = (text: string) => {
-      let result = text;
-      for (const [id, alias] of narrativeAliases) {
-        const literal = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        result = result.replace(
-          new RegExp(`(^|[^A-Za-z0-9_-])${literal}(?=$|[^A-Za-z0-9_-])`, "g"),
-          (_, prefix: string) => prefix + alias,
-        );
-      }
-      return publicText(result);
-    };
+    const privateNarrativeValues = privateValues.filter(
+      (value) => !narrativeAliases.has(value),
+    );
+    const publicNarrative = (text: string) => assertPublicText(
+      text.replace(narrativePattern, (_, prefix: string, id: string) =>
+        prefix + alias(narrativeAliases, id),
+      ),
+      privateNarrativeValues,
+    );
 
     const dispositionsByPost = new Map(
       analysis.dispositions.map((d) => [d.postId, d]),
