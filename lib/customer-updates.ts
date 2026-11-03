@@ -215,17 +215,13 @@ export function createWidgetEmailSupport(
 function nativeProvider(
   config: IntegrationConfig,
   target: SupportTarget,
-  operation: "send" | "reconcile",
 ): CustomerUpdateProvider {
   if (target.kind === "widget_email") {
     if (!config.email) throw new Error("Email configuration unavailable");
     return createWidgetEmailSupport(config.email, target);
   }
   if (!config.x) throw new Error("X configuration unavailable");
-  // Pausing collection blocks sends, but existing outcomes still need read access.
-  const x = createXSupport(
-    operation === "reconcile" ? { ...config.x, enabled: true } : config.x,
-  );
+  const x = createXSupport(config.x);
   return {
     verify: () => x.verifyBrand(target),
     send: (body) => x.send(target, body),
@@ -260,7 +256,7 @@ export function createCustomerUpdates(deps: CustomerUpdateDependencies) {
     return {
       adapter: deps.provider
         ? deps.provider(config, review.target)
-        : nativeProvider(config, review.target, operation),
+        : nativeProvider(config, review.target),
       configDigest,
       target: review.target,
     };

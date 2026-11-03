@@ -69,6 +69,17 @@ test("X replies require separate user context; verify users/me identity before n
     reply: { in_reply_to_tweet_id: "100" },
   });
 });
+test("a paused connection permits outcome readback while every send stays blocked", async () => {
+  const request = vi.fn<typeof fetch>()
+    .mockResolvedValueOnce(response({ data: { id: "200", username: "brand" } }))
+    .mockResolvedValueOnce(response({ data: { id: "900", text: body, author_id: "200", referenced_tweets: [{ type: "replied_to", id: "100" }] } }));
+  const x = createXSupport({ ...config, enabled: false }, request);
+  await x.verifyBrand(target);
+  await x.readback("900", target, body);
+  await expect(x.send(target, body)).rejects.toThrow("paused");
+  expect(request.mock.calls).toHaveLength(2);
+  expect(request.mock.calls.every(([, options]) => options?.method === "GET")).toBe(true);
+});
 
 test("wrong configured brand and wrong target brand cannot pass identity verification", async () => {
   for (const value of [

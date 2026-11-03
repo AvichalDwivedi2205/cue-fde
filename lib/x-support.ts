@@ -28,7 +28,7 @@ type XTarget = Extract<SupportTarget, { kind: "x" }>;
 // /x-api/users/get-my-user and /x-api/posts/get-post-by-id.
 // Supplying an app-only bearer token is deliberately insufficient here.
 export function createXSupport(config: XConfig, request: typeof fetch = fetch) {
-  if (!config.appId || !config.userAccessToken || !config.enabled)
+  if (!config.appId || !config.userAccessToken)
     throw new Error(
       "Configure user-authorized X reply access for this application first",
     );
@@ -69,6 +69,7 @@ export function createXSupport(config: XConfig, request: typeof fetch = fetch) {
         );
     },
     async send(target: XTarget, body: string) {
+      if (!config.enabled) throw new Error("X sending is paused");
       if (!/^\d{1,30}$/.test(target.postId) || body.length > 280)
         throw new Error("Invalid native X reply");
       return created.parse(
