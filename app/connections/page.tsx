@@ -1,6 +1,7 @@
 import { withAuth } from "@workos-inc/authkit-nextjs";
 import { WorkOS } from "@workos-inc/node";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { PipesConnections } from "./pipes-connections";
 import { operator, workosReady } from "@/lib/access";
 import { signOutAction } from "@/app/auth/actions";
@@ -9,7 +10,8 @@ import "@workos-inc/widgets/styles.css";
 export const dynamic = "force-dynamic";
 export default async function Connections() {
   const configured = workosReady();
-  const session = configured ? await withAuth({ ensureSignedIn: true }) : null;
+  const session = configured ? await withAuth() : null;
+  if (configured && !session?.user) redirect("/auth/login");
   let actor: Awaited<ReturnType<typeof operator>> | undefined;
   if (configured)
     try {
@@ -109,8 +111,8 @@ export default async function Connections() {
           <h2 className="text-sm font-semibold">Engineering connections</h2>
           <p className="mt-2 text-xs leading-relaxed text-cue-muted">
             For the Meta route, support and coding use the configured models;
-            repository commands run in Modal. The trusted coding worker uses its
-            authorized GitHub account. Legacy Gemini inference and local Codex
+            repository commands run in local Docker isolation. The trusted coding
+            worker uses its authorized GitHub account. Legacy Gemini inference and local Codex
             execution remain available when selected.
           </p>
           <p className="mt-2 text-xs leading-relaxed text-cue-muted">

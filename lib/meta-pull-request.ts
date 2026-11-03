@@ -1,7 +1,7 @@
 import { getMetaConnection } from "./meta";
 import {
   readSourceSnapshot,
-  withModalCoding,
+  withIsolatedCoding,
   applySourceEdits,
   type ExecutionEvent,
 } from "./coding-workspace";
@@ -12,7 +12,7 @@ import {
 } from "./meta-coding-agent";
 import type { CodingConfig } from "./integration-config";
 
-export async function implementInModal(input: {
+export async function implementMetaPullRequest(input: {
   repo: string;
   policy: CodingConfig;
   runId: string;
@@ -29,7 +29,7 @@ export async function implementInModal(input: {
   const model = codingModel();
   await input.selected(model);
   const source = await readSourceSnapshot(input.repo, input.signal);
-  return await withModalCoding({ ...input, source }, async (execution) => {
+  return await withIsolatedCoding({ ...input, source }, async (execution) => {
     const baseline = await execution.open("baseline");
     const before = await baseline.check();
     await execution.close(baseline);

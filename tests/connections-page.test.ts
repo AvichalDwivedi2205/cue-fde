@@ -10,6 +10,7 @@ const m = vi.hoisted(() => ({
     () => "Pipes controls",
   ),
   signOut: vi.fn(),
+  redirect: vi.fn((url: string): never => { throw new Error("NEXT_REDIRECT:" + url); }),
 }));
 vi.mock("@workos-inc/authkit-nextjs", () => ({ withAuth: m.auth }));
 vi.mock("@workos-inc/node", () => ({
@@ -21,6 +22,7 @@ vi.mock("next/headers", () => ({
   headers: async () => new Headers({ host: "cue.test" }),
   cookies: vi.fn(),
 }));
+vi.mock("next/navigation", () => ({ redirect: m.redirect }));
 vi.mock("../lib/server-store", () => ({
   secret: () => "connections-fixture-secret",
 }));
@@ -94,9 +96,17 @@ test.each([
     expect(html).toContain("Operator access required");
     expect(html).toContain("Sign out");
     expect(html).not.toContain("Pipes controls");
-    expect(m.auth).toHaveBeenNthCalledWith(1, { ensureSignedIn: true });
+    expect(m.auth).toHaveBeenNthCalledWith(1);
   },
 );
+
+test("a configured anonymous render delegates sign-in to the login Route Handler", async () => {
+  m.auth.mockResolvedValue({ user: null });
+  await expect(Connections()).rejects.toThrow("NEXT_REDIRECT:/auth/login");
+  expect(m.auth).toHaveBeenCalledExactlyOnceWith();
+  expect(m.integrations).not.toHaveBeenCalled();
+  expect(m.providers).not.toHaveBeenCalled();
+});
 
 test.each(["support@example.test", "other-owner@example.test"])(
   "authorized member %s gets a verified actor but cannot manage primary-owner Pipes",
@@ -146,4 +156,7 @@ test("missing WorkOS configuration retains the public setup view without local a
   expect(renderToStaticMarkup(page.props.children)).toContain(
     "WorkOS account setup needed",
   );
+  const html = renderToStaticMarkup(page.props.children);
+  expect(html).toContain("local Docker");
+  expect(html).not.toContain("Modal");
 });

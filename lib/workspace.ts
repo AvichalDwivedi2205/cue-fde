@@ -187,6 +187,9 @@ export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
   const growthReady = routeReadiness(growthRoute).kind === "ready";
   const qualifier = qualificationRoute.kind === "meta" ? "Meta" : qualificationRoute.kind === "google" ? "Gemini" : "LiteLLM";
   const writer = growthRoute.kind === "meta" ? "Muse Spark via Meta API" : growthModel === "claude-sonnet-4.6" ? "Claude Sonnet via LiteLLM" : `${growthModel} via ${providerName(growthRoute)}`;
+  const coding = companion?.coding;
+  const metaCoding = coding?.provider === "meta";
+  const codingReady = metaCoding && coding.backend === "local" && coding.configured && coding.workerOnline === true;
   const health = (ok: boolean, label: string, detail: string) => ({
     st: ok ? "ok" : "unknown",
     label,
@@ -279,15 +282,15 @@ export async function workspaceSnapshot(appId: string, actor: WorkspaceActor) {
       ],
       limits: "One coding run; fixed checks and exact commit approval",
       health: health(
-        companion?.coding?.provider === "meta"
-          ? companion.coding.configured && companion.coding.workerOnline !== false
+        metaCoding
+          ? codingReady
           : !!companion?.codex.loggedIn && !!companion?.codex.workerOnline,
-        companion?.coding?.provider === "meta"
-          ? companion.coding.configured && companion.coding.workerOnline !== false ? "Meta + Modal worker online" : "Meta + Modal worker unavailable"
+        metaCoding
+          ? codingReady ? "Meta + local Docker worker online" : "Meta coding worker unavailable"
           : companion?.codex.workerOnline ? "Companion online" : "Companion offline",
         companion?.busy
           ? "Coding slot busy"
-          : "No active companion work reported",
+          : coding?.detail || "No active companion work reported",
       ),
       sugg: ["Show current work"],
     },

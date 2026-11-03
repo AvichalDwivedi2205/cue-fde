@@ -3,7 +3,13 @@ import { promisify } from "node:util";
 import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { ModalClient, NotFoundError, type Image, type Sandbox } from "modal";
+import { randomUUID } from "node:crypto";
+import {
+  dockerCommand,
+  localContainerArgs,
+  recordLocalCleanup,
+  resolveLocalCodingRuntime,
+} from "./local-coding-runtime";
 import type { CodingConfig } from "./integration-config";
 import { packageDirectoryInput } from "./app-pack-schema";
 import { permittedChange, protectedSource } from "./coding-policy";
@@ -11,7 +17,6 @@ import { permittedChange, protectedSource } from "./coding-policy";
 const exec = promisify(execFile);
 const MAX_SOURCE_BYTES = 80 * 1024 * 1024;
 const MAX_FILE_BYTES = 16 * 1024 * 1024;
-const MAX_OUTPUT_BYTES = 200_000;
 const INVENTORY_SCRIPT = `
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -53,22 +58,6 @@ async function visit(directory) {
 await visit(root);
 console.log(JSON.stringify({ digest: hash.digest('hex'), files }));
 `;
-const UNPRIVILEGED = [
-  "setpriv",
-  "--reuid=65534",
-  "--regid=65534",
-  "--clear-groups",
-  "--no-new-privs",
-  "--bounding-set=-all",
-];
-
-// Modal requires whole-second timeouts; floor so execution never exceeds its budget.
-export function modalTimeout(requestedMs: number, remainingMs: number) {
-  const value = Math.floor(Math.min(requestedMs, remainingMs) / 1000) * 1000;
-  if (value < 1000) throw new Error("Execution deadline exceeded");
-  return value;
-}
-
 export type SourceFile = { bytes: Buffer; mode: number };
 export type SourceSnapshot = Map<string, SourceFile>;
 export type SourceEdits = Map<string, string | null>;
@@ -236,22 +225,34 @@ async function sourceArchive(
   });
 }
 
-async function readBounded(
-  stream: AsyncIterable<string>,
-  overflow: () => void,
-) {
-  let text = "";
-  for await (const chunk of stream) {
-    if (Buffer.byteLength(text) + Buffer.byteLength(chunk) > MAX_OUTPUT_BYTES) {
-      overflow();
-      throw new Error("Repository command exceeded output budget");
-    }
-    text += chunk;
+const WRITE_SOURCE = `
+const fs = require('node:fs/promises');
+const path = require('node:path');
+(async () => {
+  const file = process.argv[1], remove = process.argv[2] === 'remove';
+  let directory = '/workspace';
+  for (const part of path.relative('/workspace', path.dirname(file)).split('/').filter(Boolean)) {
+    const stat = await fs.lstat(directory);
+    if (!stat.isDirectory() || stat.uid !== 0) throw new Error('Invalid source parent');
+    await fs.chmod(directory, stat.mode | 0o700);
+    directory = path.join(directory, part);
+    await fs.mkdir(directory, { recursive: true });
   }
-  return text;
-}
+  const parent = await fs.lstat(directory);
+  if (!parent.isDirectory() || parent.uid !== 0) throw new Error('Invalid source parent');
+  await fs.chmod(directory, parent.mode | 0o700);
+  const stat = await fs.lstat(file).catch(error => { if (error.code !== 'ENOENT') throw error; });
+  if (stat && (!stat.isFile() || stat.nlink !== 1 || stat.uid !== 0)) throw new Error('Invalid source target');
+  if (remove) await fs.unlink(file);
+  else {
+    if (stat) await fs.chmod(file, stat.mode | 0o600);
+    const chunks = []; for await (const chunk of process.stdin) chunks.push(chunk);
+    await fs.writeFile(file, Buffer.concat(chunks), { mode: 0o644 });
+  }
+})().catch(error => { console.error(error.message); process.exit(1); });
+`;
 
-export async function withModalCoding<T>(
+export async function withIsolatedCoding<T>(
   input: {
     repo: string;
     source: SourceSnapshot;
@@ -269,171 +270,268 @@ export async function withModalCoding<T>(
     close(workspace: CodingWorkspace): Promise<void>;
   }) => Promise<T>,
 ): Promise<T> {
-  const tokenId = process.env.MODAL_TOKEN_ID,
-    tokenSecret = process.env.MODAL_TOKEN_SECRET;
-  const imageName = process.env.CUE_MODAL_IMAGE;
-  if (!tokenId || !tokenSecret || !imageName)
-    throw new Error("Modal execution is not configured");
-  const client = new ModalClient({
-    tokenId,
-    tokenSecret,
-    timeoutMs: 30_000,
-    maxRetries: 1,
-  });
-  const active = new Map<string, Sandbox>();
+  input.signal.throwIfAborted();
+  const runtime = await resolveLocalCodingRuntime(input.signal);
+  const active = new Map<string, { name: string; id: string }>();
+  const images = new Set<string>();
+  let cleanupRecorded = false;
   const deadline = Date.now() + 14 * 60_000;
   const cwd =
     "/workspace" +
     (input.policy.packageDirectory && input.policy.packageDirectory !== "."
       ? "/" + packageDirectoryInput.parse(input.policy.packageDirectory)
       : "");
-  const abort = () => {
-    for (const sb of active.values()) void sb.terminate().catch(() => {});
+  const command = async (
+    args: string[],
+    options: {
+      timeoutMs?: number;
+      input?: Buffer;
+      maxOutputBytes?: number;
+    } = {},
+  ) => {
+    input.signal.throwIfAborted();
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) throw new Error("Execution deadline exceeded");
+    return await dockerCommand(runtime.context, args, {
+      ...options,
+      signal: input.signal,
+      timeoutMs: Math.min(options.timeoutMs ?? 30_000, remaining),
+    });
   };
-  input.signal.throwIfAborted();
-  input.signal.addEventListener("abort", abort, { once: true });
-  try {
-    const app = await client.apps.fromName(
-      process.env.CUE_MODAL_APP || "cue-execution",
+  const rememberCleanup = async (
+    reason: string,
+    daemonOutcomeUnknown: boolean,
+  ) => {
+    if (cleanupRecorded) return;
+    await recordLocalCleanup({
+      context: runtime.context,
+      containers: [...active.keys()],
+      images: [...images],
+      reason,
+      daemonOutcomeUnknown,
+    });
+    cleanupRecorded = true;
+    await input.event(
+      "Execution cleanup needs review",
+      "A private cleanup record blocks new local runs until daemon outcome and resources are reconciled.",
+      "failure",
     );
-    const runtime = await client.images.fromName(imageName);
-    const archive = await sourceArchive(input.repo, input.source, input.signal);
-    const create = async (
-      image: Image,
-      purpose: string,
-      blockNetwork: boolean,
-    ) => {
-      input.signal.throwIfAborted();
-      const remaining = modalTimeout(14 * 60_000, deadline - Date.now());
-      if (remaining < 1000) throw new Error("Execution deadline exceeded");
-      const sb = await client.sandboxes.create(app, image, {
-        command: ["sleep", "infinity"],
-        workdir: "/",
-        timeoutMs: remaining,
-        idleTimeoutMs: Math.min(remaining, 180_000),
-        blockNetwork,
-        cpu: 1,
-        cpuLimit: 2,
-        memoryMiB: 4096,
-        memoryLimitMiB: 8192,
-        includeOidcIdentityToken: false,
-        env: { CI: "true", NODE_ENV: "test", HOME: "/tmp/cue-home" },
-        tags: { runId: input.runId, purpose },
+  };
+  const creatingCommand = async (args: string[], timeoutMs: number) => {
+    input.signal.throwIfAborted();
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) throw new Error("Execution deadline exceeded");
+    let result: Awaited<ReturnType<typeof dockerCommand>>;
+    try {
+      // Disconnecting a create/commit request does not cancel the daemon operation.
+      // Await its bounded outcome before reacting to job cancellation or cleanup.
+      result = await dockerCommand(runtime.context, args, {
+        timeoutMs: Math.min(timeoutMs, remaining),
       });
-      active.set(sb.sandboxId, sb);
-      if (input.signal.aborted) {
-        await sb.terminate();
-        input.signal.throwIfAborted();
-      }
-      await input.sandboxCreated?.(sb.sandboxId);
-      await input.event(
-        "Isolated execution started",
-        JSON.stringify({
-          sandboxId: sb.sandboxId,
-          imageId: image.imageId,
-          purpose,
-          network: blockNetwork ? "blocked" : "dependency preparation",
-        }),
-        "system",
+    } catch (error) {
+      await rememberCleanup(
+        args[0] + " outcome is unknown after transport failure",
+        true,
       );
-      return sb;
-    };
-    const stop = async (sb: Sandbox) => {
-      // Keep failed termination handles for the outer finally; remote TTL is an independent cap.
-      try {
-        await sb.terminate({ wait: true });
-      } catch (error) {
-        if (!(error instanceof NotFoundError)) throw error;
-      }
-      active.delete(sb.sandboxId);
-      sb.detach();
-    };
-    const execute = async (
-      sb: Sandbox,
-      argv: string[],
-      directory: string,
-      timeoutMs = 120_000,
-    ) => {
-      input.signal.throwIfAborted();
-      const process = await sb.exec(argv, {
-        workdir: directory,
-        timeoutMs: modalTimeout(timeoutMs, deadline - Date.now()),
-        stdout: "pipe",
-        stderr: "pipe",
-      });
-      const [stdout, stderr, code] = await Promise.all([
-        readBounded(process.stdout, () => {
-          void sb.terminate().catch(() => {});
-        }),
-        readBounded(process.stderr, () => {
-          void sb.terminate().catch(() => {});
-        }),
-        process.wait(),
-      ]);
-      input.signal.throwIfAborted();
+      throw error;
+    }
+    if (result.code !== 0) {
+      await rememberCleanup(
+        args[0] + " did not establish successful daemon completion",
+        true,
+      );
+      throw new Error("Local resource creation failed");
+    }
+    input.signal.throwIfAborted();
+    return result;
+  };
+  const stop = async (name: string) => {
+    const result = await dockerCommand(
+      runtime.context,
+      ["rm", "--force", "--volumes", name],
+      { timeoutMs: 10_000 },
+    );
+    if (
+      result.code !== 0 &&
+      !/No such (container|object)/i.test(result.stderr.toString())
+    )
+      throw new Error("Local container cleanup failed");
+    active.delete(name);
+  };
+  const execute = async (
+    box: { name: string },
+    argv: string[],
+    directory = "/",
+    timeoutMs = 120_000,
+    user = "0:0",
+    stdin?: Buffer,
+  ) => {
+    try {
+      const result = await command(
+        [
+          "exec",
+          ...(stdin ? ["--interactive"] : []),
+          "--user",
+          user,
+          "--workdir",
+          directory,
+          box.name,
+          ...argv,
+        ],
+        { timeoutMs, input: stdin },
+      );
       return {
-        passed: code === 0,
+        passed: result.code === 0,
         output:
-          `${argv.join(" ")} (cwd ${directory}; exit ${code})\n${stdout}${stderr}`.slice(
+          `${argv[0]} (cwd ${directory}; exit ${result.code})\n${result.stdout}${result.stderr}`.slice(
             -40_000,
           ),
       };
-    };
-    let prepared = runtime;
+    } catch (error) {
+      await stop(box.name);
+      input.signal.throwIfAborted();
+      throw error;
+    }
+  };
+  const checked = async (
+    box: { name: string },
+    argv: string[],
+    stdin?: Buffer,
+  ) => {
+    const result = await execute(box, argv, "/", 60_000, "0:0", stdin);
+    if (!result.passed)
+      throw new Error("Local sandbox setup failed\n" + result.output);
+    return result;
+  };
+  const create = async (imageId: string, purpose: string, network: boolean) => {
+    const name = "cue-code-" + randomUUID();
+    const box = { name, id: name };
+    active.set(name, box);
+    const created = await creatingCommand(
+      localContainerArgs({
+        name,
+        imageId,
+        purpose,
+        network,
+        runId: input.runId,
+        seconds: Math.max(1, Math.floor((deadline - Date.now()) / 1000)),
+      }),
+      30_000,
+    );
+    if (
+      created.code !== 0 ||
+      !/^[a-f0-9]{64}$/.test(created.stdout.toString().trim())
+    )
+      throw new Error("Local container creation failed");
+    box.id = created.stdout.toString().trim();
+    const started = await command(["start", name]);
+    if (started.code !== 0) throw new Error("Local container startup failed");
+    await input.sandboxCreated?.(box.id);
+    await input.event(
+      "Isolated execution started",
+      JSON.stringify({
+        sandboxId: box.id,
+        backend: "local",
+        context: runtime.context,
+        imageId,
+        purpose,
+        network: network ? "dependency preparation" : "blocked",
+      }),
+      "system",
+    );
+    await checked(box, ["mkdir", "-p", "/tmp/cue-home", cwd]);
+    await checked(box, ["chmod", "777", "/tmp/cue-home"]);
+    return box;
+  };
+  try {
+    const archive = await sourceArchive(input.repo, input.source, input.signal);
+    let prepared = runtime.imageId;
     const install = installCommand(input.policy, input.source);
     if (install) {
-      const sb = await create(runtime, "dependencies", false);
-      await sb.filesystem.makeDirectory(cwd);
-      const prefix =
-        input.policy.packageDirectory && input.policy.packageDirectory !== "."
-          ? input.policy.packageDirectory + "/"
-          : "";
-      // Only immutable package manifests and lockfile are present while network is enabled.
-      for (const name of [
+      const box = await create(runtime.imageId, "dependencies", true);
+      const prefix = cwd.slice("/workspace".length).replace(/^\//, "");
+      const manifests = [
         "package.json",
         install[0] === "bun" ? "bun.lock" : "package-lock.json",
-      ]) {
-        const file = input.source.get(prefix + name);
+      ];
+      for (const name of manifests) {
+        const file = input.source.get((prefix ? prefix + "/" : "") + name);
         if (!file) throw new Error("Dependency manifest missing");
-        await sb.filesystem.writeBytes(file.bytes, cwd + "/" + name);
+        await checked(
+          box,
+          ["node", "-e", WRITE_SOURCE, cwd + "/" + name],
+          file.bytes,
+        );
       }
-      const result = await execute(sb, install, cwd, 180_000);
+      const result = await execute(
+        box,
+        install[0] === "bun"
+          ? ["env", "BUN_INSTALL_CACHE_DIR=/opt/cue-bun-cache", ...install]
+          : install,
+        cwd,
+        180_000,
+      );
       if (!result.passed)
         throw new Error(
           "Frozen dependency preparation failed\n" + result.output,
         );
-      for (const name of [
-        "package.json",
-        install[0] === "bun" ? "bun.lock" : "package-lock.json",
-      ]) {
-        const expected = input.source.get(prefix + name);
+      for (const name of manifests) {
+        const expected = input.source.get((prefix ? prefix + "/" : "") + name);
+        const actual = await command(
+          ["exec", "--user", "0:0", box.name, "cat", cwd + "/" + name],
+          { maxOutputBytes: MAX_FILE_BYTES },
+        );
         if (
           !expected ||
-          !Buffer.from(await sb.filesystem.readBytes(cwd + "/" + name)).equals(
-            expected.bytes,
-          )
+          actual.code !== 0 ||
+          !actual.stdout.equals(expected.bytes)
         )
           throw new Error("Frozen dependency installation changed a manifest");
       }
-      prepared = await sb.snapshotFilesystem({
-        timeoutMs: 55_000,
-        ttlMs: 3_600_000,
-      });
-      await stop(sb);
-      const lockedManifest = input.source.get(
-        prefix + (install[0] === "bun" ? "bun.lock" : "package-lock.json"),
+      if (install[0] === "bun") {
+        await input.event(
+          "Bun dependencies installed",
+          JSON.stringify({ sandboxId: box.id }),
+          "system",
+        );
+        await checked(box, ["rm", "-rf", "--", "/opt/cue-bun-cache"]);
+      }
+      const image = "cue-code-prepared:" + randomUUID();
+      images.add(image);
+      const committed = await creatingCommand(
+        ["commit", box.name, image],
+        60_000,
       );
-      if (!lockedManifest)
-        throw new Error("Dependency lockfile provenance missing");
+      if (committed.code !== 0)
+        throw new Error(
+          "Fresh dependency image creation failed: " +
+            committed.stderr.toString().slice(-2000),
+        );
+      const inspected = await command([
+        "image",
+        "inspect",
+        image,
+        "--format",
+        "{{.Id}}",
+      ]);
+      if (
+        inspected.code !== 0 ||
+        !/^sha256:[a-f0-9]{64}$/.test(inspected.stdout.toString().trim())
+      )
+        throw new Error("Fresh dependency image identity is unavailable");
+      prepared = inspected.stdout.toString().trim();
+      await stop(box.name);
+      const lock = input.source.get(
+        (prefix ? prefix + "/" : "") + manifests[1],
+      );
+      if (!lock) throw new Error("Dependency lockfile provenance missing");
       await input.event(
         "Locked dependencies prepared",
         JSON.stringify({
           manager: install[0],
           packageDirectory: input.policy.packageDirectory ?? ".",
-          imageId: prepared.imageId,
-          lockfileSha256: createHash("sha256")
-            .update(lockedManifest.bytes)
-            .digest("hex"),
+          imageId: prepared,
+          lockfileSha256: createHash("sha256").update(lock.bytes).digest("hex"),
           repositorySourcePresent: false,
           lifecycleScripts: false,
         }),
@@ -442,99 +540,80 @@ export async function withModalCoding<T>(
     }
     return await operation({
       open: async (purpose, edits = new Map()) => {
-        const sb = await create(prepared, purpose, true);
-        await sb.filesystem.makeDirectory("/workspace");
-        const extraction = await sb.exec(
-          ["tar", "-xf", "-", "--no-same-owner", "-C", "/workspace"],
-          { timeoutMs: 60_000, mode: "binary" },
+        const box = await create(prepared, purpose, false);
+        await checked(
+          box,
+          [
+            "tar",
+            "-xf",
+            "-",
+            "--no-same-owner",
+            "--no-same-permissions",
+            "-C",
+            "/workspace",
+          ],
+          archive,
         );
-        await extraction.stdin.writeBytes(archive);
-        await extraction.stdin.close();
-        const extractionCode = await extraction.wait();
-        if (extractionCode !== 0) throw new Error("Source transfer failed");
-        await sb.filesystem.makeDirectory("/opt/cue");
-        await sb.filesystem.writeText(
-          INTEGRITY_SCRIPT,
-          "/opt/cue/integrity.mjs",
-        );
-        await sb.filesystem.writeText(
+        const inventory = await checked(box, [
+          "node",
+          "--input-type=module",
+          "-e",
           INVENTORY_SCRIPT,
-          "/opt/cue/source-inventory.mjs",
-        );
-        const inventory = await execute(
-          sb,
-          ["node", "/opt/cue/source-inventory.mjs"],
-          "/",
-        );
+        ]);
         const expectedInventory = createHash("sha256")
           .update(JSON.stringify([...input.source.keys()].sort()))
           .digest("hex");
-        if (
-          !inventory.passed ||
-          !inventory.output.trim().endsWith(expectedInventory)
-        )
+        if (!inventory.output.trim().endsWith(expectedInventory))
           throw new Error(
             "Transferred source contains missing files or unexpected archive metadata",
           );
-        const home = await execute(
-          sb,
-          ["install", "-d", "-o", "65534", "-g", "65534", "/tmp/cue-home"],
-          "/",
-        );
-        if (!home.passed)
-          throw new Error("Isolated temporary directory setup failed");
-        const integrity = async () => {
-          const result = await execute(
-            sb,
-            ["node", "/opt/cue/integrity.mjs"],
-            "/",
-          );
-          if (!result.passed)
-            throw new Error(
-              "Repository integrity scan failed\n" + result.output,
-            );
-          return result.output;
-        };
+        const integrity = async () =>
+          (
+            await checked(box, [
+              "node",
+              "--input-type=module",
+              "-e",
+              INTEGRITY_SCRIPT,
+            ])
+          ).output;
         const workspace: CodingWorkspace = {
-          id: sb.sandboxId,
+          id: box.id,
           write: async (file, content) => {
             assertEditable(file, input.source, input.policy);
-            input.signal.throwIfAborted();
-            if (content === null)
-              await sb.filesystem.remove("/workspace/" + file);
-            else await sb.filesystem.writeText(content, "/workspace/" + file);
+            await checked(
+              box,
+              [
+                "node",
+                "-e",
+                WRITE_SOURCE,
+                "/workspace/" + file,
+                content === null ? "remove" : "write",
+              ],
+              content === null ? undefined : Buffer.from(content),
+            );
           },
           check: async (index) => {
             const commands =
               index === undefined
                 ? input.policy.testCommands
                 : [input.policy.testCommands[index]];
-            if (commands.some((c) => !c))
+            if (commands.some((command) => !command))
               throw new Error("Unknown fixed check");
-            const ownership = await execute(
-              sb,
-              ["chown", "-R", "root:root", "/workspace"],
-              "/",
-            );
-            const readonly = await execute(
-              sb,
-              ["chmod", "-R", "a-w", "/workspace"],
-              "/",
-            );
-            if (!ownership.passed || !readonly.passed)
-              throw new Error("Read-only verification setup failed");
+            await checked(box, ["chmod", "-R", "a-w", "/workspace"]);
             const expected = await integrity();
             const results: CheckResult[] = [];
-            for (const command of commands) {
+            for (const fixed of commands) {
               if ((await integrity()) !== expected)
                 throw new Error(
                   "Verification source changed before a fixed check",
                 );
               results.push(
                 await execute(
-                  sb,
-                  [...UNPRIVILEGED, command.program, ...command.args],
+                  box,
+                  [fixed.program, ...fixed.args],
                   cwd,
+                  120_000,
+                  "65534:65534",
                 ),
               );
               if ((await integrity()) !== expected)
@@ -543,9 +622,9 @@ export async function withModalCoding<T>(
                 );
             }
             return {
-              passed: results.every((r) => r.passed),
+              passed: results.every((result) => result.passed),
               output: results
-                .map((r) => r.output)
+                .map((result) => result.output)
                 .join("\n\n")
                 .slice(-40_000),
             };
@@ -556,25 +635,37 @@ export async function withModalCoding<T>(
         return workspace;
       },
       close: async (workspace) => {
-        const sb = active.get(workspace.id);
-        if (sb) await stop(sb);
+        const box = [...active.values()].find((box) => box.id === workspace.id);
+        if (box) await stop(box.name);
       },
     });
   } finally {
-    input.signal.removeEventListener("abort", abort);
-    const results = await Promise.allSettled(
-      [...active.values()].map(async (sb) => {
-        await sb.terminate({ wait: true });
-        sb.detach();
+    const containers = await Promise.allSettled([...active.keys()].map(stop));
+    const removed = await Promise.allSettled(
+      [...images].map(async (image) => {
+        const result = await dockerCommand(
+          runtime.context,
+          ["image", "rm", "--force", image],
+          { timeoutMs: 10_000 },
+        );
+        if (
+          result.code !== 0 &&
+          !/No such image/i.test(result.stderr.toString())
+        )
+          throw new Error("Transient image cleanup failed");
       }),
     );
-    client.close();
-    if (results.some((r) => r.status === "rejected"))
+    if (
+      [...containers, ...removed].some((result) => result.status === "rejected")
+    ) {
+      await rememberCleanup("Local resource removal did not complete", false);
       await input.event(
         "Execution cleanup needs review",
-        "A Sandbox termination request failed; its configured lifetime still bounds execution.",
+        "Local container, volume or transient image cleanup failed.",
         "failure",
       );
+      throw new Error("Local execution cleanup failed");
+    }
   }
 }
 

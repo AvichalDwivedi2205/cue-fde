@@ -14,7 +14,7 @@ caveman updates. Write code and checked-in documentation in normal English.
 
 Cue is the public submission. LatchGrid is its private connected customer app.
 Keep private source and credentials out of Cue's repository and public artifacts.
-Use Meta for support reasoning and coding. Evaluate Modal for isolated execution.
+Use Meta for support reasoning and coding. Execute repository checks in the dedicated local Docker context. Modal is disabled by the user. Verify local isolation and cancellation before the next live coding run.
 Baseten is an optional open-weight route after the primary workflow works.
 
 ## Shared invariants

@@ -25,6 +25,9 @@ type Snapshot = {
     meta: boolean;
     google: boolean;
     codingConfigured: boolean;
+    codingBackend: "local" | null;
+    codingWorkerOnline: boolean;
+    codingDetail: string;
     legacyCoding: string;
     litellmCreditsRemaining: null;
   };
@@ -354,7 +357,14 @@ export function SettingsClient() {
                     {row(
                       "Code changes",
                       "The connected coding worker implements scoped changes. Deployment requires exact-commit approval and verification.",
-                      <span className="text-xs">{data.models.coding}{data.models.codingConfigured ? " · Modal" : " · worker unavailable"}</span>,
+                      <span className="text-xs" title={data.models.codingDetail}>
+                        {data.models.coding}
+                        {data.models.codingConfigured &&
+                        data.models.codingBackend === "local" &&
+                        data.models.codingWorkerOnline
+                          ? " · local Docker isolation"
+                          : " · worker unavailable"}
+                      </span>,
                     )}
                     {row(
                       "Reviewed FAQ answers",

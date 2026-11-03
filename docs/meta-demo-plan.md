@@ -12,9 +12,9 @@ Keep the broken behavior until the recording's before scene is captured. The cus
 
 | Time | Show | Say | Current status |
 | --- | --- | --- | --- |
-| 0:00–0:20 | Delete a LatchGrid node with the keyboard. Reload and show it return. | "Keyboard deletion looks successful, but the node returns after reload." | PENDING fresh browser capture. The independent regression reproduces this failure. |
-| 0:20–0:40 | Open the installed Cue widget. Send the report and its screenshot. Show the report in Cue under the correct application. | "The customer reports the failure where it happens. Cue keeps the app context and evidence." | PENDING a fresh persisted widget case and screenshot. |
-| 0:40–1:05 | Show Meta's diagnosis, cited authorized knowledge, and the engineering handoff. Keep uncertainty visible where evidence is missing. | "Meta reasons over this report. An acknowledged reproduction starts engineering work." | PENDING the real case response. API access alone is verified. |
+| 0:00–0:20 | Delete a LatchGrid node with the keyboard. Reload and show it return. | "Keyboard deletion looks successful, but the node returns after reload." | Live browser reproduction verified on synthetic data; video capture remains pending. |
+| 0:20–0:40 | Open the installed Cue widget. Send the report and its screenshot. Show the report in Cue under the correct application. | "The customer reports the failure where it happens. Cue keeps the app context and evidence." | VERIFIED actual widget case, screenshot, and correct workspace URL; recording pending. |
+| 0:40–1:05 | Show Meta's diagnosis, cited authorized knowledge, and the engineering handoff. Keep uncertainty visible where evidence is missing. | "Meta reasons over this report. An acknowledged reproduction starts engineering work." | VERIFIED actual widget support reply and Spark classification; cited-knowledge demonstration remains pending. |
 | 1:05–1:40 | Start the run. Show its selected and actual Meta model, baseline failure, independent menu control, sandbox IDs, and fresh-check results. | "Meta proposes a scoped change. The supervisor preserves the checks and reruns them in a fresh sandbox." | PENDING an actual Meta patch and passing independent acceptance. |
 | 1:40–2:10 | Show the private draft PR's status, changed-file count, exact SHA, and Cue's Engineering approval. Conceal private source and repository details. | "Engineering approves this exact commit. Approval alone does not release it." | PENDING the private PR and review event. |
 | 2:10–2:45 | Show the approved release's acceptance evidence. Return to the same customer action, delete with the keyboard, and reload. | "The released change passes the original action. After reload, the node stays deleted." | PENDING the released commit, browser retry, and saved-state proof. |
@@ -25,10 +25,12 @@ Cut long waits only after recording their real start and finish. Label elapsed t
 ## Record evidence that exists
 
 - VERIFIED: dedicated Meta calls returned the requested Muse Spark 1.3 and Muse Wonder 1.0 identities and actual token usage.
-- VERIFIED: separate Modal baseline, implementation, and verification sandboxes ran as UID 65534. Protected write, chmod, and new-file attempts failed.
+- HISTORICAL: earlier Modal isolation checks passed, but Modal is now disabled after failed credit redemption. Verify the replacement local Docker path before showing current execution evidence.
 - VERIFIED: the private baseline installed locked Bun dependencies, passed TypeScript and all 238 default tests, failed the keyboard persistence assertion, and passed the menu control.
-- VERIFIED: cancellation stopped an actual remote sandbox.
-- PENDING: a fresh widget report through Meta diagnosis, private patch, exact-commit review, released acceptance, and the original browser action after reload.
+- VERIFIED: selected local Docker isolation, running-check cancellation, controlled create/commit cancellation, and Bun cache placement. Ambiguous cleanup outcomes block further runs.
+- VERIFIED: live synthetic browser keyboard deletion returned after reload, while menu deletion persisted.
+- VERIFIED: fresh installed-widget report, screenshot, Meta response/classification, application/workspace binding, and conversation persistence.
+- PENDING: safe private patch, exact-commit review, released acceptance, and original browser action after reload.
 
 Keep exact private SHAs, run IDs, raw logs, and PR access details in the private delivery record. Use sanitized proof in public materials. A failing acceptance test is not a verified fix.
 

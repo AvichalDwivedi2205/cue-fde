@@ -7,13 +7,11 @@ import { implementFeature, implementFix } from "../lib/feature-runner";
 import { runExecutionMode } from "../lib/coding-policy";
 import { getMetaConnection, META_MODELS, META_WONDER_MODEL } from "../lib/meta";
 import { redactTelemetry, shutdownObservability } from "../lib/observability";
+import { localCodingReadiness } from "../lib/local-coding-runtime";
 
 const configured = z
   .object({
     CUE_CONVEX_URL: z.url(),
-    MODAL_TOKEN_ID: z.string().min(1),
-    MODAL_TOKEN_SECRET: z.string().min(1),
-    CUE_MODAL_IMAGE: z.string().min(1),
     GH_TOKEN: z.string().min(1),
   })
   .safeParse(process.env);
@@ -37,6 +35,20 @@ let stopping = false;
 let busy = false;
 let currentAbort: AbortController | undefined;
 let publishing = false;
+let runtime = { ready: false, detail: "Local Docker runtime has not been checked" };
+let checkingRuntime = false;
+async function refreshRuntime() {
+  if (checkingRuntime) return;
+  checkingRuntime = true;
+  try {
+    runtime = await localCodingReadiness();
+  } catch {
+    runtime = { ready: false, detail: "Local Docker runtime check failed" };
+  } finally {
+    checkingRuntime = false;
+  }
+}
+await refreshRuntime();
 
 function status() {
   return {
@@ -46,9 +58,10 @@ function status() {
     coding: {
       provider: "meta",
       model,
-      backend: "modal",
-      configured: true,
+      backend: "local",
+      configured: runtime.ready,
       workerOnline: !stopping,
+      detail: runtime.detail,
     },
     codex: { loggedIn: false, workerOnline: false, github: false },
     slack: {
@@ -96,7 +109,7 @@ const control = createServer((req, res) => {
 });
 await new Promise<void>((resolve, reject) => {
   control.once("error", reject);
-  control.listen(port, "0.0.0.0", resolve);
+  control.listen(port, "127.0.0.1", resolve);
 });
 
 async function publishStatus() {
@@ -121,11 +134,13 @@ async function publishStatus() {
 }
 await publishStatus();
 const statusTimer = setInterval(() => void publishStatus(), 8000);
+const runtimeTimer = setInterval(() => void refreshRuntime(), 15000);
 let graceTimer: ReturnType<typeof setTimeout> | undefined;
 const stop = () => {
   if (stopping) return;
   stopping = true;
   clearInterval(statusTimer);
+  clearInterval(runtimeTimer);
   shutdown.abort();
   currentAbort?.abort();
   graceTimer = setTimeout(() => process.exit(1), 8000);
@@ -133,10 +148,14 @@ const stop = () => {
 };
 process.on("SIGTERM", stop);
 process.on("SIGINT", stop);
-console.log("Cue coding worker ready");
+console.log("Cue local coding worker listening");
 
 while (!stopping) {
   try {
+    if (!runtime.ready) {
+      await pause(1500, undefined, { signal: shutdown.signal }).catch(() => {});
+      continue;
+    }
     const job = await store.mutation(api.jobs.claim, {
       secret: auth,
       worker,
@@ -210,6 +229,7 @@ while (!stopping) {
 }
 
 clearInterval(statusTimer);
+clearInterval(runtimeTimer);
 await publishStatus();
 await new Promise<void>((resolve) => control.close(() => resolve()));
 await shutdownObservability();

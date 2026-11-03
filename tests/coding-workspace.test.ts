@@ -7,7 +7,6 @@ import {
   applySourceEdits,
   assertEditable,
   installCommand,
-  modalTimeout,
   sourcePath,
   validateEdits,
   type SourceSnapshot,
@@ -225,10 +224,4 @@ describe("frozen nested repository execution", () => {
     ).rejects.toThrow("directory");
     expect(await fs.readdir(outside)).toEqual([]);
   });
-});
-
-test("Modal timeouts use whole seconds without extending the remaining deadline", () => {
-  expect(modalTimeout(120000, 838044)).toBe(120000);
-  expect(modalTimeout(120000, 11451)).toBe(11000);
-  expect(() => modalTimeout(120000, 999)).toThrow("deadline");
 });

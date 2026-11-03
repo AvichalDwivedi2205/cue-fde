@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { getFunctionName } from "convex/server";
 
-const state = vi.hoisted(() => ({ writer: "claude-sonnet-4.6", gemini: true }));
+const state = vi.hoisted(() => ({ writer: "claude-sonnet-4.6", gemini: true, worker: vi.fn() }));
 vi.mock("../lib/integration-config", () => ({
   readIntegrations: async () => ({
     apps: [{ id: "registered", name: "Bloom", origins: [] }],
@@ -11,7 +11,7 @@ vi.mock("../lib/integration-config", () => ({
 vi.mock("../lib/gemini", () => ({ geminiReady: () => state.gemini }));
 vi.mock("../lib/google-client", () => ({ geminiReady: () => state.gemini }));
 vi.mock("../lib/integration-checks", () => ({
-  sharedWorkerStatus: async () => null,
+  sharedWorkerStatus: state.worker,
   xRuntimeStatus: async () => ({ connected: false, detail: "Not configured" }),
   notificationRuntimeStatus: async () => ({ connected: false }),
 }));
@@ -38,11 +38,43 @@ import { workspaceSnapshot } from "../lib/workspace";
 beforeEach(() => {
   state.writer = "claude-sonnet-4.6";
   state.gemini = true;
+  state.worker.mockResolvedValue(null);
   vi.stubEnv("LITELLM_API_KEY", "isolated-test-key");
   vi.stubEnv("CUE_AGENT_MODEL", "");
   vi.stubEnv("GEMINI_MODEL", "");
   vi.stubEnv("META_API_KEY", "");
   vi.stubEnv("META_BASE_URL", "");
+});
+test.each([
+  { backend: "local", configured: true, workerOnline: true, ready: true },
+  { backend: "local", configured: false, workerOnline: true, ready: false },
+  { backend: "local", configured: true, workerOnline: false, ready: false },
+  { backend: "modal", configured: true, workerOnline: true, ready: false },
+])("engineering health follows actual local execution availability: %j", async ({ ready, ...runtime }) => {
+  state.worker.mockResolvedValue({
+    coding: { provider: "meta", model: "muse-wonder-1.0", detail: "Runtime diagnostic", ...runtime },
+    busy: false,
+  });
+  const snapshot = await workspaceSnapshot("registered", {
+    id: "owner@example.test", name: "Owner", role: "owner",
+  });
+  expect(snapshot.agents.find((agent) => agent.id === "engineering")?.health).toMatchObject({
+    st: ready ? "ok" : "unknown",
+    label: ready ? "Meta + local Docker worker online" : "Meta coding worker unavailable",
+    detail: "Runtime diagnostic",
+  });
+});
+test("legacy Codex health remains available without a Meta coding worker", async () => {
+  state.worker.mockResolvedValue({
+    codex: { loggedIn: true, workerOnline: true, github: true },
+    busy: false,
+  });
+  const snapshot = await workspaceSnapshot("registered", {
+    id: "owner@example.test", name: "Owner", role: "owner",
+  });
+  expect(snapshot.agents.find((agent) => agent.id === "engineering")?.health).toMatchObject({
+    st: "ok", label: "Companion online",
+  });
 });
 test("Meta qualification and Growth writing work without a Google provider", async () => {
   state.writer = "muse-spark-1.3";

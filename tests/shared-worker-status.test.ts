@@ -31,7 +31,7 @@ const coding = {
   coding: {
     provider: "meta",
     model: "muse-wonder-1.0",
-    backend: "modal",
+    backend: "local",
     configured: true,
     workerOnline: true,
   },
@@ -85,6 +85,18 @@ test("fresh coding alone supplies truthful disabled legacy fields", async () => 
 test("fresh legacy alone retains its backward-compatible status", async () => {
   rows({ worker: fresh(legacy), "coding-worker": null });
   expect(await sharedWorkerStatus()).toEqual(legacy);
+});
+
+test("retired Modal status cannot advertise coding availability or hide legacy channels", async () => {
+  rows({
+    worker: fresh({ ...legacy, coding: { ...coding.coding, backend: "modal" } }),
+    "coding-worker": fresh({ ...coding, coding: { ...coding.coding, backend: "modal" } }),
+  });
+  expect(await sharedWorkerStatus()).toMatchObject({
+    slack: legacy.slack,
+    codex: legacy.codex,
+    coding: { backend: "modal", configured: false, workerOnline: false },
+  });
 });
 
 test("stale channel status cannot overwrite fresh coding status", async () => {

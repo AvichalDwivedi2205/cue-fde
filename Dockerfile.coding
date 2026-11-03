@@ -1,0 +1,10 @@
+FROM node:24-bookworm-slim
+
+# Build the trusted toolchain before repository source or credentials are present.
+RUN npm install --global bun@1.3.2 \
+    && npm cache clean --force \
+    && node --version && bun --version && tar --version
+
+ENV CI=true NODE_ENV=test HOME=/tmp/cue-home
+WORKDIR /
+CMD ["sleep", "infinity"]

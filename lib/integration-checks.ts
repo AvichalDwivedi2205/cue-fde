@@ -10,13 +10,25 @@ import { readHostedBackground } from "./hosted-background";
 import { z } from "zod";
 import { META_MODELS } from "./meta";
 const exec = promisify(execFile);
-const codingStatusInput = z.object({
-  provider: z.literal("meta"),
-  model: z.enum(META_MODELS),
-  backend: z.literal("modal"),
-  configured: z.boolean(),
-  workerOnline: z.boolean().optional(),
-});
+const codingStatusInput = z
+  .object({
+    provider: z.literal("meta"),
+    model: z.enum(META_MODELS),
+    backend: z.enum(["local", "modal"]),
+    configured: z.boolean(),
+    workerOnline: z.boolean().optional(),
+    detail: z.string().max(1000).optional(),
+  })
+  .transform((status) =>
+    status.backend === "local"
+      ? status
+      : {
+          ...status,
+          configured: false,
+          workerOnline: false,
+          detail: "This execution backend is disabled",
+        },
+  );
 const xStatusInput = z.object({
   connected: z.boolean(),
   detail: z.string(),

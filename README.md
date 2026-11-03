@@ -2,7 +2,7 @@
 
 Cue connects customer support to reviewed code changes. A customer reports a bug inside an app. Cue keeps the report, application context, diagnosis, proposed patch, and review evidence together.
 
-This is the public Cue project for the Meta Global AI Developer Hackathon. Muse Spark 1.3 supports diagnosis and structured reasoning. Muse Wonder 1.0 uses scoped repository tools to propose a fix. A trusted supervisor runs checks in Modal and opens a draft pull request for human review.
+This is the public Cue project for the Meta Global AI Developer Hackathon. Muse Spark 1.3 supports diagnosis and structured reasoning. Muse Wonder 1.0 uses scoped repository tools to propose a fix. A trusted supervisor runs checks in local Docker containers and opens a draft pull request for human review.
 
 ## How the workflow fits together
 
@@ -13,7 +13,7 @@ flowchart LR
   Web <--> DB[(Convex)]
   DB --> Worker[Trusted coding worker]
   Worker <--> Wonder[Meta Muse Wonder 1.0]
-  Worker --> Modal[Modal baseline, implementation, verifier]
+  Worker --> Docker[Local Docker baseline, implementation, verifier]
   Worker --> PR[Scoped draft PR]
   PR --> Review[Human review of exact commit]
   Review --> Release[Trusted release and customer retry]
@@ -21,19 +21,19 @@ flowchart LR
 
 Convex stores cases, knowledge, jobs, model receipts, reviews, and release evidence. The gateway handles operator authentication through WorkOS. The worker owns repository policy, GitHub operations, and independent checks. Model tools cannot approve or release their own changes.
 
-The coding policy freezes the repository, base branch, allowed files, package directory, package manager, and verification commands. Baseline, implementation, and verification use separate Modal workspaces. Credentials stay in trusted services. Customer reports and repository content cannot change this policy.
+The coding policy freezes the repository, base branch, allowed files, package directory, package manager, and verification commands. Baseline, implementation, and verification use separate local Docker workspaces. Credentials stay in trusted services. Customer reports and repository content cannot change this policy.
 
 ## Current verification
 
-At published checkpoint [29b7ba4](https://github.com/AvichalDwivedi2205/cue-fde/commit/29b7ba4), checked November 3, 2026:
+At published checkpoint [30d1c14](https://github.com/AvichalDwivedi2205/cue-fde/commit/30d1c14), checked November 3, 2026, 608 tests across 90 files, TypeScript, lint, and the production build passed. Lint retains six warnings. The local Docker follow-up passes 636 tests across 95 files, TypeScript, lint, and the production build. Lint retains the same six warnings.
 
-- 594 automated tests across 88 files, TypeScript, lint, and the production build passed. Lint retains six warnings. The production dependency audit reported zero known vulnerabilities at its earlier check.
-- Live provider checks verified Spark strict-schema JSON and a complete two-turn Wonder tool loop. Modal checks verified three separate workspaces and actual cancellation.
-- A labelled hosted HTTP QA report received a Spark reply and classification with actual model and usage receipts. Retries retained one case, and six live access checks passed. The existing owner can inspect that case in Cue. This does not establish browser widget intake.
-- The hosted gateway serves this checkpoint. The IAM-protected cloud coding worker is online, but the real private coding rehearsal has not produced a verified patch.
-- The private customer baseline passed 238 tests and TypeScript. Its keyboard-deletion acceptance check still fails the reload assertion. The menu-deletion control passes.
+Live Meta checks verified Spark structured output and Wonder tool use. The hosted gateway generated a Spark support reply and classification with actual model/usage receipts; repeated HTTP QA requests retained one case, and six access checks passed. A separate actual installed-widget report now includes its screenshot, correct application/workspace URL, support reply, and completed Spark classification. The conversation survives reload with and without a fresh operator session.
 
-The fresh widget report, Meta-generated private PR, human review, verified release, and customer retry remain **pending**. These component checks do not establish a completed customer journey. Follow the [demo plan](docs/meta-demo-plan.md) and [submission checklist](docs/meta-submission-checklist.md) for the remaining evidence.
+A live browser test on synthetic LatchGrid data reproduced the defect: Backspace removed a Note locally, but reload restored it. The existing menu-delete control stayed deleted after reload. Seven protected acceptance checks now cover Note persistence, group members and links, and explicit child selection. An earlier Meta candidate passed its original checks but failed domain review for deleting unselected children; it was rejected.
+
+Modal execution is disabled following failed credit redemption, and its hosted worker has been removed. The replacement uses local Docker with a dedicated Linux VM, isolated containers, and fresh independent verification. Real isolation, cancellation, and Bun-cache checks pass; the full private repository baseline is being verified through the replacement.
+
+A safe Meta-generated private PR, human review, verified release, and customer retry remain **pending**. Follow the [delivery record](docs/meta-delivery-plan.md), [demo plan](docs/meta-demo-plan.md), and [submission checklist](docs/meta-submission-checklist.md).
 
 ## Run Cue locally
 
@@ -57,7 +57,14 @@ CUE_CODING_MODEL=muse-wonder-1.0
 
 The [Meta client](lib/meta.ts) validates returned model identity and usage. [Model routing](lib/model-config.ts) keeps support, staff reasoning, and coding selections explicit. Configure Meta explicitly for this workflow. Saved workspace settings override support and Growth environment defaults, so select Meta there too.
 
-For isolated coding, set `MODAL_TOKEN_ID`, `MODAL_TOKEN_SECRET`, `CUE_MODAL_APP`, and `CUE_MODAL_IMAGE`. Inspect and run the [Modal image provisioner](scripts/modal-bootstrap.ts) once for your account. It prepares Node.js 22 and Bun 1.3.2. Authenticate GitHub with `gh auth login`, then bind an owned repository and fixed checks in **Setup**, under **Coding**.
+For isolated coding, run a dedicated local Linux Docker context and build the trusted toolchain before repository source is present:
+
+```sh
+colima start --profile cue-code --cpus 2 --memory 4 --disk 16 --mount none --activate=false
+docker --context colima-cue-code build -f Dockerfile.coding -t cue-coding-runtime:node24-bun1.3.2 .
+```
+
+Set `CUE_DOCKER_CONTEXT=colima-cue-code` and `CUE_CODING_IMAGE=cue-coding-runtime:node24-bun1.3.2`. Authenticate the trusted worker's GitHub account and set its `GH_TOKEN` server-side. Bind an owned repository and fixed checks in **Setup**, under **Coding**. The coding worker runs locally with `npm run coding:worker`; the Mac and Docker runtime must remain available while it processes jobs. It keeps external notification channels disabled. Model credentials and the Docker socket are never passed into repository check containers.
 
 Start Convex with `npm run dev:convex`. Set its server secret with `npx convex env set CUE_DEMO_SECRET`. In a second terminal, run `npm run dev` to start the web process and worker. Open `http://127.0.0.1:3000/cue#/inbox`.
 

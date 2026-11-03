@@ -18,7 +18,7 @@ import type { Id } from "../convex/_generated/dataModel";
 import { observed, recordWorkflowFailure } from "./observability";
 import { runCodexSession } from "./codex-session";
 import { engineeringInput } from "./app-pack-schema";
-import { implementInModal } from "./meta-pull-request";
+import { implementMetaPullRequest } from "./meta-pull-request";
 import { installCommand, readSourceSnapshot } from "./coding-workspace";
 const exec = promisify(execFile);
 
@@ -216,9 +216,9 @@ async function runPullRequestPipeline(
         );
     };
     if (meta) {
-      await update({ executionBackend: "modal", phase: "validating_baseline" });
+      await update({ executionBackend: "local", phase: "validating_baseline" });
       const sandboxIds: string[] = [];
-      const result = await implementInModal({
+      const result = await implementMetaPullRequest({
         repo,
         runId,
         policy,

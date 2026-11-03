@@ -20,7 +20,8 @@
     "evaluate:replies": "tsx scripts/evaluate-replies.ts",
     "ui:build": "node scripts/build-ui.mjs",
     "prebuild": "npm run ui:build",
-    "predev:web": "npm run ui:build"
+    "predev:web": "npm run ui:build",
+    "coding:worker": "node --env-file=.env.local --import tsx scripts/coding-worker.ts"
   },
   "dependencies": {
     "@convex-dev/agent": "^0.7.7",
@@ -35,7 +36,6 @@
     "convex": "^1.44.0",
     "google-auth-library": "10.9.1",
     "mammoth": "^1.13.0",
-    "modal": "0.11.1",
     "next": "^16.4.1",
     "openai": "^7.32.0",
     "parse5": "^8.0.1",

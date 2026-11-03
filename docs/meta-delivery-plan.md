@@ -1,157 +1,61 @@
 # Cue and LatchGrid delivery plan
 
-## Objective
+## Objective and gates
 
-Deliver Cue's Meta-powered customer-to-fix workflow with LatchGrid as the private
-customer application. Verify a real report, diagnosis, reviewed patch, preview
-release, and original customer action after reload before recording the demo.
+Deliver Cue's Meta-powered report-to-fix workflow using LatchGrid as the private customer application. Record the demo after a real widget report, safe patch, exact-commit review, release acceptance, and original action after reload.
 
-## Work status
+- [x] Inspect implementation, compare architectures, and assign separate model, execution, and customer-app work.
+- [x] Verify dedicated Meta credentials, actual Spark/Wonder identities, and usage live.
+- [x] Implement Meta reasoning, scoped coding tools, protected checks, and nested Bun support.
+- [x] Install the widget on the owned LatchGrid preview.
+- [x] Reproduce the Note persistence failure and passing menu control in the actual browser with synthetic data.
+- [x] Persist a fresh widget report and screenshot under the correct app and workspace path; complete actual Spark classification.
+- [x] Replace disabled Modal execution with a local Docker adapter; verify isolation and cancellation after a running check.
+- [x] Fix cancellation during create/commit and block new runs on unresolved cleanup uncertainty.
+- [x] Verify the full private locked Bun install after moving its preparation cache to disk; complete its full fixed baseline checks next.
+- [ ] Obtain a safe Meta patch passing all seven unchanged private acceptance checks.
+- [ ] Publish the private patch, obtain exact-commit human review, and verify the preview release.
+- [ ] Repeat the original browser action and reload on the released commit; record the linked customer outcome.
+- [ ] Finish current hosted authentication checks, all refusal paths, and the demo recording handoff.
 
-- [x] Inspect current implementation and baseline checks.
-- [x] Assign separate model, execution, and LatchGrid architecture reviews.
-- [x] Compare design candidates and freeze shared contracts.
-- [x] Verify dedicated Meta API credentials and selected models live.
-- [x] Implement Meta routing and actual-provider evidence.
-- [ ] Install Cue in LatchGrid and publish reviewed product knowledge.
-- [x] Support LatchGrid's nested Bun application in the coding runner.
-- [ ] Verify isolated execution and preview release acceptance.
-- [ ] Verify the full browser journey and refusal paths.
-- [x] Publish the initial implementation and bounded component verification.
-- [ ] Report readiness for the user's demo recording.
+Wrong origins/apps, protected edits, stale approvals, and failed release acceptance must remain denied. A patch, approval, preview deployment, and customer outcome are separate records. Agent summaries cannot establish any later gate.
 
-## Delivery gates
+## Ownership and privacy
 
-1. Meta authentication and selected model work with a bounded live call.
-2. A new LatchGrid widget report and screenshot persist under the correct app.
-3. Diagnosis uses authorized evidence and preserves missing-evidence states.
-4. A real reproducible LatchGrid defect fails an independent acceptance check.
-5. Meta's coding agent proposes a scoped patch in a separate checkout.
-6. Unchanged checks pass. Exact-commit approval and release remain separate.
-7. Preview acceptance passes and the original user action persists after reload.
-8. Wrong-origin/app access, protected edits, stale approvals, and failed release
-   checks remain denied. Retried work does not duplicate customer actions.
+Root owns credentials, shared contracts, Git writes, deployments, and final verification. Agents edit assigned files and report observed results. Public Cue changes go to its public repository; LatchGrid source, raw diffs, customer details, and provider credentials remain private. See [the delivery contract](meta-build/SKILL.md).
 
-## Verification baseline
+Cue is the entry built during the event. LatchGrid is the existing private customer application used to exercise the new workflow. Earlier October 10–13 development and neatHack claims were unsupported and are withdrawn; use the corrected [provenance record](repository-and-build-provenance.md).
 
-Before implementation, 454 local tests across 77 files and TypeScript passed.
-These results establish a local baseline only. Provider calls, hosted services,
-approval events, preview releases, and customer outcomes require fresh evidence.
+## Selected models and execution
 
-## Repository policy
+Meta Muse Spark 1.3 handles support and structured reasoning. Muse Wonder 1.0 uses scoped Responses tools for coding. Routes retain the actual serving model and token usage; they never silently switch providers. The user-provided Baseten key was tested successfully with Muse Spark Open, but is not an application fallback or evidence of an open-weight entry. Fireworks is unused.
 
-Root serializes commits and pushes after inspecting each scoped diff. Cue changes
-go to the public Cue repository. LatchGrid changes stay in its private repository.
-Credentials, raw private-source diffs, and customer data stay outside public Git.
-The existing documentation corrections remain part of the authorized work.
+Modal is disabled at the user's instruction. The approval email was genuine, but a later authenticated failure notice says the code reached its maximum redemptions. The workspace dashboard did not show the promised $100 hackathon credit. The Modal-backed Cloud Run worker was removed, its status marked unavailable, and active SDK/configuration paths retired. Historical Modal checks are historical evidence only.
 
-## Model and execution choices
+The replacement uses a dedicated local Colima Linux VM and explicit Docker context. Dependency preparation receives only manifests and lockfiles, with lifecycle scripts disabled. Baseline, implementation, and fresh verification use separate containers and private anonymous volumes with network blocked, a read-only root filesystem, no capabilities, no new privileges, and unprivileged checks. Repository source/dependencies remain root-owned and integrity checked. Host folders, the Docker socket, and model/GitHub credentials are absent from those containers. The trusted local worker retains credentials and must remain available while it processes jobs.
 
-Selected design: shared typed generation port, a Meta Responses coding loop,
-and Modal workspaces managed by the trusted supervisor. Legacy coding runs retain
-their recorded executor. New generic runs freeze Meta and the repository policy
-when created. LatchGrid uses a small public widget installed at the root layout;
-its source remains private.
+## Observed verification
 
-On November 3, the dedicated server key returned HTTP 200 from both live probes:
-Muse Spark 1.3 produced strict-schema JSON, and Muse Wonder 1.0 emitted the
-requested function call through the Responses API. Both reported the requested
-model and nonzero token usage. These probes establish model access, not product
-readiness. The Meta dashboard's billing restriction banner remained visible.
+Before the Meta build, 454 tests across 77 files and TypeScript passed. Published source [30d1c14](https://github.com/AvichalDwivedi2205/cue-fde/commit/30d1c14) passed 608 tests across 90 files, TypeScript, lint, and the production build; lint retained six warnings. Runtime dependencies had no known vulnerabilities at the earlier audit; that is a point-in-time result. The Docker/auth/widget follow-up passes 636 tests across 95 files, TypeScript, lint, and the production build; source hashes were unchanged during verification.
 
-Modal credentials were created with a 30-day lifetime. The approved $100 credit
-redemption was submitted; application of those credits remains unverified.
-The user-provided Baseten key returned HTTP 200 from Muse Spark Open with actual
-usage. It is a tested optional route, not an automatic application fallback or
-proof of an open-weight project. Fireworks is unused.
+Hosted gateway source [3c55e23](https://github.com/AvichalDwivedi2205/cue-fde/commit/3c55e23) passed six access checks before rollout. Rejected requests created no cases. A fresh installed-widget conversation now includes one actual screenshot, the correct LatchGrid application and preview workspace URL, a support reply, and completed Spark classification with reported usage. Customer feedback requests further help; the case remains open.
 
-The private LatchGrid baseline has 238 passing default tests, type checking and
-linting. A separate acceptance harness uses the real React Flow deletion engine
-and application callbacks: menu deletion persists, while keyboard deletion fails
-the saved-state reload assertion. The defect is still present; browser and live
-database verification remain required.
+Actual browser checks used only synthetic Notes in the owned verification workspace. Backspace removed a selected Note locally, and reload restored it. The menu-delete control stayed deleted after reload. The same failure was reproduced on the owned preview. The protected acceptance harness uses the real React Flow deletion engine and application callbacks, with only the saved-state/renderer boundaries mocked. Its frozen seven-check matrix has two passing menu controls and five failing keyboard cases on the unfixed baseline.
 
-Workers follow [the delivery contract](meta-build/SKILL.md). Root records design
-selection and release evidence here as each gate passes.
+Real Docker boundary checks confirmed UID 65534, blocked network, read-only root filesystem, zero capabilities, no new privileges, immutable source/lock/dependencies, separate verification, and unchanged host source. Four containers, three private volumes, and a transient dependency image were removed. A running-check cancellation also removed its containers, volume, and image. Independent review identified cancellation during resource creation as a separate race. The fix defers cancellation until creation/commit settles; controlled late-outcome tests pass. Ambiguous transport/timeouts retain a private cleanup ledger and block new runs. Full private Bun installation initially filled the 512 MiB temporary filesystem; changing only its preparation cache path to disk allowed all 618 locked packages to install. The cache is removed before the dependency image is committed. A real small Bun smoke also verifies cache placement, artifact integrity, and cleanup. Full private baseline checks are running.
 
-## Hosted checkpoint: November 3, 2026
+## Experiments and rejected candidates
 
-Public Cue source [1136763](https://github.com/AvichalDwivedi2205/cue-fde/commit/1136763)
-is pushed in a draft pull request. At this checkpoint, 565 tests across 87 files,
-TypeScript, lint, and a production build passed. Lint retains six warnings.
-The production dependency audit reported zero known vulnerabilities. This is a
-point-in-time audit, not a guarantee against unknown vulnerabilities.
+Actual Spark payloads exhausted the original 1,000-token completion budget in reasoning and returned no final text. Changing only the budget to 4,096 produced valid output, and the implemented floor passed a fresh replay. Explicit low Chat reasoning then passed fresh synthetic bug/feature flows after default reasoning timed out on one initial flow. These small samples do not establish general reliability. See [Meta reasoning controls](https://dev.meta.ai/docs/reasoning).
 
-The hosted gateway serves this source with the Meta configuration. A separate
-IAM-protected coding worker is online. Live tests deny wrong origins, unknown
-apps, forged visitor sessions, malformed images, and anonymous operator access;
-these rejected requests created no cases.
+Coding uses full stateless replay with encrypted reasoning items, a separate 120-second request timeout, cancellation, bounded baseline observations, and limits of 20 model calls, 60 tools, and one million cumulative reported tokens. A 32 KiB replay-compaction prototype caused repeat discovery and was removed. Smaller token thresholds stopped legitimate discovery before edits.
 
-The controlled private customer preview uses the registered customer subdomain.
-Its fixed source passes locked Bun installation, TypeScript, and 238 default
-tests in a network-blocked Modal workspace. The separate keyboard-deletion
-acceptance check fails its saved-state reload assertion; the menu control passes.
-These checks do not establish a real browser deletion or a verified fix.
+A real Wonder component candidate eventually passed its original two acceptance checks, but domain review found that group deletion could permanently remove unselected children. It was rejected. Seven protected checks now cover Note persistence, preserving unselected children and their links, and deleting explicitly selected children. A clean revision reached the call limit without edits. The next product run keeps resource limits and tests fixed while supplying bounded factual source/dependency review evidence in the operator reproduction field. The mandatory execution-backend replacement means this is an operational validation, not a matched causal model comparison. Success requires all seven checks and independent review; failure does not authorize weakening checks or repeatedly raising limits.
 
-The embedded widget currently appears blank in the automated Chrome session.
-The same widget URL renders correctly at the top level, and the server returns
-HTTP 200 with the preview origin allowed by its framing policy. Native browser
-inspection is pending because the computer tool reports the Mac is locked.
-No cause is established. The fresh widget case, actual Meta patch, exact-commit
-review, released acceptance, and customer retry remain incomplete.
+## Authentication and remaining release evidence
 
-## Real-payload rehearsal
+After the Cue operator session was cleared, the embedded widget loaded and the fresh report succeeded. It also worked after a fresh owner sign-in and reload, retaining the same conversation. The earlier blank frame is not currently reproducible; no definitive cause or speculative middleware change is claimed.
 
-A labelled HTTP QA report persisted under the correct LatchGrid app and preview
-page. Its initial support reply used fallback and its classification could not
-finish. Replaying the actual report through the selected Spark route exposed a
-completion-budget defect: at 1,000 tokens, both responses reported `length`,
-998 reasoning tokens, and no final text. With only the completion budget changed
-to 4,096, both returned valid final output. The implemented budget floor then
-passed a separate replay without a diagnostic override. This small experiment
-does not establish reliability across all reports.
+Fresh hosted logout exposed a concrete page-render cookie error. Offline reproduction with the installed WorkOS SDK and Next's sealed cookie adapter produced the same error from strict page-level sign-in. The follow-up reads the session without mutation and redirects anonymous Connections visitors to the existing login Route Handler, where PKCE cookies can legally be written. Operator restrictions remain in place. Hosted login/logout and widget coexistence still need verification. No unrelated WorkOS workspace was changed.
 
-The fix preserves measured model usage when a completion is rejected or a reply
-retry later fails. Successful current classification receipts now retain the
-actual provider, reported model, requested model, usage, and duration. Legacy
-notes no longer name Gemini when the serving model is unknown. Local verification
-passed 594 tests across 88 files and TypeScript. The follow-up is now deployed as
-the hosted gateway's active revision. A labelled HTTP QA retry retained the same
-case, saved a Spark-generated reply, and completed classification with actual
-provider/model/usage evidence. Six candidate access checks passed before rollout.
-The existing owner signed in and viewed the LatchGrid case; a nonmember's sign-in
-was denied operator access. No operator membership or application activation was
-changed.
-
-A separate Wonder/Modal component rehearsal reached the genuine failing private
-baseline, then stopped at its cumulative token budget before a verified patch.
-It reported ten calls, 211,539 input tokens, and 2,674 output tokens. No product
-run, install verification, approval, PR, or release was created by this component
-test. Instrumented follow-ups found legitimate source discovery and repeated
-context costs, rather than rejected edits. A 32 KiB replay-compaction prototype
-introduced repeated source reads and still failed; it was removed before
-publication. A simpler 500k-token stop threshold also failed before an edit.
-Current experiments compare models and explicit resource observations. These are
-development rehearsals, not a held-out product-success estimate. The draft
-application remains inactive, and no verified private patch exists yet.
-
-Default reasoning also timed out on one of two initially held-out synthetic
-support flows. Meta's documented low Chat reasoning effort passed those two
-flows, and then two fresh synthetic bug/feature flows passed classification and
-reply-policy checks without a diagnostic override. This small sample does not
-establish general reliability. Coding Responses retain separate settings. See
-[Meta reasoning controls](https://dev.meta.ai/docs/reasoning) and
-[stateless reasoning replay](https://dev.meta.ai/docs/protocols/responses).
-
-Browser verification also found that a hosted sign-out ended at localhost. The
-installed SDK and the current action preserve the explicit public return URL;
-the actual redirect hop still needs inspection. No speculative WorkOS settings
-change has been made. The connected management workspace has a different client
-ID from Cue and was not used to change Cue's authentication configuration.
-
-The next source follow-up passes 607 tests across 90 files, TypeScript, and a
-production build. It adds low-effort Chat generation, preserves full coding tool
-history while requesting encrypted reasoning, gives coding requests a separate
-120-second timeout under the job cancellation signal, supplies actual baseline
-evidence, and protects the connections page with the existing operator policy.
-These changes do not establish a successful coding run or release.
+Keep exact case/run IDs, source and patch SHAs, actual model usage, review event, environment/deployed SHA, and browser retry evidence in private records. The actual install was acknowledged in the owner UI and the LatchGrid app is now active; repository policy is unchanged. The private preview helper requires approved exact code and records preview deployment separately from browser acceptance. No hackathon form, legal acceptance, or social post has been submitted.

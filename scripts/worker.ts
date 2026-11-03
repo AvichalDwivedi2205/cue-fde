@@ -41,6 +41,21 @@ const {
   shutdownRehearsals,
 } = await import("../lib/rehearsal-runtime");
 const { getMetaConnection, META_WONDER_MODEL } = await import("../lib/meta");
+const { localCodingReadiness } = await import("../lib/local-coding-runtime");
+let runtime = { ready: false, detail: "Local Docker runtime has not been checked" };
+let checkingRuntime = false;
+async function refreshRuntime() {
+  if (checkingRuntime) return;
+  checkingRuntime = true;
+  try {
+    runtime = await localCodingReadiness();
+  } catch {
+    runtime = { ready: false, detail: "Local Docker runtime check failed" };
+  } finally {
+    checkingRuntime = false;
+  }
+}
+await refreshRuntime();
 const codingStatus = () => {
   let meta = false;
   try {
@@ -50,12 +65,10 @@ const codingStatus = () => {
   return {
     provider: "meta",
     model: process.env.CUE_CODING_MODEL || META_WONDER_MODEL,
-    backend: "modal",
-    configured:
-      meta &&
-      !!process.env.MODAL_TOKEN_ID &&
-      !!process.env.MODAL_TOKEN_SECRET &&
-      !!process.env.CUE_MODAL_IMAGE,
+    backend: "local",
+    configured: meta && runtime.ready,
+    workerOnline: !stopping,
+    detail: meta ? runtime.detail : "Meta connection is not configured",
   };
 };
 const control = createServer(async (req, res) => {
@@ -158,9 +171,11 @@ async function publishStatus() {
 }
 await publishStatus();
 const statusTimer = setInterval(() => void publishStatus(), 8000);
+const runtimeTimer = setInterval(() => void refreshRuntime(), 15000);
 const stop = async () => {
   stopping = true;
   clearInterval(statusTimer);
+  clearInterval(runtimeTimer);
   currentAbort?.abort();
   control.close();
   await slack.stop();

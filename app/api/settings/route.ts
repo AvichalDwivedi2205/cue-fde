@@ -65,8 +65,16 @@ export async function GET(request: Request) {
             "gemini-2.5-flash",
           agent: agentRoute.model,
           qualification: agentRoute.model,
-          coding: process.env.CUE_CODING_MODEL || META_WONDER_MODEL,
-          codingConfigured: coding?.provider === "meta" && coding.configured,
+          coding:
+            coding?.model || process.env.CUE_CODING_MODEL || META_WONDER_MODEL,
+          codingConfigured:
+            coding?.provider === "meta" &&
+            coding.backend === "local" &&
+            coding.configured &&
+            coding.workerOnline === true,
+          codingBackend: coding?.backend === "local" ? "local" : null,
+          codingWorkerOnline: coding?.backend === "local" && coding.workerOnline === true,
+          codingDetail: coding?.detail || "No fresh local coding worker",
           legacyCoding: "Codex",
           growth:
             config.workspace?.growthModel ||

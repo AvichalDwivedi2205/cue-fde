@@ -61,7 +61,7 @@ These are unconfirmed personal facts. The user must confirm selection, eligibili
 
 - [ ] Finish the fresh widget report, Meta diagnosis, scoped private patch, exact-commit review, release acceptance, and original action after reload. Follow the [demo plan](meta-demo-plan.md).
 - [x] Retain private baseline proof: locked Bun installation, TypeScript, and 238 default tests pass. Keyboard persistence fails its expected assertion while the menu control passes.
-- [x] Retain isolation and actual cancellation proof. These establish execution behavior, not a released customer fix.
+- [x] Verify selected local Docker isolation, running-check cancellation, create/commit cancellation handling, and Bun cache placement. Uncertain cleanup blocks new runs.
 - [ ] Record case ID, run ID, selected and actual model, usage, base and patch SHAs, review event, released SHA, and browser retry evidence privately.
 - [ ] Publish the reviewed Cue commit and verify the public repository URL from a fresh signed-out session.
 - [ ] Test demo and product links as a reviewer. Supply necessary authorized access instructions without adding an authentication bypass.
@@ -83,6 +83,6 @@ The [participant guide](https://cerebralvalley.ai/e/meta-ai-developer-hackathon/
 | Creative build | $5,000 | Creative originality and execution using Muse Image or Wonder. |
 
 - Strategy: prioritize the real repair journey and agentic evidence. The guide discourages basic RAG examples, so demonstrate the governed fix rather than pitching a generic FAQ bot. [Project guidance](https://cerebralvalley.ai/e/meta-ai-developer-hackathon/details#sample-anti-projects-9).
-- Modal sandboxes serve the selected execution path. Baseten was tested but is not routed. A probe or sandbox alone does not prove an open-weight project; claim no Baseten or open-weight qualification.
+- Local Docker replaces Modal, which is disabled after failed credit redemption. Baseten was tested but is not routed. A probe or sandbox alone does not prove an open-weight project; claim no Baseten or open-weight qualification.
 - Remaining organizer questions: viral EOD timezone, any post-link update window, server-side text limits, and accepted video hosts. Check current announcements for rule changes.
 - [ ] USER: review the final answers, video, roster, rights, and attestations before a separately authorized submission. Preserve the actual receipt afterward.

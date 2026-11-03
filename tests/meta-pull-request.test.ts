@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { implementInModal } from "../lib/meta-pull-request";
-import type { withModalCoding } from "../lib/coding-workspace";
+import { implementMetaPullRequest } from "../lib/meta-pull-request";
+import type { withIsolatedCoding } from "../lib/coding-workspace";
 import type { ResponseInput } from "openai/resources/responses/responses";
 
 const mocks = vi.hoisted(() => ({
@@ -20,7 +20,7 @@ vi.mock("../lib/meta", async (importActual) => ({
 vi.mock("../lib/coding-workspace", async (importActual) => ({
   ...(await importActual<typeof import("../lib/coding-workspace")>()),
   readSourceSnapshot: mocks.read,
-  withModalCoding: mocks.modal,
+  withIsolatedCoding: mocks.modal,
   applySourceEdits: mocks.apply,
 }));
 afterEach(() => {
@@ -65,8 +65,10 @@ function setup(verificationPassed = true) {
   const close = vi.fn();
   mocks.read.mockResolvedValue(source);
   mocks.modal.mockImplementation(
-    async (_input: unknown, operation: Parameters<typeof withModalCoding>[1]) =>
-      operation({ open, close }),
+    async (
+      _input: unknown,
+      operation: Parameters<typeof withIsolatedCoding>[1],
+    ) => operation({ open, close }),
   );
   const response = (output: unknown[], output_text = "") => ({
     model: "muse-wonder-1.0",
@@ -91,7 +93,7 @@ function setup(verificationPassed = true) {
       ]),
     )
     .mockResolvedValueOnce(response([], "Changed synthetic value."));
-  const input: Parameters<typeof implementInModal>[0] = {
+  const input: Parameters<typeof implementMetaPullRequest>[0] = {
     repo: "/synthetic",
     runId: "synthetic",
     prompt: "Fix synthetic value",
@@ -116,7 +118,7 @@ function setup(verificationPassed = true) {
 test("actual baseline reaches the first agent request and fresh verification alone permits import", async () => {
   const { input, source, baseline, before, coding, verifier, open, close } =
     setup();
-  const result = await implementInModal(input);
+  const result = await implementMetaPullRequest(input);
   const request: { input: ResponseInput } = mocks.create.mock.calls[0][0];
   expect(request.input[0]).toEqual({ role: "user", content: input.prompt });
   expect(JSON.stringify(request.input[1])).toContain(baseline.output);
@@ -146,7 +148,7 @@ test("actual baseline reaches the first agent request and fresh verification alo
 
 test("a model edit still cannot import source after failed independent verification", async () => {
   const { input, verifier } = setup(false);
-  await expect(implementInModal(input)).rejects.toThrow(
+  await expect(implementMetaPullRequest(input)).rejects.toThrow(
     "Independent repository checks failed",
   );
   expect(verifier.check).toHaveBeenCalledOnce();
