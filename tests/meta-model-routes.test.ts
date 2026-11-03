@@ -29,7 +29,12 @@ vi.mock("openai", () => ({
 }));
 
 import { answerKnowledge } from "../lib/knowledge-answer";
-import { classifyReport, generateSpec } from "../lib/gemini";
+import {
+  classifyReport,
+  classifyReportWithGeneration,
+  generateReply,
+  generateSpec,
+} from "../lib/gemini";
 import { generateGrowthDraft, qualifyGrowth } from "../lib/growth-model";
 import { DEFAULT_BRAND } from "../lib/company-context-policy";
 import { META_SPARK_MODEL } from "../lib/meta";
@@ -108,6 +113,52 @@ test("Meta corrections keep the same provider and include both attempts in usage
     provider: "meta",
     inputTokens: 202,
     outputTokens: 62,
+  });
+  expect(state.completion).toHaveBeenCalledTimes(2);
+  expect(state.google).not.toHaveBeenCalled();
+});
+
+test("a truncated correction retains both paid Meta attempts", async () => {
+  state.completion.mockResolvedValueOnce(
+    output({ text: "The fix is live. Your issue is resolved." }),
+  );
+  state.completion.mockResolvedValueOnce({
+    model: META_SPARK_MODEL,
+    choices: [{ finish_reason: "length", message: { content: null } }],
+    usage: { prompt_tokens: 64, completion_tokens: 1000 },
+  });
+  await expect(
+    generateReply({ message: "Is the fix released?", channel: "chat" }),
+  ).rejects.toMatchObject({
+    stage: "completion",
+    generation: {
+      provider: "meta",
+      model: META_SPARK_MODEL,
+      inputTokens: 165,
+      outputTokens: 1031,
+    },
+  });
+  expect(state.completion).toHaveBeenCalledTimes(2);
+  expect(state.google).not.toHaveBeenCalled();
+});
+
+test("a later transport failure preserves the first measured attempt in the saved review response", async () => {
+  state.completion.mockResolvedValueOnce(
+    output({ text: "The fix is live. Your issue is resolved." }),
+  );
+  state.completion.mockRejectedValueOnce({ status: 503 });
+  expect(
+    await answerKnowledge(
+      "app-1",
+      { message: "Is the fix released?", channel: "chat" },
+      { mode: "keyword" },
+    ),
+  ).toMatchObject({
+    status: "needs_review",
+    provider: "meta",
+    model: META_SPARK_MODEL,
+    inputTokens: 101,
+    outputTokens: 31,
   });
   expect(state.completion).toHaveBeenCalledTimes(2);
   expect(state.google).not.toHaveBeenCalled();
@@ -274,6 +325,33 @@ test("Meta classification and specification preserve their strict public shapes"
     await generateSpec({ issue: { title: "Persistent captions" } }),
   ).toEqual(spec);
   expect(state.google).not.toHaveBeenCalled();
+});
+
+test("the result-bearing classifier exposes actual model usage while the legacy classifier remains value-only", async () => {
+  const classification = {
+    kind: "bug",
+    priority: "P2",
+    tags: ["caption"],
+    matchedIssueId: null,
+    confidence: 0.8,
+    reason: "Caption changes revert.",
+  };
+  state.completion.mockResolvedValue(output(classification));
+  const context = {
+    report: { body: "Caption edit disappears" },
+    candidates: [],
+  };
+  expect(await classifyReportWithGeneration(context)).toMatchObject({
+    result: classification,
+    generation: {
+      provider: "meta",
+      model: META_SPARK_MODEL,
+      requestedModel: META_SPARK_MODEL,
+      inputTokens: 101,
+      outputTokens: 31,
+    },
+  });
+  expect(await classifyReport(context)).toEqual(classification);
 });
 
 test("Meta Growth qualification and writing preserve constraints and report the actual provider", async () => {

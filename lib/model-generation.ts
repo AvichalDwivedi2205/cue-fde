@@ -1,7 +1,12 @@
 import OpenAI from "openai";
 import { z } from "zod";
 import { client } from "./google-client";
-import { metaCompletion, modelImageSchema, type ModelImage } from "./meta";
+import {
+  metaCompletion,
+  MetaCompletionError,
+  modelImageSchema,
+  type ModelImage,
+} from "./meta";
 import { routeReadiness, type ModelRoute } from "./model-config";
 import { annotateTelemetry, currentTraceId } from "./observability";
 
@@ -18,7 +23,8 @@ export type GenerationReceipt = {
 export class ModelOutputError extends Error {
   constructor(
     readonly generation: GenerationReceipt,
-    readonly stage: "json" | "schema",
+    readonly stage: "json" | "schema" | "completion",
+    readonly completion?: Pick<MetaCompletionError, "reason" | "finishReason">,
   ) {
     super("Generated output failed " + stage + " validation");
     this.name = "ModelOutputError";
@@ -33,6 +39,38 @@ type GenerationInput = {
   temperature: number;
 };
 
+function recordGeneration(
+  route: ModelRoute,
+  started: number,
+  result: Pick<
+    GenerationReceipt,
+    "model" | "inputTokens" | "outputTokens" | "requestId"
+  >,
+): GenerationReceipt {
+  const generation: GenerationReceipt = {
+    provider: route.kind,
+    model: result.model,
+    requestedModel: route.model,
+    inputTokens: result.inputTokens,
+    outputTokens: result.outputTokens,
+    durationMs: Date.now() - started,
+    ...(result.requestId ? { requestId: result.requestId } : {}),
+    ...(currentTraceId() ? { traceId: currentTraceId() } : {}),
+  };
+  annotateTelemetry({
+    "cue.model.provider": generation.provider,
+    "cue.model.requested": generation.requestedModel,
+    "cue.model.reported": generation.model,
+    "gen_ai.usage.input_tokens": generation.inputTokens,
+    "gen_ai.usage.output_tokens": generation.outputTokens,
+    "cue.model.duration_ms": generation.durationMs,
+    ...(generation.requestId
+      ? { "cue.model.request_id": generation.requestId }
+      : {}),
+  });
+  return generation;
+}
+
 async function completion(args: GenerationInput & { schema?: z.ZodType }) {
   const readiness = routeReadiness(args.route);
   if (readiness.kind === "unavailable") throw new Error(readiness.reason);
@@ -44,9 +82,19 @@ async function completion(args: GenerationInput & { schema?: z.ZodType }) {
     outputTokens: number;
     requestId?: string;
   };
-  if (args.route.kind === "meta")
-    result = await metaCompletion({ ...args, model: args.route.model });
-  else if (args.route.kind === "google") {
+  if (args.route.kind === "meta") {
+    try {
+      result = await metaCompletion({ ...args, model: args.route.model });
+    } catch (error) {
+      if (error instanceof MetaCompletionError)
+        throw new ModelOutputError(
+          recordGeneration(args.route, started, error.completion),
+          "completion",
+          { reason: error.reason, finishReason: error.finishReason },
+        );
+      throw error;
+    }
+  } else if (args.route.kind === "google") {
     const images = z
       .array(modelImageSchema)
       .max(4)
@@ -137,27 +185,7 @@ async function completion(args: GenerationInput & { schema?: z.ZodType }) {
       ...(response._request_id ? { requestId: response._request_id } : {}),
     };
   }
-  const generation: GenerationReceipt = {
-    provider: args.route.kind,
-    model: result.model,
-    requestedModel: args.route.model,
-    inputTokens: result.inputTokens,
-    outputTokens: result.outputTokens,
-    durationMs: Date.now() - started,
-    ...(result.requestId ? { requestId: result.requestId } : {}),
-    ...(currentTraceId() ? { traceId: currentTraceId() } : {}),
-  };
-  annotateTelemetry({
-    "cue.model.provider": generation.provider,
-    "cue.model.requested": generation.requestedModel,
-    "cue.model.reported": generation.model,
-    "gen_ai.usage.input_tokens": generation.inputTokens,
-    "gen_ai.usage.output_tokens": generation.outputTokens,
-    "cue.model.duration_ms": generation.durationMs,
-    ...(generation.requestId
-      ? { "cue.model.request_id": generation.requestId }
-      : {}),
-  });
+  const generation = recordGeneration(args.route, started, result);
   return { text: result.text, generation };
 }
 

@@ -99,3 +99,28 @@ HTTP 200 with the preview origin allowed by its framing policy. Native browser
 inspection is pending because the computer tool reports the Mac is locked.
 No cause is established. The fresh widget case, actual Meta patch, exact-commit
 review, released acceptance, and customer retry remain incomplete.
+
+## Real-payload rehearsal
+
+A labelled HTTP QA report persisted under the correct LatchGrid app and preview
+page. Its initial support reply used fallback and its classification could not
+finish. Replaying the actual report through the selected Spark route exposed a
+completion-budget defect: at 1,000 tokens, both responses reported `length`,
+998 reasoning tokens, and no final text. With only the completion budget changed
+to 4,096, both returned valid final output. The implemented budget floor then
+passed a separate replay without a diagnostic override. This small experiment
+does not establish reliability across all reports.
+
+The fix preserves measured model usage when a completion is rejected or a reply
+retry later fails. Successful current classification receipts now retain the
+actual provider, reported model, requested model, usage, and duration. Legacy
+notes no longer name Gemini when the serving model is unknown. Local verification
+passed 594 tests across 88 files and TypeScript; hosted verification is pending
+deployment of this follow-up.
+
+A separate Wonder/Modal component rehearsal reached the genuine failing private
+baseline, then stopped at its cumulative token budget before a verified patch.
+It reported ten calls, 211,539 input tokens, and 2,674 output tokens. No product
+run, install verification, approval, PR, or release was created by this component
+test. A second instrumented rehearsal is investigating tool-contract and context
+growth failures under the same budget. The draft application remains inactive.

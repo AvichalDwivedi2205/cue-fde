@@ -1,4 +1,4 @@
-import { beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   query: vi.fn(),
   mutation: vi.fn(),
@@ -11,13 +11,28 @@ vi.mock("../lib/server-store", () => ({
 }));
 vi.mock("../lib/gemini", () => ({
   geminiReady: () => true,
-  classifyReport: mocks.classify,
+  classifyReportWithGeneration: mocks.classify,
 }));
 vi.mock("../lib/google-client", () => ({ geminiReady: () => true }));
 import { classifySavedReport } from "../lib/triage";
 import type { Id } from "../convex/_generated/dataModel";
 
-beforeEach(() => vi.clearAllMocks());
+const generation = {
+  provider: "meta",
+  model: "muse-spark-1.3",
+  requestedModel: "muse-spark-1.3",
+  inputTokens: 80,
+  outputTokens: 24,
+  durationMs: 52,
+  requestId: "synthetic-request",
+  traceId: "synthetic-trace",
+};
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.stubEnv("CUE_AGENT_MODEL", "muse-spark-1.3");
+  vi.stubEnv("META_API_KEY", "synthetic-test-key");
+});
+afterEach(() => vi.unstubAllEnvs());
 function setup(appId?: string, confidence = 0.99) {
   const prefix = appId ? appId + ":" : "";
   const current = {
@@ -52,12 +67,15 @@ function setup(appId?: string, confidence = 0.99) {
     messages: [],
   });
   mocks.classify.mockResolvedValue({
-    matchedIssueId: matched._id,
-    kind: "feature",
-    priority: "P3",
-    tags: ["readability"],
-    reason: "Same text-size need",
-    confidence,
+    generation,
+    result: {
+      matchedIssueId: matched._id,
+      kind: "feature",
+      priority: "P3",
+      tags: ["readability"],
+      reason: "Same text-size need",
+      confidence,
+    },
   });
 }
 test.each([undefined, "connected-app"])(
@@ -80,13 +98,46 @@ test("uncertain equivalence remains unmerged", async () => {
 test("a model-supplied foreign ID never routes the report across apps", async () => {
   setup("connected-app");
   mocks.classify.mockResolvedValue({
-    matchedIssueId: "foreign",
-    kind: "feature",
-    priority: "P3",
-    tags: [],
-    reason: "Untrusted match",
-    confidence: 1,
+    generation,
+    result: {
+      matchedIssueId: "foreign",
+      kind: "feature",
+      priority: "P3",
+      tags: [],
+      reason: "Untrusted match",
+      confidence: 1,
+    },
   });
   await classifySavedReport("case-1" as Id<"cases">);
   expect(mocks.mutation.mock.calls[0][1].issueId).toBeUndefined();
+});
+
+test("saved report triage passes the serving receipt without inferring a provider", async () => {
+  setup("connected-app");
+  await classifySavedReport(
+    "case-1" as Id<"cases">,
+    "receipt-1" as Id<"triageReceipts">,
+  );
+  expect(mocks.mutation).toHaveBeenCalledWith(
+    "triage",
+    expect.objectContaining({ receiptId: "receipt-1", generation }),
+  );
+  expect(mocks.classify.mock.calls[0][1].route).toEqual({
+    kind: "meta",
+    model: "muse-spark-1.3",
+  });
+});
+
+test("a rejected generation never commits a successful triage receipt", async () => {
+  setup("connected-app");
+  mocks.classify.mockRejectedValueOnce(
+    Object.assign(new Error("completion rejected"), { generation }),
+  );
+  await expect(
+    classifySavedReport(
+      "case-1" as Id<"cases">,
+      "receipt-1" as Id<"triageReceipts">,
+    ),
+  ).rejects.toThrow("completion rejected");
+  expect(mocks.mutation).not.toHaveBeenCalled();
 });

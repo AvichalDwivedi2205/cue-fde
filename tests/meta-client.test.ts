@@ -81,7 +81,7 @@ test("real SDK request sends a strict schema and returns reported Meta identity 
   const body = JSON.parse(String(init?.body));
   expect(body).toMatchObject({
     model: META_SPARK_MODEL,
-    max_tokens: 100,
+    max_tokens: 4096,
     response_format: {
       type: "json_schema",
       json_schema: {
@@ -91,6 +91,73 @@ test("real SDK request sends a strict schema and returns reported Meta identity 
     },
   });
   expect(google).not.toHaveBeenCalled();
+});
+
+test.each([
+  {
+    model: META_SPARK_MODEL,
+    finish_reason: "length",
+    content: null,
+    reason: "length",
+  },
+  {
+    model: META_SPARK_MODEL,
+    finish_reason: "stop",
+    content: "",
+    reason: "empty_content",
+  },
+  {
+    model: META_WONDER_MODEL,
+    finish_reason: "stop",
+    content: '{"answer":"Saved"}',
+    reason: "model_mismatch",
+  },
+  {
+    model: "unexpected-provider-model",
+    finish_reason: "stop",
+    content: '{"answer":"Saved"}',
+    reason: "model_mismatch",
+  },
+])(
+  "rejected completions preserve actual model and usage: %j",
+  async ({ model, finish_reason, content, reason }) => {
+    respond(
+      wire({
+        model,
+        choices: [{ finish_reason, message: { content } }],
+        usage: { prompt_tokens: 64, completion_tokens: 1000 },
+      }),
+    );
+    await expect(generateObject(request)).rejects.toMatchObject({
+      name: "ModelOutputError",
+      stage: "completion",
+      completion: { reason, finishReason: finish_reason },
+      generation: {
+        provider: "meta",
+        requestedModel: META_SPARK_MODEL,
+        model,
+        inputTokens: 64,
+        outputTokens: 1000,
+        requestId: "meta-request-1",
+      },
+    });
+    expect(google).not.toHaveBeenCalled();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  },
+);
+
+test("the reasoning budget floor preserves a larger explicit Meta limit and leaves Google limits unchanged", async () => {
+  await generateObject({ ...request, maxOutputTokens: 8192 });
+  expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body)).max_tokens).toBe(
+    8192,
+  );
+  google.mockResolvedValue({ text: '{"answer":"Saved"}' });
+  await generateObject({
+    ...request,
+    route: { kind: "google", model: "gemini-2.5-flash" },
+    maxOutputTokens: 250,
+  });
+  expect(google.mock.calls[0][0].config.maxOutputTokens).toBe(250);
 });
 
 test.each([

@@ -1,5 +1,5 @@
 import { api, db, secret } from "./server-store";
-import { classifyReport } from "./gemini";
+import { classifyReportWithGeneration } from "./gemini";
 import { configuredRoute, routeReadiness } from "./model-config";
 import type { Id } from "../convex/_generated/dataModel";
 import { observed, annotateTelemetry } from "./observability";
@@ -119,7 +119,7 @@ async function classifySavedReportImpl(
     owner: report.owner,
     attachments: state.attachments || [],
   });
-  const result = await classifyReport(
+  const { result, generation } = await classifyReportWithGeneration(
     {
       report: {
         title: report.title,
@@ -158,6 +158,7 @@ async function classifySavedReportImpl(
     secret: auth,
     caseId,
     receiptId,
+    generation,
     issueId:
       existing &&
       provisionalIssue(existing) &&

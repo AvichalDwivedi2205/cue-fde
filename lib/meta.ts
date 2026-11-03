@@ -5,6 +5,7 @@ export const META_SPARK_MODEL = "muse-spark-1.3";
 export const META_WONDER_MODEL = "muse-wonder-1.0";
 export const META_MODELS = [META_SPARK_MODEL, META_WONDER_MODEL] as const;
 export type MetaModel = (typeof META_MODELS)[number];
+export const META_MIN_COMPLETION_TOKENS = 4096;
 
 const connectionSchema = z.object({
   apiKey: z.string().trim().min(1),
@@ -37,21 +38,45 @@ export const modelImageSchema = z
 // Pixel and MIME validation belongs to the screenshot intake boundary.
 export type ModelImage = z.infer<typeof modelImageSchema>;
 
-const completionSchema = z.object({
-  model: z.enum(META_MODELS),
-  choices: z
-    .array(
-      z.object({
-        finish_reason: z.literal("stop"),
-        message: z.object({ content: z.string().trim().min(1) }),
-      }),
-    )
-    .min(1),
+const completionMetadata = z.object({
+  model: z.string().trim().min(1).max(200),
   usage: z.object({
     prompt_tokens: z.number().int().nonnegative().max(10_000_000),
     completion_tokens: z.number().int().nonnegative().max(10_000_000),
   }),
 });
+const completionContent = z.object({
+  choices: z
+    .array(
+      z.object({
+        finish_reason: z.string().nullable(),
+        message: z.object({ content: z.string().nullable() }),
+      }),
+    )
+    .min(1),
+});
+
+export class MetaCompletionError extends Error {
+  constructor(
+    readonly completion: {
+      model: string;
+      requestedModel: MetaModel;
+      inputTokens: number;
+      outputTokens: number;
+      requestId?: string;
+    },
+    readonly reason:
+      | "invalid_response"
+      | "model_mismatch"
+      | "length"
+      | "finish_reason"
+      | "empty_content",
+    readonly finishReason: string | null,
+  ) {
+    super("Meta completion rejected: " + reason);
+    this.name = "MetaCompletionError";
+  }
+}
 
 export async function metaCompletion(args: {
   model: MetaModel;
@@ -82,7 +107,7 @@ export async function metaCompletion(args: {
       { role: "user", content },
     ],
     temperature: args.temperature,
-    max_tokens: args.maxOutputTokens,
+    max_tokens: Math.max(META_MIN_COMPLETION_TOKENS, args.maxOutputTokens),
     ...(args.schema
       ? {
           response_format: {
@@ -96,14 +121,36 @@ export async function metaCompletion(args: {
         }
       : {}),
   });
-  const parsed = completionSchema.parse(response);
-  if (parsed.model !== args.model)
-    throw new Error("Meta returned a different model than requested");
-  return {
-    text: parsed.choices[0].message.content,
-    model: parsed.model,
-    inputTokens: parsed.usage.prompt_tokens,
-    outputTokens: parsed.usage.completion_tokens,
+  const metadata = completionMetadata.parse(response);
+  const completion = {
+    model: metadata.model,
+    requestedModel: args.model,
+    inputTokens: metadata.usage.prompt_tokens,
+    outputTokens: metadata.usage.completion_tokens,
     ...(response._request_id ? { requestId: response._request_id } : {}),
   };
+  const parsed = completionContent.safeParse(response);
+  if (!parsed.success)
+    throw new MetaCompletionError(completion, "invalid_response", null);
+  const choice = parsed.data.choices[0];
+  if (metadata.model !== args.model)
+    throw new MetaCompletionError(
+      completion,
+      "model_mismatch",
+      choice.finish_reason,
+    );
+  if (choice.finish_reason !== "stop")
+    throw new MetaCompletionError(
+      completion,
+      choice.finish_reason === "length" ? "length" : "finish_reason",
+      choice.finish_reason,
+    );
+  const text = choice.message.content?.trim();
+  if (!text)
+    throw new MetaCompletionError(
+      completion,
+      "empty_content",
+      choice.finish_reason,
+    );
+  return { text, ...completion };
 }

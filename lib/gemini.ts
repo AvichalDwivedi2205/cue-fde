@@ -8,6 +8,7 @@ import { configuredRoute, type ModelRoute } from "./model-config";
 import {
   generateObject,
   generateText,
+  ModelOutputError,
   type GenerationReceipt,
 } from "./model-generation";
 import type { ModelImage } from "./meta";
@@ -102,24 +103,38 @@ async function generateReplyImpl(
   const route =
     options.route || (await configuredRoute({ purpose: "support" }));
   let generation: GenerationReceipt | undefined;
+  const started = Date.now();
+  const accumulate = (next: GenerationReceipt): GenerationReceipt => ({
+    ...next,
+    inputTokens: (generation?.inputTokens || 0) + next.inputTokens,
+    outputTokens: (generation?.outputTokens || 0) + next.outputTokens,
+    durationMs: Date.now() - started,
+  });
   for (let attempt = 0; attempt < 2; attempt++) {
-    const response = await generateText({
-      route,
-      system: REPLY_POLICY + BRAND_POLICY,
-      payload: { ...evidence, correction },
-      images: options.images,
-      temperature: 0.3,
-      maxOutputTokens: 1000,
-    });
-    generation = {
-      ...response.generation,
-      inputTokens:
-        (generation?.inputTokens || 0) + response.generation.inputTokens,
-      outputTokens:
-        (generation?.outputTokens || 0) + response.generation.outputTokens,
-      durationMs:
-        (generation?.durationMs || 0) + response.generation.durationMs,
-    };
+    let response: Awaited<ReturnType<typeof generateText>>;
+    try {
+      response = await generateText({
+        route,
+        system: REPLY_POLICY + BRAND_POLICY,
+        payload: { ...evidence, correction },
+        images: options.images,
+        temperature: 0.3,
+        maxOutputTokens: 1000,
+      });
+    } catch (error) {
+      if (!generation) throw error;
+      if (error instanceof ModelOutputError)
+        throw new ModelOutputError(
+          accumulate(error.generation),
+          error.stage,
+          error.completion,
+        );
+      throw new ModelOutputError(
+        { ...generation, durationMs: Date.now() - started },
+        "completion",
+      );
+    }
+    generation = accumulate(response.generation);
     const text = response.value;
     correction = replyProblems(text, c);
     if (!correction.length) return { text, generation, accepted: true };
@@ -162,7 +177,7 @@ const classification = z
     reason: z.string().max(500),
   })
   .strict();
-async function classifyReportImpl(
+async function classifyReportWithGenerationImpl(
   context: unknown,
   options: { images?: readonly ModelImage[]; route?: ModelRoute } = {},
 ) {
@@ -192,12 +207,20 @@ async function classifyReportImpl(
     )
   )
     return {
-      ...result,
-      matchedIssueId: null,
-      reason:
-        "Upload size regression match withheld: supplied symptoms do not establish a rejected photo between 2 MB and 5 MB. Operator review required.",
+      result: {
+        ...result,
+        matchedIssueId: null,
+        reason:
+          "Upload size regression match withheld: supplied symptoms do not establish a rejected photo between 2 MB and 5 MB. Operator review required.",
+      },
+      generation: response.generation,
     };
-  return result;
+  return { result, generation: response.generation };
+}
+async function classifyReportImpl(
+  ...args: Parameters<typeof classifyReportWithGenerationImpl>
+) {
+  return (await classifyReportWithGenerationImpl(...args)).result;
 }
 
 export const transcribeAudio = observed(
@@ -219,4 +242,8 @@ export const generateSpec = observed(
 export const classifyReport = observed(
   "Cue report classification",
   classifyReportImpl,
+);
+export const classifyReportWithGeneration = observed(
+  "Cue report classification generation",
+  classifyReportWithGenerationImpl,
 );

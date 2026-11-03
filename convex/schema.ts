@@ -12,6 +12,17 @@ import { knowledgeTables } from "./knowledgeSchema";
 import { companyContextTables } from "./companyContextSchema";
 import { feedbackTables } from "./feedbackSchema";
 
+export const triageGeneration = v.object({
+  provider: v.string(),
+  model: v.string(),
+  requestedModel: v.string(),
+  inputTokens: v.number(),
+  outputTokens: v.number(),
+  durationMs: v.number(),
+  requestId: v.optional(v.string()),
+  traceId: v.optional(v.string()),
+});
+
 export default defineSchema({
   waitlist: defineTable({
     email: v.string(),
@@ -133,6 +144,7 @@ export default defineSchema({
     .index("by_appId", ["appId"])
     .index("by_status", ["status"]),
   triageReceipts: defineTable({
+    generation: v.optional(triageGeneration),
     caseId: v.id("cases"),
     messageId: v.id("messages"),
     status: v.union(

@@ -1,5 +1,5 @@
 import { engineeringInput } from "../lib/app-pack-schema";
-import schema from "./schema";
+import schema, { triageGeneration } from "./schema";
 import {
   mutation,
   query,
@@ -939,6 +939,7 @@ export const triage = mutation({
     secret: v.string(),
     caseId: v.id("cases"),
     receiptId: v.optional(v.id("triageReceipts")),
+    generation: v.optional(triageGeneration),
     issueId: v.optional(v.id("issues")),
     priority: v.union(v.literal("P1"), v.literal("P2"), v.literal("P3")),
     tags: v.array(v.string()),
@@ -950,6 +951,21 @@ export const triage = mutation({
     authorize(a.secret);
     const report = await ctx.db.get("cases", a.caseId);
     if (!report) throw new ConvexError("Case not found");
+    if (a.generation) {
+      const g = a.generation;
+      if (
+        [g.provider, g.model, g.requestedModel].some(
+          (value) => !value.trim() || value.length > 200,
+        ) ||
+        !Number.isSafeInteger(g.inputTokens) ||
+        g.inputTokens < 0 ||
+        !Number.isSafeInteger(g.outputTokens) ||
+        g.outputTokens < 0 ||
+        !Number.isFinite(g.durationMs) ||
+        g.durationMs < 0
+      )
+        throw new ConvexError("Invalid triage generation evidence");
+    }
     if (a.receiptId) {
       const receipt = await ctx.db.get("triageReceipts", a.receiptId);
       if (!receipt || receipt.caseId !== report._id)
@@ -971,6 +987,7 @@ export const triage = mutation({
       }
       await ctx.db.patch("triageReceipts", receipt._id, {
         status: "completed",
+        ...(a.generation ? { generation: a.generation } : {}),
         updatedAt: stamp(),
       });
     }
@@ -1048,8 +1065,11 @@ export const triage = mutation({
       author: "Cue",
       role: "note",
       body:
-        "Gemini triage suggestion: " +
+        "AI triage suggestion: " +
         a.reason +
+        (a.generation
+          ? ` Serving model: ${a.generation.model} (${a.generation.provider}).`
+          : "") +
         " Model confidence is not a calibrated probability.",
       createdAt: stamp(),
     });
