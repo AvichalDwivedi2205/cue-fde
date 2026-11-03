@@ -12,12 +12,12 @@ release, and original customer action after reload before recording the demo.
 - [x] Assign separate model, execution, and LatchGrid architecture reviews.
 - [x] Compare design candidates and freeze shared contracts.
 - [x] Verify dedicated Meta API credentials and selected models live.
-- [ ] Implement Meta routing and actual-provider evidence.
+- [x] Implement Meta routing and actual-provider evidence.
 - [ ] Install Cue in LatchGrid and publish reviewed product knowledge.
-- [ ] Support LatchGrid's nested Bun application in the coding runner.
+- [x] Support LatchGrid's nested Bun application in the coding runner.
 - [ ] Verify isolated execution and preview release acceptance.
 - [ ] Verify the full browser journey and refusal paths.
-- [ ] Publish coherent source commits and bounded verification evidence.
+- [x] Publish the initial implementation and bounded component verification.
 - [ ] Report readiness for the user's demo recording.
 
 ## Delivery gates
@@ -61,7 +61,9 @@ readiness. The Meta dashboard's billing restriction banner remained visible.
 
 Modal credentials were created with a 30-day lifetime. The approved $100 credit
 redemption was submitted; application of those credits remains unverified.
-Baseten and Fireworks are unnecessary for the selected primary path.
+The user-provided Baseten key returned HTTP 200 from Muse Spark Open with actual
+usage. It is a tested optional route, not an automatic application fallback or
+proof of an open-weight project. Fireworks is unused.
 
 The private LatchGrid baseline has 238 passing default tests, type checking and
 linting. A separate acceptance harness uses the real React Flow deletion engine
@@ -71,3 +73,29 @@ database verification remain required.
 
 Workers follow [the delivery contract](meta-build/SKILL.md). Root records design
 selection and release evidence here as each gate passes.
+
+## Hosted checkpoint: November 3, 2026
+
+Public Cue source [1136763](https://github.com/AvichalDwivedi2205/cue-fde/commit/1136763)
+is pushed in a draft pull request. At this checkpoint, 565 tests across 87 files,
+TypeScript, lint, and a production build passed. Lint retains six warnings.
+The production dependency audit reported zero known vulnerabilities. This is a
+point-in-time audit, not a guarantee against unknown vulnerabilities.
+
+The hosted gateway serves this source with the Meta configuration. A separate
+IAM-protected coding worker is online. Live tests deny wrong origins, unknown
+apps, forged visitor sessions, malformed images, and anonymous operator access;
+these rejected requests created no cases.
+
+The controlled private customer preview uses the registered customer subdomain.
+Its fixed source passes locked Bun installation, TypeScript, and 238 default
+tests in a network-blocked Modal workspace. The separate keyboard-deletion
+acceptance check fails its saved-state reload assertion; the menu control passes.
+These checks do not establish a real browser deletion or a verified fix.
+
+The embedded widget currently appears blank in the automated Chrome session.
+The same widget URL renders correctly at the top level, and the server returns
+HTTP 200 with the preview origin allowed by its framing policy. Native browser
+inspection is pending because the computer tool reports the Mac is locked.
+No cause is established. The fresh widget case, actual Meta patch, exact-commit
+review, released acceptance, and customer retry remain incomplete.

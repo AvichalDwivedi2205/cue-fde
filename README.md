@@ -1,65 +1,101 @@
 # Cue
 
-Cue helps app teams turn customer reports into investigated and reviewed product changes. It combines support intake, company knowledge, agent tasks, and a governed coding workflow. Bloom is a photo-journal example app; Generic Notes is a second controlled fixture.
+Cue connects customer support to reviewed code changes. A customer reports a bug inside an app. Cue keeps the report, application context, diagnosis, proposed patch, and review evidence together.
 
-Cue is new work for the current Meta Global AI Developer Hackathon. The current repository is [cue-fde](https://github.com/AvichalDwivedi2205/cue-fde). Earlier documentation incorrectly claimed October 10–13 development, verification, and a neatHack submission. Those claims are withdrawn. See [repository and build provenance](docs/repository-and-build-provenance.md) for the verified commit timeline and the limits of the available evidence.
+This is the public Cue project for the Meta Global AI Developer Hackathon. Muse Spark 1.3 supports diagnosis and structured reasoning. Muse Wonder 1.0 uses scoped repository tools to propose a fix. A trusted supervisor runs checks in Modal and opens a draft pull request for human review.
 
-## Run locally
+## How the workflow fits together
 
-Copy `.env.example` to `.env.local` and set the values for your environment. Initialize a local Convex deployment and set the same randomly generated `CUE_DEMO_SECRET` in `.env.local` and in Convex. Keep secrets and local configuration out of Git. The example enables `CUE_LOCAL_DEMO` for loopback development only; disable that bypass for a shared host and configure WorkOS.
-
-```sh
-npm install
-CONVEX_AGENT_MODE=anonymous npx convex dev
-npx convex env set CUE_DEMO_SECRET
-npm run dev
+```mermaid
+flowchart LR
+  App[Customer app widget] --> Web[Cue gateway]
+  Web <--> Spark[Meta Muse Spark 1.3]
+  Web <--> DB[(Convex)]
+  DB --> Worker[Trusted coding worker]
+  Worker <--> Wonder[Meta Muse Wonder 1.0]
+  Worker --> Modal[Modal baseline, implementation, verifier]
+  Worker --> PR[Scoped draft PR]
+  PR --> Review[Human review of exact commit]
+  Review --> Release[Trusted release and customer retry]
 ```
 
-`npm run dev` starts the Next.js web process and local worker. Open `http://127.0.0.1:3000/cue#/inbox` for Cue or `http://127.0.0.1:3000/bloom#/journal` for the local Bloom example. Use the same loopback hostname to retain the customer cookie. `npm run dev:local` also starts Convex; use it only with a separately configured local deployment. Stop the processes with Ctrl-C.
+Convex stores cases, knowledge, jobs, model receipts, reviews, and release evidence. The gateway handles operator authentication through WorkOS. The worker owns repository policy, GitHub operations, and independent checks. Model tools cannot approve or release their own changes.
 
-For Gemini, configure `GOOGLE_CLOUD_PROJECT` and Application Default Credentials with Vertex AI enabled, or set `GEMINI_API_KEY`. For coding jobs, authenticate the Codex CLI and set `CUE_CODEX_PATH` if it is not on `PATH`. A GitHub repository binding requires the appropriate GitHub authentication and repository access. The worker handles personal-account Codex jobs; it must be running to execute them. Check current provider settings and costs before running live workflows.
+The coding policy freezes the repository, base branch, allowed files, package directory, package manager, and verification commands. Baseline, implementation, and verification use separate Modal workspaces. Credentials stay in trusted services. Customer reports and repository content cannot change this policy.
 
-## Register an app and install the widget
+## Current verification
 
-In **Setup**, register the app and its exact allowed website origins. Complete the install check and activate the app before using features that require an active app pack. Generate the widget snippet at `/setup#widget` and paste it before the host page's closing body tag. Set `CUE_PUBLIC_URL` to a reachable HTTPS origin for a shared deployment. A remote website cannot reach a localhost widget URL.
+At reviewed source [1136763](https://github.com/AvichalDwivedi2205/cue-fde/commit/1136763), checked November 3, 2026:
 
-The install script embeds a support iframe with an app- and origin-bound visitor session. The widget supports customer conversations and optional screenshots. Internal notes and unsent drafts are excluded from the visitor response. Visitor-supplied display names are not verified identities. `demo/widget-host` contains a local example host:
+- 565 automated tests across 87 files, TypeScript, lint, and the production build passed. The production dependency audit reported zero known vulnerabilities at that check.
+- Live provider checks verified Spark strict-schema JSON and a complete two-turn Wonder tool loop. Modal checks verified three separate workspaces and actual cancellation.
+- The hosted web process serves the Meta configuration, and the IAM-protected cloud coding worker is online.
+- The private customer baseline passed 238 tests and TypeScript. Its keyboard-deletion acceptance check still fails the reload assertion. The menu-deletion control passes.
+
+The fresh widget report, Meta-generated private PR, human review, verified release, and customer retry remain **pending**. These component checks do not establish a completed customer journey. Follow the [demo plan](docs/meta-demo-plan.md) and [submission checklist](docs/meta-submission-checklist.md) for the remaining evidence.
+
+## Run Cue locally
+
+Use Node.js 22 or newer and npm. Start with the documented variables in [.env.example](.env.example):
 
 ```sh
-python3 -m http.server 4400 --bind 127.0.0.1 --directory demo/widget-host
+npm ci
+cp .env.example .env.local
 ```
 
-The example's app ID is installation-specific. Generate a new snippet for another installation.
+Configure Convex and set the same randomly generated `CUE_DEMO_SECRET` in the server environment and Convex. Keep real credentials out of Git. `CUE_LOCAL_DEMO` is a loopback-only development bypass. Shared deployments require WorkOS authentication with that bypass disabled.
 
-## App packs and coding
+For the Meta configuration, set `META_API_KEY` on the server and select these models:
 
-An app pack stores a registered app's origins, status, widget settings, routing, and optional engineering policy. An active app can bind a trusted repository, base branch, allowed paths, and fixed verification commands in `/setup#coding`. The coding pipeline supports both approved feature specifications and bug investigations with acknowledged reproduction context. It uses an isolated checkout, limits changes to the configured paths, protects existing tests and policy files, and runs the configured checks independently. A draft pull request can be opened when GitHub is configured. Review applies to the exact commit; approval alone does not merge or deploy it. Inspect the actual job, diff, checks, and release evidence before reporting an outcome.
+```dotenv
+CUE_SUPPORT_MODEL=muse-spark-1.3
+CUE_AGENT_MODEL=muse-spark-1.3
+CUE_GROWTH_MODEL=muse-spark-1.3
+CUE_CODING_MODEL=muse-wonder-1.0
+```
 
-The [Bloom fixture](demo/bloom/README.md) and [Notes fixture](demo/generic/README.md) provide controlled failure cases. The [engineering rehearsal guide](docs/engineering-rehearsal.md) describes the Bloom flow. These examples do not establish that arbitrary third-party repositories are safe to execute or that a production deployment has passed.
+The [Meta client](lib/meta.ts) validates returned model identity and usage. [Model routing](lib/model-config.ts) keeps support, staff reasoning, and coding selections explicit. Configure Meta explicitly for this workflow. Saved workspace settings override support and Growth environment defaults, so select Meta there too.
 
-App packs support multiple registered applications within the configured workspace. They do not by themselves provide independent company membership, company-scoped data authorization, or per-company provider isolation. See [platform boundaries](docs/platform-boundaries.md) for the isolation plan and release gate.
+For isolated coding, set `MODAL_TOKEN_ID`, `MODAL_TOKEN_SECRET`, `CUE_MODAL_APP`, and `CUE_MODAL_IMAGE`. Inspect and run the [Modal image provisioner](scripts/modal-bootstrap.ts) once for your account. It prepares Node.js 22 and Bun 1.3.2. Authenticate GitHub with `gh auth login`, then bind an owned repository and fixed checks in **Setup**, under **Coding**.
 
-## Support, knowledge, and integrations
+Start Convex with `npm run dev:convex`. Set its server secret with `npx convex env set CUE_DEMO_SECRET`. In a second terminal, run `npm run dev` to start the web process and worker. Open `http://127.0.0.1:3000/cue#/inbox`.
 
-Cue stores cases, messages, issues, tasks, coding runs, reviews, and receipts in Convex. The trusted Next.js gateway handles authentication and provider credentials. WorkOS supplies operator identity; Cue checks configured membership and roles. Support can triage and reply, Product can review specifications, and Engineering can review coding work. Review and release are separate actions.
+Register an application and its exact allowed origins in **Setup**. Install the generated `/widget.js` snippet in that application, send a real widget message, verify the install, and activate the app. Shared widget installs need a reachable HTTPS `CUE_PUBLIC_URL`. Published knowledge and conversations belong to their registered application. See [company knowledge](docs/company-knowledge.md) and [platform boundaries](docs/platform-boundaries.md) for scope and authorization details.
 
-The knowledge workflow accepts FAQs, text, supported files, public pages, and public GitHub documents. Staff review and publish sources for a registered app. Customer-facing answers can cite published sources; internal sources are limited to staff retrieval. See [company knowledge](docs/company-knowledge.md) for file limits and the evaluation protocol.
+## Review, preview, release, and retry
 
-Setup supports Slack and email connections. For Slack, use the manifest at `/setup#slack`, install the app, and configure the bot token, signing secret, workspace and channel IDs. Hosted Events and Interactivity require a reachable HTTPS webhook. Local Socket Mode is an alternative that uses the worker. For email, configure a Resend receiving address, sender, and credentials at `/setup#email`. Provider acceptance and actual recipient delivery are distinct checks. Review setup and scripts before using them: live integrations can send messages or create records.
+Engineering reviews the exact proposed commit. A changed commit requires a new review. Approval records a decision. The trusted deployment process still has to establish which code reached which environment.
 
-Voice uses short recorded turns with consent, Gemini transcription, and Google Cloud Text-to-Speech. Compressed browser audio requires FFmpeg on the server; set `CUE_FFMPEG_PATH` when it is not on `PATH`. Enable the required cloud service and permissions before testing speech. Voice is turn-based, not a full-duplex phone call.
+The [preview helper](scripts/release-preview.ts) checks the approved private PR, frozen policy, clean checkout, and Vercel deployment identity. It creates previews only and records that browser acceptance is pending. Its project and scope come from operator configuration.
 
-Growth qualification and drafting use published knowledge and capability records. The [Growth plan](docs/growth-plan.md) describes proposed evaluations and the distinction between controlled activity and organic acquisition. The [Cue plugin](plugins/cue/README.md) provides read-only issue inspection.
+A release verifier records the deployed commit and acceptance evidence before Cue resolves a report. The customer's original action and reload test provide separate outcome evidence. A failed release check keeps the report open. Agent summaries alone cannot establish deployment or customer success.
 
-## Checks
+## Review the public fixtures
+
+LatchGrid is the existing private customer application used to test Cue's integration. Its canvas and private source are outside this public submission. The event work connects Meta routing and isolated coding execution to Cue's review and release controls. Public materials must separate those changes from the pre-existing customer app.
+
+Reviewers can inspect and run the [Generic Notes fixture](demo/generic/README.md) without private source or customer access:
 
 ```sh
+node demo/generic/test.mjs
+```
+
+Its seeded bug drops a note title, so the unchanged baseline fails with `title missing (expected saved)`. The [Bloom fixture](demo/bloom/README.md) provides another controlled regression. Treat both as test data. Fresh LatchGrid evidence has its own case, run, and release records.
+
+## Run the automated checks
+
+```sh
+npm run test:backend
 npm run typecheck
 npm run lint
 npm run build
-npm run test:backend
-npm run test:regression
-npm run preflight
+npm audit --omit=dev
 ```
 
-The Bloom regression fixture is intentionally broken at baseline, so `npm run test:regression` is expected to fail until that fixture is fixed. Tests and preflight cover different scopes; inspect their scripts and configuration before running them. Live verifier scripts may call providers, create data, or send messages. A passing local test does not establish a hosted deployment or an end-to-end provider workflow.
+`npm run test:regression` targets the deliberately broken Bloom fixture and fails at its baseline. Live verifier and provisioning scripts can call providers or create records. Inspect their commands and configuration before use. Hosted acceptance requires its own provider and browser evidence.
+
+## Build history and attribution
+
+The first inspected Cue commit is [24af770](https://github.com/AvichalDwivedi2205/cue-fde/commit/24af7704de9f14e4771f792ad344803224459e07), dated October 27, 2026 in Git. The current Meta work extends that history. Event contributions, deployment, and eligibility require their own evidence.
+
+Earlier October 10–13 development, verification, and neatHack submission claims were unsupported and are withdrawn. Old date-labelled files and footage are reference material. Use the corrected [provenance record](docs/repository-and-build-provenance.md), current source, and fresh Meta workflow evidence.
