@@ -1,3 +1,4 @@
+import { checkObservationsSchema } from "./demo-check-evidence";
 import { z } from "zod";
 
 // One bounded Quiet signals batch: immutable synthetic/operator-supplied
@@ -456,6 +457,7 @@ export const runExportSchema = z
       .strict(),
     checks: z
       .object({
+        observations: checkObservationsSchema.optional(),
         beforeSummary: z.string().nullable(),
         afterSummary: z.string().nullable(),
         provenanceNote: z.string(),
@@ -469,18 +471,36 @@ export type RunExport = z.infer<typeof runExportSchema>;
 export function redactPublicText(text: string): string {
   return text
     .replace(/https?:\/\/[^\s<>"']+/gi, "[url]")
-    .replace(/\b[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9-]+(?:\.[A-Z0-9-]+)+\b/gi, "[email]")
+    .replace(
+      /\b[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9-]+(?:\.[A-Z0-9-]+)+\b/gi,
+      "[email]",
+    )
     .replace(/(?:\/(?:[A-Za-z0-9._-]+\/)+[A-Za-z0-9._-]+)/g, "[path]")
     .replace(/\b[A-Za-z]:\\(?:[^\\/\s]+\\)*[^\\/\s]+/g, "[path]")
-    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, "[id]")
+    .replace(
+      /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi,
+      "[id]",
+    )
     .replace(/\b[0-9a-f]{40}\b/gi, "[commit]")
     .replace(/\b[a-z0-9]{32}\b/g, "[id]")
     .replace(/\b(?:req(?:uest)?|run|trace)[_-][A-Za-z0-9_-]+\b/gi, "[id]")
-    .replace(/\b((?:run|request|trace)[ _-]?id)\s*(?:[:=]\s*)?[A-Za-z0-9_-]+\b/gi, "$1 [id]");
+    .replace(
+      /\b((?:run|request|trace)[ _-]?id)\s*(?:[:=]\s*)?[A-Za-z0-9_-]+\b/gi,
+      "$1 [id]",
+    );
 }
 
-export function assertPublicText(text: string): string {
-  if (redactPublicText(text) !== text)
+export function assertPublicText(
+  text: string,
+  privateValues: readonly string[] = [],
+): string {
+  if (
+    redactPublicText(text) !== text ||
+    privateValues.some(
+      (value) =>
+        value.length > 0 && text.toLowerCase().includes(value.toLowerCase()),
+    )
+  )
     throw new Error("Export text contains a private identifier or location");
   return text;
 }

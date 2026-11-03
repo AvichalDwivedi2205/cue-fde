@@ -24,7 +24,12 @@ const FAKE_PR_URL = "https://pr.invalid/fake";
 
 // Per-call deltas that sum exactly to the totals; the last call absorbs the
 // remainder so the final cumulative matches the run document.
-const cumulativeUsage = (total: number, count: number, base: number, step: number) => {
+const cumulativeUsage = (
+  total: number,
+  count: number,
+  base: number,
+  step: number,
+) => {
   const deltas = Array.from({ length: count }, (_, i) => base + i * step);
   deltas[count - 1] = total - deltas.slice(0, -1).reduce((a, b) => a + b, 0);
   const cumulative: number[] = [];
@@ -133,9 +138,21 @@ const collectAllEventTimestamps = async (t: TestConvex, runId: string) => {
 };
 
 const posts = [
-  { id: "p01", author: "Rhea M.", text: "We lost a board to an accidental clear-out. Any recovery path?" },
-  { id: "p02", author: "Sam O.", text: "The same thing happened to us. Please add a way to restore cleared boards." },
-  { id: "p03", author: "SpamBot", text: "Buy followers now at spam.example.com" },
+  {
+    id: "p01",
+    author: "Rhea M.",
+    text: "We lost a board to an accidental clear-out. Any recovery path?",
+  },
+  {
+    id: "p02",
+    author: "Sam O.",
+    text: "The same thing happened to us. Please add a way to restore cleared boards.",
+  },
+  {
+    id: "p03",
+    author: "SpamBot",
+    text: "Buy followers now at spam.example.com",
+  },
 ];
 
 const goodOutput = {
@@ -209,12 +226,10 @@ const seedAnalyzedBatch = async () => {
   const claim = await t.mutation(api.signals.analyzeSignalBatch, {
     secret,
     batchId: batchId as never,
-    expectedFingerprint: (
-      await t.query(api.signals.getSignalBatch, {
-        secret,
-        batchId: batchId as never,
-      })
-    )!.inputFingerprint,
+    expectedFingerprint: (await t.query(api.signals.getSignalBatch, {
+      secret,
+      batchId: batchId as never,
+    }))!.inputFingerprint,
   });
   if (!("token" in claim) || typeof claim.token !== "string")
     throw new Error("Claim unexpectedly rejected");
@@ -348,7 +363,8 @@ describe("demo evidence export", () => {
     expect(before.schemaVersion).toBe(1);
     expect(before.provenance).toEqual({
       kind: "synthetic-fixture",
-      label: "Synthetic operator fixture quiet-signals-evaluation v1 · fictional authors",
+      label:
+        "Synthetic operator fixture quiet-signals-evaluation v1 · fictional authors",
       syntheticAuthors: true,
     });
     expect(before.batch).toEqual({
@@ -377,7 +393,7 @@ describe("demo evidence export", () => {
     );
     expect(after.clusters[0].handoffLabel).toBe("handoff-1");
     expect(after.clusters[0].handoffState).toBe("ready");
-    expect(after.posts.find((p) => p.id === "p03")!.disposition).toEqual({
+    expect(after.posts.find((p) => p.id === "post-3")!.disposition).toEqual({
       outcome: "spam",
       clusterId: null,
       quote: null,
@@ -418,14 +434,19 @@ test("check summaries are redacted of paths and URLs before export", async () =>
   expect(clean).toContain("passed 8 of 8");
   expect(sanitizeCheckSummary(null)).toBeNull();
   expect(sanitizeCheckSummary("   ")).toBeNull();
-  expect(sanitizeCheckSummary("x".repeat(900))!.length).toBeLessThanOrEqual(600);
+  expect(sanitizeCheckSummary("x".repeat(900))!.length).toBeLessThanOrEqual(
+    600,
+  );
 });
 
 test("public run evidence never copies raw check logs", async () => {
   const t = convexTest(schema, modules);
   const { runId } = await seedRun(t);
-  const marker = "req_private_123 private@example.com 0123456789abcdef0123456789abcdef01234567";
-  await t.run(ctx => ctx.db.patch("runs", runId, { before: marker, after: marker }));
+  const marker =
+    "req_private_123 private@example.com 0123456789abcdef0123456789abcdef01234567";
+  await t.run((ctx) =>
+    ctx.db.patch("runs", runId, { before: marker, after: marker }),
+  );
   const result = await t.query(api.demoEvidence.runEvidence, { secret, runId });
   expect(JSON.stringify(result)).not.toContain(marker);
   expect(result.run.beforeSummary).toBeNull();
@@ -434,28 +455,172 @@ test("public run evidence never copies raw check logs", async () => {
 
 test("public signal aliases preserve exact quote and source links", async () => {
   const { t, batchId } = await seedAnalyzedBatch();
-  const evidence = await t.query(api.demoEvidence.signalEvidence, { secret, batchId });
-  for (const value of ["p01", "p02", "p03", "c-recover", "Rhea M.", "Sam O.", "SpamBot"])
+  const evidence = await t.query(api.demoEvidence.signalEvidence, {
+    secret,
+    batchId,
+  });
+  for (const value of [
+    "p01",
+    "p02",
+    "p03",
+    "c-recover",
+    "Rhea M.",
+    "Sam O.",
+    "SpamBot",
+  ])
     expect(JSON.stringify(evidence)).not.toContain(value);
-  for (const cluster of evidence.clusters) for (const source of cluster.sources) {
-    const post = evidence.posts.find(post => post.id === source.postId)!;
-    expect(post.author).toBe(source.author);
-    expect(post.text).toContain(source.quote);
-    expect(post.disposition.clusterId).toBe(cluster.id);
-  }
+  for (const cluster of evidence.clusters)
+    for (const source of cluster.sources) {
+      const post = evidence.posts.find((post) => post.id === source.postId)!;
+      expect(post.author).toBe(source.author);
+      expect(post.text).toContain(source.quote);
+      expect(post.disposition.clusterId).toBe(cluster.id);
+    }
 });
 
 test("operator captures require a reviewed projection", async () => {
   const { t, batchId } = await seedAnalyzedBatch();
-  await t.run(ctx => ctx.db.patch("signalBatches", batchId, { provenance: { kind: "operator-capture" } }));
-  await expect(t.query(api.demoEvidence.signalEvidence, { secret, batchId })).rejects.toThrow(/reviewed projection/);
+  await t.run((ctx) =>
+    ctx.db.patch("signalBatches", batchId, {
+      provenance: { kind: "operator-capture" },
+    }),
+  );
+  await expect(
+    t.query(api.demoEvidence.signalEvidence, { secret, batchId }),
+  ).rejects.toThrow(/reviewed projection/);
 });
 
 test("a synthetic label does not permit private evidence text", async () => {
   const { t, batchId } = await seedAnalyzedBatch();
-  await t.run(async ctx => {
+  await t.run(async (ctx) => {
     const batch = (await ctx.db.get("signalBatches", batchId))!;
-    await ctx.db.patch("signalBatches", batchId, { posts: batch.posts.map((p, index) => index ? p : { ...p, text: `${p.text} Contact private@example.com req_private_123` }) });
+    await ctx.db.patch("signalBatches", batchId, {
+      posts: batch.posts.map((p, index) =>
+        index
+          ? p
+          : {
+              ...p,
+              text: `${p.text} Contact private@example.com req_private_123`,
+            },
+      ),
+    });
   });
-  await expect(t.query(api.demoEvidence.signalEvidence, { secret, batchId })).rejects.toThrow(/private identifier/);
+  await expect(
+    t.query(api.demoEvidence.signalEvidence, { secret, batchId }),
+  ).rejects.toThrow(/private identifier/);
+});
+
+test("known private identifiers are rejected even when their shape looks ordinary", async () => {
+  const { t, batchId } = await seedAnalyzedBatch();
+  await t.run(async (ctx) => {
+    const batch = (await ctx.db.get("signalBatches", batchId))!;
+    await ctx.db.patch("signalBatches", batchId, {
+      posts: batch.posts.map((p, index) =>
+        index ? p : { ...p, text: `${p.text} Rhea M. p01` },
+      ),
+    });
+  });
+  await expect(
+    t.query(api.demoEvidence.signalEvidence, { secret, batchId }),
+  ).rejects.toThrow(/private identifier/);
+});
+
+test("attempt errors become neutral while recorded failed status stays failed", async () => {
+  const { t, batchId } = await seedAnalyzedBatch();
+  await t.run(async (ctx) => {
+    const batch = (await ctx.db.get("signalBatches", batchId))!;
+    await ctx.db.patch("signalBatches", batchId, {
+      attempts: [
+        ...batch.attempts,
+        {
+          number: 2,
+          status: "failed",
+          startedAt: BASE,
+          error: "private@example.com req_private_123",
+        },
+      ],
+    });
+  });
+  const evidence = await t.query(api.demoEvidence.signalEvidence, {
+    secret,
+    batchId,
+  });
+  expect(evidence.attempts[1]).toEqual({
+    number: 2,
+    status: "failed",
+    error: "Analysis attempt failed. Operator review required.",
+  });
+  expect(JSON.stringify(evidence)).not.toContain("private@example.com");
+});
+
+test("actual query output becomes a schema-valid export without trusting summary prose", async () => {
+  const { createPublicRunExport } = await import("../lib/demo-evidence-export");
+  const t = convexTest(schema, modules);
+  const { runId } = await seedRun(t);
+  const policy = {
+    repository: "synthetic/repository",
+    baseBranch: "main",
+    allowedPaths: ["src/"],
+    testCommands: [
+      {
+        program: "node",
+        args: [
+          "node_modules/typescript/bin/tsc",
+          "--noEmit",
+          "--incremental",
+          "false",
+        ],
+      },
+      {
+        program: "node",
+        args: ["node_modules/vitest/vitest.mjs", "run", "--cache=false"],
+      },
+      {
+        program: "node",
+        args: [
+          "node_modules/vitest/vitest.mjs",
+          "run",
+          "--cache=false",
+          "--config",
+          "vitest.acceptance.config.ts",
+        ],
+      },
+    ],
+  };
+  const outputs = (summary: string, exit = 0) =>
+    `node (cwd /private/checkout; exit 0)\n\nnode (cwd /private/checkout; exit 0)\n Test Files 1 passed (1)\n Tests 17 passed (17)\n Start at 12:00:00\n Duration 1s\n\nnode (cwd /private/checkout; exit ${exit})\n Test Files 1 passed (1)\n Tests ${summary}\n Start at 12:00:00\n Duration 1s\n`;
+  await t.run((ctx) =>
+    ctx.db.patch("runs", runId, {
+      codingPolicy: policy,
+      before: outputs("1 failed | 2 passed (3)", 1),
+      after: outputs("3 passed (3)"),
+    }),
+  );
+  const evidence = await t.query(api.demoEvidence.runEvidence, {
+    secret,
+    runId,
+  });
+  const exported = createPublicRunExport(
+    {
+      ...evidence,
+      run: {
+        ...evidence.run,
+        beforeSummary: "req_private_123",
+        afterSummary: "private@example.com",
+      },
+    },
+    new Date(BASE).toISOString(),
+  );
+  expect(exported.checks.observations).toEqual({
+    baseline: { passed: 2, total: 3 },
+    acceptance: { passed: 3, total: 3 },
+    defaultTests: { passed: 17, total: 17 },
+    typescript: true,
+  });
+  expect(exported.checks.beforeSummary).toBe(
+    "Baseline acceptance tests 2/3 passed.",
+  );
+  expect(JSON.stringify(exported)).not.toContain("req_private_123");
+  expect(JSON.stringify(exported)).not.toContain("private@example.com");
+  expect(JSON.stringify(exported)).not.toContain("/private/checkout");
 });

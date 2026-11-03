@@ -1,12 +1,9 @@
 import nextEnv from "@next/env";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { createPublicRunExport } from "../lib/demo-evidence-export";
 import type { Id } from "../convex/_generated/dataModel";
-import {
-  runExportSchema,
-  sanitizeCheckSummary,
-  signalsExportSchema,
-} from "../lib/signals-schema";
+import { signalsExportSchema } from "../lib/signals-schema";
 
 // Export public-safe demo evidence as JSON files:
 //   --run-id <id>    writes <out>/run.json (recorded model-call history)
@@ -49,69 +46,12 @@ try {
       secret: secret(),
       runId,
     });
-    for (const problem of evidence.issues)
-      console.warn(`warning · ${problem}`);
+    for (const problem of evidence.issues) console.warn(`warning · ${problem}`);
     // Per-call rows and offsets are only exported when the recorded event
     // chain is complete and agrees with the run's own aggregates. Otherwise
     // the export degrades to aggregate-only totals and never invents
     // per-call timings.
-    const complete =
-      evidence.completeHistory && evidence.totals.aggregateAgreement;
-    const firstEventAt = evidence.timeline.firstEventAt;
-    const parsed = runExportSchema.parse({
-      schemaVersion: 1,
-      status: complete ? "complete-history" : "aggregate-only",
-      run: {
-        kind: evidence.run.kind ?? "unknown",
-        provider: evidence.run.provider,
-        finalStatus: evidence.run.status,
-        verified: evidence.run.verified,
-        deployed: evidence.run.deployed,
-      },
-      totals: complete
-        ? {
-            modelCalls: evidence.totals.calls,
-            inputTokens: evidence.totals.inputTokens,
-            outputTokens: evidence.totals.outputTokens,
-            aggregateAgreement: evidence.totals.aggregateAgreement,
-          }
-        : {
-            modelCalls: evidence.run.modelCalls ?? evidence.totals.calls,
-            inputTokens: evidence.run.inputTokens ?? evidence.totals.inputTokens,
-            outputTokens:
-              evidence.run.outputTokens ?? evidence.totals.outputTokens,
-            aggregateAgreement: evidence.totals.aggregateAgreement,
-          },
-      calls: complete
-        ? evidence.calls.map((call) => ({
-            call: call.modelCalls,
-            model: call.model,
-            inputTokens: call.inputTokens,
-            outputTokens: call.outputTokens,
-            deltaIn: call.deltaIn,
-            deltaOut: call.deltaOut,
-            offsetMs:
-              firstEventAt === null ? null : call.createdAt - firstEventAt,
-          }))
-        : [],
-      timeline: {
-        firstEventAt:
-          firstEventAt === null ? null : new Date(firstEventAt).toISOString(),
-        lastEventAt:
-          evidence.timeline.lastEventAt === null
-            ? null
-            : new Date(evidence.timeline.lastEventAt).toISOString(),
-        eventCount: evidence.timeline.eventCount,
-        compressionNote: "Recorded run history · timeline compressed",
-      },
-      checks: {
-        beforeSummary: sanitizeCheckSummary(evidence.run.beforeSummary),
-        afterSummary: sanitizeCheckSummary(evidence.run.afterSummary),
-        provenanceNote:
-          "Checked and approved provenance are recorded separately by the operator.",
-      },
-      generatedAt: new Date().toISOString(),
-    });
+    const parsed = createPublicRunExport(evidence, new Date().toISOString());
     const target = path.join(out, "run.json");
     await fs.writeFile(target, `${JSON.stringify(parsed, null, 2)}\n`);
     console.log(
@@ -127,8 +67,9 @@ try {
     const parsed = signalsExportSchema.parse(evidence);
     const target = path.join(out, "signals.json");
     await fs.writeFile(target, `${JSON.stringify(parsed, null, 2)}\n`);
-    const promoted = parsed.clusters.filter((c) => c.handoffLabel !== null)
-      .length;
+    const promoted = parsed.clusters.filter(
+      (c) => c.handoffLabel !== null,
+    ).length;
     console.log(
       `${target} · ${parsed.provenance.kind} · ${parsed.batch.posts} posts by ${parsed.batch.authors} authors · ${parsed.clusters.length} clusters · ${promoted} promoted`,
     );

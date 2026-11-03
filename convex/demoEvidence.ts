@@ -3,6 +3,11 @@ import schema from "./schema";
 import { query } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { authorize } from "./cue";
+import { assertPublicText } from "../lib/signals-schema";
+import {
+  observeRunChecks,
+  summarizeObservedChecks,
+} from "../lib/demo-check-evidence";
 
 // Generic demo-evidence export: public-safe projections of one coding run's
 // recorded model-call history and one signals batch's reviewed analysis.
@@ -28,6 +33,7 @@ const isNumber = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value);
 const isString = (value: unknown): value is string => typeof value === "string";
 
+// Operator-private raw records. Never include these strings in public exports.
 export const runEvents = query({
   args: {
     secret: v.string(),
@@ -80,6 +86,16 @@ export const runEvidence = query({
       beforeSummary: v.nullable(v.string()),
       afterSummary: v.nullable(v.string()),
     }),
+    observations: v.object({
+      baseline: v.nullable(v.object({ passed: v.number(), total: v.number() })),
+      acceptance: v.nullable(
+        v.object({ passed: v.number(), total: v.number() }),
+      ),
+      typescript: v.nullable(v.boolean()),
+      defaultTests: v.nullable(
+        v.object({ passed: v.number(), total: v.number() }),
+      ),
+    }),
     completeHistory: v.boolean(),
     calls: v.array(
       v.object({
@@ -110,6 +126,18 @@ export const runEvidence = query({
     authorize(args.secret);
     const run = await ctx.db.get("runs", args.runId);
     if (!run) throw new ConvexError("Run not found");
+    const privateValues = [
+      args.secret,
+      run._id,
+      run.issueId,
+      run.repoPath,
+      run.commit,
+      run.baseCommit,
+      run.releaseCommit,
+      run.prUrl,
+      run.codingPolicy?.repository,
+    ].filter(isString);
+    const publicText = (text: string) => assertPublicText(text, privateValues);
     const events = await ctx.db
       .query("events")
       .withIndex("by_runId_and_createdAt", (q) => q.eq("runId", args.runId))
@@ -174,14 +202,12 @@ export const runEvidence = query({
     for (const call of calls) {
       if (call.status !== "completed") {
         chainComplete = false;
-        issues.push(
-          `Model call ${call.modelCalls} did not complete (status: ${call.status ?? "not reported"}).`,
-        );
+        issues.push(`Model call ${call.modelCalls} did not complete.`);
       }
       if (!call.modelMatched || call.model !== call.requestedModel) {
         chainComplete = false;
         issues.push(
-          `Model call ${call.modelCalls} was not served by the requested model (${call.requestedModel} requested, ${call.model} served).`,
+          `Model call ${call.modelCalls} was not served by the requested model.`,
         );
       }
     }
@@ -204,8 +230,8 @@ export const runEvidence = query({
 
     const callsOut = calls.map((call, index) => ({
       modelCalls: call.modelCalls,
-      requestedModel: call.requestedModel,
-      model: call.model,
+      requestedModel: publicText(call.requestedModel),
+      model: publicText(call.model),
       inputTokens: call.inputTokens,
       outputTokens: call.outputTokens,
       deltaIn:
@@ -267,25 +293,34 @@ export const runEvidence = query({
       }
     }
 
+    const observations = observeRunChecks(
+      run.codingPolicy,
+      run.before,
+      run.after,
+    );
+    const summaries = summarizeObservedChecks(observations);
     return {
+      observations,
       run: {
-        status: run.status,
-        kind: run.kind ?? null,
-        provider: run.provider,
-        phase: run.phase,
+        status: publicText(run.status),
+        kind: run.kind === undefined ? null : publicText(run.kind),
+        provider: publicText(run.provider),
+        phase: publicText(run.phase),
         createdAt: run.createdAt,
         updatedAt: run.updatedAt,
         verified: run.verified ?? null,
         deployed: run.deployed ?? null,
         approvedSpecPresent:
-          typeof run.approvedSpec === "string" && run.approvedSpec.trim() !== "",
-        commitPresent: typeof run.commit === "string" && run.commit.trim() !== "",
+          typeof run.approvedSpec === "string" &&
+          run.approvedSpec.trim() !== "",
+        commitPresent:
+          typeof run.commit === "string" && run.commit.trim() !== "",
         prPresent: typeof run.prUrl === "string" && run.prUrl.trim() !== "",
         inputTokens: run.inputTokens ?? null,
         outputTokens: run.outputTokens ?? null,
         modelCalls: run.modelCalls ?? null,
-        beforeSummary: run.before ?? null,
-        afterSummary: run.after ?? null,
+        beforeSummary: summaries.beforeSummary,
+        afterSummary: summaries.afterSummary,
       },
       completeHistory: chainComplete,
       calls: callsOut,
@@ -397,13 +432,47 @@ export const signalEvidence = query({
     if (!analysis)
       throw new ConvexError("Signal batch has not been analyzed yet");
 
-    // Provenance label stays public-safe: fixture name and version for
-    // synthetic data, a neutral capture label otherwise.
-    const synthetic =
-      batch.provenance.kind === "synthetic-fixture";
-    const label = synthetic
-      ? `Synthetic operator fixture ${batch.provenance.fixture ?? "unknown"} ${batch.provenance.version ?? "unknown"} · fictional authors`
-      : "Operator-supplied capture";
+    if (batch.provenance.kind !== "synthetic-fixture")
+      throw new ConvexError(
+        "Operator captures require a reviewed projection before export",
+      );
+    const privateValues = [
+      args.secret,
+      batch._id,
+      batch.appId,
+      batch.requestKey,
+      batch.creator,
+      ...batch.posts.flatMap((post) => [post.id, post.author, post.sourceRef]),
+      ...analysis.clusters.map((cluster) => cluster.id),
+      ...batch.promoted.map((promotion) => promotion.issueId),
+      analysis.receipt?.requestId,
+      analysis.receipt?.traceId,
+      ...batch.attempts.flatMap((attempt) => [
+        attempt.receipt?.requestId,
+        attempt.receipt?.traceId,
+      ]),
+    ].filter(isString);
+    const publicText = (text: string) => assertPublicText(text, privateValues);
+    const label = `Synthetic operator fixture ${publicText(batch.provenance.fixture ?? "unknown")} ${publicText(batch.provenance.version ?? "unknown")} · fictional authors`;
+    const postAliases = new Map(
+      batch.posts.map((post, index) => [post.id, `post-${index + 1}`]),
+    );
+    const authors = [...new Set(batch.posts.map((post) => post.author))];
+    const authorAliases = new Map(
+      authors.map((author, index) => [author, `Author ${index + 1}`]),
+    );
+    const clusterAliases = new Map(
+      analysis.clusters.map((cluster, index) => [
+        cluster.id,
+        `cluster-${index + 1}`,
+      ]),
+    );
+    const alias = (aliases: Map<string, string>, value: string) => {
+      const label = aliases.get(value);
+      if (!label)
+        throw new ConvexError("Stored analysis has an invalid reference");
+      return label;
+    };
 
     const dispositionsByPost = new Map(
       analysis.dispositions.map((d) => [d.postId, d]),
@@ -411,8 +480,7 @@ export const signalEvidence = query({
     const promotionNumber = (clusterId: string) => {
       const index = batch.promoted.findIndex(
         (p) =>
-          p.clusterId === clusterId &&
-          p.analysisRevision === analysis.revision,
+          p.clusterId === clusterId && p.analysisRevision === analysis.revision,
       );
       return index === -1 ? null : index + 1;
     };
@@ -422,10 +490,10 @@ export const signalEvidence = query({
       provenance: {
         kind: batch.provenance.kind,
         label,
-        syntheticAuthors: synthetic,
+        syntheticAuthors: true,
       },
       batch: {
-        fingerprint: batch.inputFingerprint,
+        fingerprint: publicText(batch.inputFingerprint),
         posts: batch.posts.length,
         authors: new Set(batch.posts.map((p) => p.author)).size,
         totalChars: batch.posts.reduce((sum, p) => sum + p.text.length, 0),
@@ -433,43 +501,65 @@ export const signalEvidence = query({
       posts: batch.posts.map((post) => {
         const disposition = dispositionsByPost.get(post.id);
         if (!disposition)
-          throw new ConvexError(
-            `Stored analysis is missing a disposition for post ${post.id}`,
-          );
+          throw new ConvexError("Stored analysis is missing a disposition");
         return {
-          id: post.id,
-          author: post.author,
-          text: post.text,
+          id: alias(postAliases, post.id),
+          author: alias(authorAliases, post.author),
+          text: publicText(post.text),
           disposition: {
             outcome: disposition.outcome,
-            clusterId: disposition.clusterId ?? null,
-            quote: disposition.quote ?? null,
-            reason: disposition.reason,
+            clusterId:
+              disposition.clusterId === undefined
+                ? null
+                : alias(clusterAliases, disposition.clusterId),
+            quote:
+              disposition.quote === undefined
+                ? null
+                : publicText(disposition.quote),
+            reason: publicText(disposition.reason),
           },
         };
       }),
       clusters: analysis.clusters.map((cluster) => {
         const promoted = promotionNumber(cluster.id);
         return {
-          id: cluster.id,
-          need: cluster.need,
-          rationale: cluster.rationale,
-          sentiment: cluster.sentiment ?? null,
-          sources: cluster.sources.map((s) => ({
-            postId: s.postId,
-            author: s.author,
-            quote: s.quote,
-          })),
+          id: alias(clusterAliases, cluster.id),
+          need: publicText(cluster.need),
+          rationale: publicText(cluster.rationale),
+          sentiment:
+            cluster.sentiment === undefined
+              ? null
+              : publicText(cluster.sentiment),
+          sources: cluster.sources.map((s) => {
+            const post = batch.posts.find((post) => post.id === s.postId);
+            if (
+              !post ||
+              post.author !== s.author ||
+              !post.text.includes(s.quote)
+            )
+              throw new ConvexError(
+                "Stored analysis has an invalid source citation",
+              );
+            return {
+              postId: alias(postAliases, s.postId),
+              author: alias(authorAliases, s.author),
+              quote: publicText(s.quote),
+            };
+          }),
           distinctAuthors: cluster.distinctAuthors,
           repeatedEvidence: cluster.repeatedEvidence,
           proposal: {
-            title: cluster.proposal.title,
-            assumptions: cluster.proposal.assumptions,
+            title: publicText(cluster.proposal.title),
+            assumptions: cluster.proposal.assumptions.map(publicText),
             specification: {
-              need: cluster.proposal.specification.need,
-              specification: cluster.proposal.specification.specification,
+              need: publicText(cluster.proposal.specification.need),
+              specification: publicText(
+                cluster.proposal.specification.specification,
+              ),
               acceptanceCriteria:
-                cluster.proposal.specification.acceptanceCriteria,
+                cluster.proposal.specification.acceptanceCriteria.map(
+                  publicText,
+                ),
             },
           },
           handoffLabel: promoted === null ? null : `handoff-${promoted}`,
@@ -479,9 +569,9 @@ export const signalEvidence = query({
       // Receipt is picked field-by-field: requestId/traceId never leave.
       receipt: analysis.receipt
         ? {
-            provider: analysis.receipt.provider,
-            requestedModel: analysis.receipt.requestedModel,
-            model: analysis.receipt.model,
+            provider: publicText(analysis.receipt.provider),
+            requestedModel: publicText(analysis.receipt.requestedModel),
+            model: publicText(analysis.receipt.model),
             inputTokens: analysis.receipt.inputTokens,
             outputTokens: analysis.receipt.outputTokens,
             durationMs: analysis.receipt.durationMs,
@@ -490,7 +580,10 @@ export const signalEvidence = query({
       attempts: batch.attempts.map((attempt) => ({
         number: attempt.number,
         status: attempt.status,
-        error: attempt.error ?? null,
+        error:
+          attempt.error === undefined
+            ? null
+            : "Analysis attempt failed. Operator review required.",
       })),
       completedAt: new Date(analysis.completedAt).toISOString(),
     };
