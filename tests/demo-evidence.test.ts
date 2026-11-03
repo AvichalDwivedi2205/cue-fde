@@ -654,3 +654,13 @@ test("generated prose preserves slash alternatives and aliases referenced posts"
   expect(result.posts[1].disposition.reason).toBe("Same need as post-1.");
   expect(result.clusters[0].proposal.specification.acceptanceCriteria[0]).toBe("Restore board/workspace/card with its contents intact");
 });
+
+test("narrative aliases are not replaced again when an input ID matches an output alias", async () => {
+  const inputPosts = posts.map((post, index) => ({ ...post, id: ["longpostid", "post-1", "noise"][index] }));
+  const output = structuredClone(goodOutput);
+  output.dispositions = output.dispositions.map((disposition, index) => ({ ...disposition, postId: inputPosts[index].id, reason: "Same need as longpostid." }));
+  const { t, batchId } = await seedAnalyzedBatch(inputPosts, output);
+  const result = await t.query(api.demoEvidence.signalEvidence, { secret, batchId });
+  expect(result.posts[0].id).toBe("post-1");
+  expect(result.posts[0].disposition.reason).toBe("Same need as post-1.");
+});
