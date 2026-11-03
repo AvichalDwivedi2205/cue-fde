@@ -361,6 +361,65 @@ test.each(["list", "detail"])("a pending poll %s cannot restore the old batch af
   expect(b.run('sessionStorage.getItem("cue-signals-batch:cue_app_test")')).toBe(newerBatch._id);
 });
 
+test("a poll started while a new selection loads follows that pending choice", async () => {
+  const b = await browser({ batch: analyzedBatch });
+  await b.run<Promise<void>>(`loadSignalsBatch(${JSON.stringify(analyzedBatch._id)})`);
+  const response = Promise.withResolvers<Response>();
+  const pollResponse = Promise.withResolvers<void>();
+  const newerBatch = { ...analyzedBatch, _id: "b" + "1".repeat(31) };
+  b.fetch.mockImplementationOnce(() => response.promise);
+  const selection = b.run<Promise<void>>(`A.signalsSelect({ dataset: { id: ${JSON.stringify(newerBatch._id)} } })`);
+  b.fetch.mockImplementationOnce(async () => Response.json({ batches: [analyzedBatch, newerBatch].map((batch) => ({ batchId: batch._id, requestKey: batch.requestKey, state: batch.state })) }));
+  b.fetch.mockImplementationOnce(async (url) => {
+    await pollResponse.promise;
+    return Response.json({ batch: url.includes(newerBatch._id) ? newerBatch : analyzedBatch });
+  });
+  const poll = b.run<Promise<void>>("loadSignals()");
+  await vi.waitFor(() => expect(b.fetch).toHaveBeenCalledTimes(4));
+  response.resolve(Response.json({ batch: newerBatch }));
+  await selection;
+  pollResponse.resolve();
+  await poll;
+  expect(b.run("signalsBatch._id")).toBe(newerBatch._id);
+  expect(b.run('sessionStorage.getItem("cue-signals-batch:cue_app_test")')).toBe(newerBatch._id);
+});
+
+test("a list poll started during import cannot clear the newly imported batch", async () => {
+  const b = await browser({ batch: analyzedBatch });
+  const imported = Promise.withResolvers<Response>();
+  const polled = Promise.withResolvers<Response>();
+  b.fetch.mockImplementationOnce(async () => Response.json({ fixture: "quiet-signals-evaluation", version: "v1", posts: analyzedBatch.posts }));
+  b.fetch.mockImplementationOnce(() => imported.promise);
+  const pending = b.run<Promise<void>>("A.signalsImport({ disabled: false })");
+  await vi.waitFor(() => expect(b.fetch).toHaveBeenCalledTimes(2));
+  b.fetch.mockImplementationOnce(() => polled.promise);
+  const poll = b.run<Promise<void>>("loadSignals()");
+  imported.resolve(Response.json({ batchId: analyzedBatch._id, created: true }));
+  await pending;
+  polled.resolve(Response.json({ batches: [] }));
+  await poll;
+  expect(b.run("signalsBatch?._id")).toBe(analyzedBatch._id);
+  expect(b.run('sessionStorage.getItem("cue-signals-batch:cue_app_test")')).toBe(analyzedBatch._id);
+  expect(b.toast).toHaveBeenCalledWith("Batch saved · input is frozen");
+  expect(b.run("signalsForm.fixture")).toBe("v1");
+});
+
+test("returning to the same batch does not revive an analysis action from before Back", async () => {
+  const b = await browser({ batch: analyzedBatch });
+  b.setBatch({ ...analyzedBatch, state: "ready", analysis: undefined, attempts: [] });
+  const response = Promise.withResolvers<Response>();
+  b.fetch.mockImplementationOnce(() => response.promise);
+  const pending = b.run<Promise<void>>("A.signalsAnalyze({ disabled: false })");
+  b.run("A.signalsBack()");
+  b.fetch.mockImplementationOnce(async () => Response.json({ batch: analyzedBatch }));
+  await b.run<Promise<void>>(`A.signalsSelect({ dataset: { id: ${JSON.stringify(analyzedBatch._id)} } })`);
+  response.resolve(Response.json({ state: "analyzed", attemptNumber: 1 }));
+  await pending;
+  expect(b.fetch).toHaveBeenCalledTimes(2);
+  expect(b.run("signalsBatch._id")).toBe(analyzedBatch._id);
+  expect(b.toast).not.toHaveBeenCalled();
+});
+
 test("analysis completion cannot reopen or report success after Back during its detail refresh", async () => {
   const b = await browser();
   b.setBatch({ ...analyzedBatch, state: "ready", analysis: undefined, attempts: [] });
