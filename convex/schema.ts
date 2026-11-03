@@ -264,7 +264,9 @@ export default defineSchema({
     detail: v.string(),
     kind: v.string(),
     createdAt: v.number(),
-  }).index("by_createdAt", ["createdAt"]),
+  })
+    .index("by_createdAt", ["createdAt"])
+    .index("by_runId_and_createdAt", ["runId", "createdAt"]),
   settings: defineTable({ key: v.string(), value: v.string() }).index(
     "by_key",
     ["key"],

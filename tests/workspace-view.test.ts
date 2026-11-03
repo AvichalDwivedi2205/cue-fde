@@ -475,3 +475,81 @@ test("persisted negative feedback reaches Your turn without counting closed, syn
   controls.state.cases[0].status = "resolved";
   expect(controls.top()).toContain('aria-label="0 things waiting on you"');
 });
+
+test("a promoted signal feature stays visible without linked cases and shows its batch evidence", async () => {
+  const { controls } = await workspaceBrowser("cue_app_test");
+  const issueId = "issue-signals-1";
+  const batchId = "batch-1";
+  controls.sync({
+    cases: [],
+    messages: [],
+    attachments: [],
+    runs: [],
+    events: [],
+    deliveries: [],
+    settings: [],
+    apps: [],
+    jobs: [],
+    issues: [
+      {
+        _id: issueId,
+        kind: "feature",
+        appId: "cue_app_test",
+        status: "spec_ready",
+        fingerprint: "cue_app_test:signals:batch-1:c1",
+        title: "Board recovery window",
+        description: "Recover boards after accidental clears",
+        spec: JSON.stringify({
+          need: "Recover boards",
+          specification: "A recovery window lists and restores boards.",
+          acceptanceCriteria: ["Cleared boards appear", "Restore returns lists"],
+        }),
+        specApprovedAt: undefined,
+        specApprovedBy: undefined,
+        sourceSignals: {
+          batchId,
+          inputFingerprint: "a1b2c3d4e5f60718",
+          analysisRevision: 1,
+          clusterId: "c1",
+        },
+        tags: ["Quiet signals"],
+        createdAt: 1,
+      },
+    ],
+    integration: {
+      actor: "Avi",
+      role: "owner",
+      permissions: { read: true, support: true, spec: true, investigate: true, deploy: true, manage: true },
+      members: [],
+      engineeringApps: ["cue_app_test"],
+      codingApps: [],
+    },
+    signals: [
+      {
+        batchId,
+        appId: "cue_app_test",
+        state: "analyzed",
+        provenance: { kind: "synthetic-fixture", fixture: "quiet-signals-evaluation", version: "v1" },
+        postCount: 3,
+        analysisRevision: 1,
+        clusters: [
+          {
+            id: "c1",
+            title: "Board recovery window",
+            sources: [{ postId: "p1", author: "Rhea M.", quote: "Any recovery path?" }],
+            distinctAuthors: 1,
+            repeatedEvidence: false,
+            promotedIssueId: issueId,
+          },
+        ],
+        updatedAt: 1,
+      },
+    ],
+  });
+  controls.state.sec = "features";
+  controls.state.id = null;
+  const list = controls.requests();
+  expect(list).toContain("Board recovery window");
+  expect(list).toContain("Signals");
+  expect(list).toContain("batch");
+});
