@@ -17,6 +17,7 @@ import type * as companyContextSchema from "../companyContextSchema.js";
 import type * as crons from "../crons.js";
 import type * as cue from "../cue.js";
 import type * as deliveries from "../deliveries.js";
+import type * as demoEvidence from "../demoEvidence.js";
 import type * as feedbackGaps from "../feedbackGaps.js";
 import type * as feedbackSchema from "../feedbackSchema.js";
 import type * as growth from "../growth.js";
@@ -63,6 +64,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   cue: typeof cue;
   deliveries: typeof deliveries;
+  demoEvidence: typeof demoEvidence;
   feedbackGaps: typeof feedbackGaps;
   feedbackSchema: typeof feedbackSchema;
   growth: typeof growth;

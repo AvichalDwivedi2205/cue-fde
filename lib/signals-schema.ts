@@ -387,3 +387,78 @@ export const signalsExportSchema = z
   })
   .strict();
 export type SignalsExport = z.infer<typeof signalsExportSchema>;
+
+// Public-safe projection of one coding run's evidence for run.json. Only
+// aggregated usage, per-call cumulative usage derived from recorded events,
+// and neutral timing offsets are exported — no prompt text, provider request
+// IDs, repo paths, commit SHAs or PR URLs. When the recorded event chain is
+// broken, the export degrades to "aggregate-only" and omits per-call rows
+// entirely rather than inventing timings.
+export const runExportSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    status: z.enum(["complete-history", "aggregate-only"]),
+    run: z
+      .object({
+        kind: z.string(),
+        provider: z.string(),
+        finalStatus: z.string(),
+        verified: z.boolean().nullable(),
+        deployed: z.boolean().nullable(),
+      })
+      .strict(),
+    totals: z
+      .object({
+        modelCalls: z.number(),
+        inputTokens: z.number(),
+        outputTokens: z.number(),
+        aggregateAgreement: z.boolean(),
+      })
+      .strict(),
+    calls: z.array(
+      z
+        .object({
+          call: z.number(),
+          model: z.string(),
+          inputTokens: z.number(),
+          outputTokens: z.number(),
+          deltaIn: z.number().nullable(),
+          deltaOut: z.number().nullable(),
+          offsetMs: z.number().nullable(),
+        })
+        .strict(),
+    ),
+    timeline: z
+      .object({
+        firstEventAt: z.string().nullable(),
+        lastEventAt: z.string().nullable(),
+        eventCount: z.number(),
+        compressionNote: z.string(),
+      })
+      .strict(),
+    checks: z
+      .object({
+        beforeSummary: z.string().nullable(),
+        afterSummary: z.string().nullable(),
+        provenanceNote: z.string(),
+      })
+      .strict(),
+    generatedAt: z.string(),
+  })
+  .strict();
+export type RunExport = z.infer<typeof runExportSchema>;
+
+// Check output can carry operator-local filesystem paths or URLs (test
+// runners print them). The export never ships them raw: paths and URLs are
+// redacted and the summary is compacted before run.json is written.
+export function sanitizeCheckSummary(
+  text: string | null | undefined,
+): string | null {
+  if (typeof text !== "string" || !text.trim()) return null;
+  const redacted = text
+    .replace(/https?:\/\/\S+/g, "[url]")
+    .replace(/(?:\/(?:[A-Za-z0-9._-]+\/)+[A-Za-z0-9._-]+)/g, "[path]")
+    .replace(/[A-Za-z]:\\(?:[^\\/\s]+\\)+/g, "[path]");
+  const compact = redacted.replace(/\s+/g, " ").trim();
+  return compact.length > 600 ? compact.slice(0, 597) + "…" : compact;
+}
