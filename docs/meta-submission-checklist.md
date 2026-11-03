@@ -1,6 +1,6 @@
 # Prepare Cue's Meta hackathon submission
 
-Checked November 3, 2026. No submission, external post, terms acceptance, or marketing consent has been made by this task.
+Checked November 3, 2026. No hackathon form submission, social post, terms acceptance, or marketing consent has been made by this task.
 
 ## Confirm the governing sources
 
@@ -68,7 +68,7 @@ These are unconfirmed personal facts. The user must confirm selection, eligibili
 - [ ] Build and deploy the approved preview with the authenticated helper. The GitHub-triggered preview is blocked on commit-account verification. The proposed patch has not yet been built or deployed to the preview.
 - [ ] Verify browser acceptance and the original action after reload, then record the linked customer preview outcome. Follow the [demo plan](meta-demo-plan.md). Production release remains pending and separate.
 - [x] Verify public Cue checkpoint `bdf6d67` with 703 tests, TypeScript, lint, and the production build. The local worker runs that core. The review UI follow-up also passes 735 tests across 98 files, TypeScript, lint, and the production build.
-- [ ] Verify the hosted review UI follow-up, including frozen approval attributes, failure icons, and recorded model-call counts.
+- [x] Verify the hosted review UI follow-up, including the actual private run/commit binding, failure icons, and recorded model-call counts. Candidate and live access/privacy checks pass; no approval was submitted by these checks.
 - [x] Switch the verified Cue web candidate into traffic and repeat hosted negative checks without creating extra cases.
 - [x] Retain actual product baseline proof: locked Bun installation, TypeScript, and 238 default tests pass. The frozen acceptance matrix has two passing controls and six expected failures before the patch, then all eight pass in fresh verification.
 - [x] Verify selected local Docker isolation, running-check cancellation, create/commit cancellation handling, and Bun cache placement. Uncertain cleanup blocks new runs.
