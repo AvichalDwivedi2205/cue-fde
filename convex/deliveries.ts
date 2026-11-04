@@ -42,6 +42,9 @@ export const finish = mutation({
   returns: v.null(),
   handler: async (ctx, a) => {
     authorize(a.secret);
+    const delivery = await ctx.db.get("deliveries", a.id);
+    if (!delivery || delivery.supportIntent)
+      throw new ConvexError("Use the exact reviewed customer update transition");
     await ctx.db.patch("deliveries", a.id, {
       status: a.status,
       receipt: a.receipt,

@@ -100,6 +100,16 @@ test("widget feedback verifies the signed session and derives its owner before w
   expect((await POST(request({ ...body, app: "app-b" }))).status).toBe(403);
   expect(mocks.mutation).toHaveBeenCalledTimes(1);
 });
+test("notification consent is scoped by the signed widget session and cannot claim an owner", async () => {
+  const token = issueWidgetSession(app, "https://app-a.test");
+  const body = { action: "contact", app: app.id, origin: app.origins[0], token, caseId: "case-id", owner: "forged-owner", contact: { kind: "opt_in", address: "visitor@example.test" } };
+  expect((await POST(request(body))).status).toBe(200);
+  expect(mocks.mutation.mock.calls[0][1]).toMatchObject({ owner: verifyWidgetSession(token, app, app.origins[0]), appId: app.id, caseId: "case-id", contact: body.contact });
+  expect((await POST(request({ ...body, token: "forged" }))).status).toBe(401);
+  expect((await POST(request({ ...body, contact: { kind: "opt_in", address: "not an email" } }))).status).toBe(400);
+  expect(mocks.mutation).toHaveBeenCalledTimes(1);
+  expect((await POST(request({ ...body, contact: { kind: "revoke" } }))).status).toBe(200);
+});
 test("read returns saved answer outcomes for the same conversation across widget reloads", async () => {
   const token = issueWidgetSession(app, "https://app-a.test");
   mocks.query

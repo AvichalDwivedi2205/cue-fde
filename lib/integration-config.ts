@@ -9,11 +9,7 @@ import {
 import { z } from "zod";
 import { api, db, secret } from "./server-store";
 import { membersInput } from "./roles";
-import {
-  appInput,
-  codingInput,
-  widgetOptionsInput,
-} from "./app-pack-schema";
+import { appInput, codingInput, widgetOptionsInput } from "./app-pack-schema";
 
 // App identity, widget-option, and coding-binding schemas live in
 // lib/app-pack-schema.ts so the Convex pack module validates operator input
@@ -43,6 +39,7 @@ export const slackInput = z.object({
 });
 export const emailInput = z
   .object({
+    appId: z.string().trim().min(1).max(200).optional(),
     apiKey: z.string().regex(/^re_[A-Za-z0-9_]+$/),
     from: z.email().max(200),
     webhookSecret: z
@@ -94,6 +91,10 @@ export type EmailConfig = z.infer<typeof emailInput> & {
   supportPollStartedAt?: number;
 };
 export const xInput = z.object({
+  appId: z.string().trim().min(1).max(200).optional(),
+  // OAuth 2.0 user context with tweet.read, tweet.write and users.read.
+  // App-only bearer credentials remain read-only intake configuration.
+  userAccessToken: z.string().min(20).max(3000).regex(/^[A-Za-z0-9%._~+\/-]+$/).optional(),
   bearerToken: z
     .string()
     .min(20)
@@ -110,6 +111,7 @@ export function xConfigForSave(
   now = Date.now(),
 ): XConfig {
   const sameBrand =
+    old?.appId === input.appId &&
     old?.userId === input.userId &&
     old.username.toLowerCase() === input.username.toLowerCase();
   return {
@@ -129,6 +131,7 @@ export function emailConfigForSave(
       ? {
           pollStartedAt:
             old?.pollReceiving &&
+            old.appId === input.appId &&
             old.apiKey === input.apiKey &&
             old.receivingAddress?.toLowerCase() ===
               input.receivingAddress?.toLowerCase()
@@ -138,6 +141,7 @@ export function emailConfigForSave(
             ? {
                 supportPollStartedAt:
                   old?.pollReceiving &&
+                  old.appId === input.appId &&
                   old.apiKey === input.apiKey &&
                   old.supportReceivingAddress?.toLowerCase() ===
                     input.supportReceivingAddress.toLowerCase()

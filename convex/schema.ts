@@ -5,23 +5,19 @@ import {
   taskState,
   taskAction,
   engineeringBinding,
+  generationReceipt,
 } from "./workspaceValidators";
 import { growthTables } from "./growthSchema";
 import { prospectTables } from "./prospectSchema";
 import { knowledgeTables } from "./knowledgeSchema";
 import { companyContextTables } from "./companyContextSchema";
 import { feedbackTables } from "./feedbackSchema";
+import { signalTables } from "./signalSchema";
+import { engineeringHandoff } from "./engineeringHandoffValidators";
+import { previewAcceptance, previewDeployment } from "./previewAcceptanceValidators";
+import { notificationEmail, supportIntent } from "./supportDeliveryValidators";
 
-export const triageGeneration = v.object({
-  provider: v.string(),
-  model: v.string(),
-  requestedModel: v.string(),
-  inputTokens: v.number(),
-  outputTokens: v.number(),
-  durationMs: v.number(),
-  requestId: v.optional(v.string()),
-  traceId: v.optional(v.string()),
-});
+export const triageGeneration = generationReceipt;
 
 export default defineSchema({
   waitlist: defineTable({
@@ -34,6 +30,7 @@ export default defineSchema({
   ...knowledgeTables,
   ...growthTables,
   ...prospectTables,
+  ...signalTables,
   agentConversations: defineTable({
     appId: v.string(),
     agent: agentId,
@@ -135,6 +132,7 @@ export default defineSchema({
       v.object({
         label: v.optional(v.string()),
         engineeringChannel: v.optional(v.string()),
+        engineeringMemberId: v.optional(v.string()),
       }),
     ),
     installCheckedAt: v.optional(v.number()),
@@ -168,6 +166,8 @@ export default defineSchema({
     channel: v.string(),
     appId: v.optional(v.string()),
     externalId: v.optional(v.string()),
+    providerAuthorId: v.optional(v.string()),
+    notificationEmail: v.optional(notificationEmail),
     body: v.string(),
     status: v.string(),
     priority: v.string(),
@@ -182,6 +182,7 @@ export default defineSchema({
   })
     .index("by_updatedAt", ["updatedAt"])
     .index("by_sourceKey", ["sourceKey"])
+    .index("by_appId_and_channel", ["appId", "channel"])
     .index("by_issueId", ["issueId"])
     .index("by_owner", ["owner"]),
   issues: defineTable({
@@ -190,6 +191,7 @@ export default defineSchema({
     kind: v.string(),
     fingerprint: v.string(),
     appId: v.optional(v.string()),
+    engineeringHandoff: v.optional(engineeringHandoff),
     status: v.string(),
     priority: v.string(),
     tags: v.array(v.string()),
@@ -197,6 +199,20 @@ export default defineSchema({
     spec: v.optional(v.string()),
     specApprovedAt: v.optional(v.number()),
     specApprovedBy: v.optional(v.string()),
+    // Additive receipt for the generation that produced the current spec text.
+    // Cleared whenever the spec text is saved without a new receipt.
+    specGeneration: v.optional(triageGeneration),
+    // Additive lineage for features promoted from a Quiet signals batch. The
+    // analysis revision is immutable, so an approval cannot silently move to
+    // different source output.
+    sourceSignals: v.optional(
+      v.object({
+        batchId: v.id("signalBatches"),
+        inputFingerprint: v.string(),
+        analysisRevision: v.number(),
+        clusterId: v.string(),
+      }),
+    ),
   }).index("by_fingerprint", ["fingerprint"]),
   messages: defineTable({
     caseId: v.id("cases"),
@@ -248,6 +264,8 @@ export default defineSchema({
     reproductionStatus: v.optional(
       v.union(v.literal("reproduced"), v.literal("not_reproduced")),
     ),
+    previewDeployment: v.optional(previewDeployment),
+    previewAcceptance: v.optional(previewAcceptance),
   }).index("by_issueId_and_createdAt", ["issueId", "createdAt"]),
   events: defineTable({
     runId: v.optional(v.id("runs")),
@@ -256,7 +274,9 @@ export default defineSchema({
     detail: v.string(),
     kind: v.string(),
     createdAt: v.number(),
-  }).index("by_createdAt", ["createdAt"]),
+  })
+    .index("by_createdAt", ["createdAt"])
+    .index("by_runId_and_createdAt", ["runId", "createdAt"]),
   settings: defineTable({ key: v.string(), value: v.string() }).index(
     "by_key",
     ["key"],
@@ -302,8 +322,11 @@ export default defineSchema({
     actor: v.string(),
     status: v.string(),
     receipt: v.optional(v.string()),
+    supportIntent: v.optional(supportIntent),
     createdAt: v.number(),
-  }).index("by_key", ["key"]),
+  })
+    .index("by_key", ["key"])
+    .index("by_supportCaseId_and_supportRunId", ["supportIntent.review.caseId", "supportIntent.review.runId"]),
   externalEvents: defineTable({
     key: v.string(),
     messageKey: v.optional(v.string()),

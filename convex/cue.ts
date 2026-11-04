@@ -1,3 +1,7 @@
+import {
+  engineeringSlackContext,
+  verifyHandoff,
+} from "./engineeringHandoffState";
 import { engineeringInput } from "../lib/app-pack-schema";
 import schema, { triageGeneration } from "./schema";
 import {
@@ -77,6 +81,42 @@ export const snapshot = query({
         status: v.string(),
       }),
     ),
+    // Bounded projections for honest workspace views: which coding job is
+    // actually claimed (queued vs executing), and the batch evidence behind
+    // promoted signal features. Additive; old callers can ignore them.
+    jobs: v.array(schema.doc("jobs")),
+    signals: v.array(
+      v.object({
+        batchId: v.id("signalBatches"),
+        appId: v.string(),
+        state: v.string(),
+        provenance: v.object({
+          kind: v.string(),
+          fixture: v.optional(v.string()),
+          version: v.optional(v.string()),
+          note: v.optional(v.string()),
+        }),
+        postCount: v.number(),
+        analysisRevision: v.optional(v.number()),
+        clusters: v.array(
+          v.object({
+            id: v.string(),
+            title: v.string(),
+            sources: v.array(
+              v.object({
+                postId: v.string(),
+                author: v.string(),
+                quote: v.string(),
+              }),
+            ),
+            distinctAuthors: v.number(),
+            repeatedEvidence: v.boolean(),
+            promotedIssueId: v.optional(v.id("issues")),
+          }),
+        ),
+        updatedAt: v.number(),
+      }),
+    ),
   }),
   handler: async (ctx, args) => {
     authorize(args.secret);
@@ -108,6 +148,33 @@ export const snapshot = query({
         appId: p.appId,
         name: p.routing?.label || p.name,
         status: p.status,
+      })),
+      jobs: await ctx.db.query("jobs").order("desc").take(100),
+      signals: (
+        await ctx.db
+          .query("signalBatches")
+          .order("desc")
+          .take(20)
+      ).map((batch) => ({
+        batchId: batch._id,
+        appId: batch.appId,
+        state: batch.state,
+        provenance: batch.provenance,
+        postCount: batch.posts.length,
+        analysisRevision: batch.analysis?.revision,
+        clusters: (batch.analysis?.clusters || []).map((cluster) => ({
+          id: cluster.id,
+          title: cluster.proposal.title,
+          sources: cluster.sources,
+          distinctAuthors: cluster.distinctAuthors,
+          repeatedEvidence: cluster.repeatedEvidence,
+          promotedIssueId: batch.promoted.find(
+            (p) =>
+              p.clusterId === cluster.id &&
+              p.analysisRevision === batch.analysis!.revision,
+          )?.issueId,
+        })),
+        updatedAt: batch.updatedAt,
       })),
     };
   },
@@ -505,6 +572,7 @@ export const startRun = mutation({
     secret: v.string(),
     issueId: v.id("issues"),
     reproduction: v.optional(v.string()),
+    slack: v.optional(engineeringSlackContext),
   },
   returns: v.id("runs"),
   handler: async (ctx, args) => {
@@ -512,7 +580,31 @@ export const startRun = mutation({
     const issue = await ctx.db.get("issues", args.issueId);
     const rehearsal = issue ? await registeredRehearsal(ctx, issue) : null;
     if (!issue) throw new ConvexError("Issue not found.");
-    const fixture = issue.fingerprint === "bloom:upload:413";
+    if (issue.engineeringHandoff && !args.slack)
+      throw new ConvexError("Start this fix from its assigned Slack handoff");
+    const handoff = args.slack
+      ? await verifyHandoff(ctx, issue, args.slack)
+      : undefined;
+    if (
+      handoff &&
+      (args.reproduction !== handoff.reproduction ||
+        args.slack?.cardTs !== handoff.rootTs)
+    )
+      throw new ConvexError("Reproduction or handoff card changed");
+    if (handoff?.kind === "started") {
+      const run = await ctx.db.get("runs", handoff.runId);
+      if (
+        !run ||
+        run.issueId !== issue._id ||
+        run.targetId !== handoff.appId ||
+        run.reproduction !== handoff.reproduction ||
+        run.deploymentMode !== "pull_request" ||
+        JSON.stringify(run.codingPolicy) !== JSON.stringify(handoff.policy)
+      )
+        throw new ConvexError("Engineering run context changed");
+      return handoff.runId;
+    }
+    const fixture = !handoff && issue.fingerprint === "bloom:upload:413";
     const previous = await ctx.db
       .query("runs")
       .withIndex("by_issueId_and_createdAt", (q) =>
@@ -529,7 +621,7 @@ export const startRun = mutation({
       throw new ConvexError(
         "An active or completed run already exists. Reset the demo to run again.",
       );
-    if (!fixture && !rehearsal) {
+    if (handoff || (!fixture && !rehearsal)) {
       // Generic bug on a registered app with a repository binding. The pack
       // is read in this transaction: legality lives where runs are born.
       if (issue.fingerprint.includes(":rehearsal:"))
@@ -564,7 +656,12 @@ export const startRun = mutation({
         createdAt: stamp(),
         updatedAt: stamp(),
       });
-      await ctx.db.patch(issue._id, { status: "investigating" });
+      await ctx.db.patch(issue._id, {
+        status: "investigating",
+        ...(handoff
+          ? { engineeringHandoff: { ...handoff, kind: "started", runId } }
+          : {}),
+      });
       await ctx.db.insert("jobs", {
         runId,
         kind: "investigate",
@@ -625,6 +722,10 @@ export const startFeature = mutation({
     )
       throw new ConvexError(
         "Implementation requires the current approved specification",
+      );
+    if (issue.sourceSignals)
+      throw new ConvexError(
+        "Handoff ready: a verified future-work binding is required before queueing a signal-derived specification",
       );
     // The pack is read in this transaction: an unbound or inactive app can
     // never start implementation, whatever the caller supplies. A supplied
@@ -811,6 +912,7 @@ export const spec = mutation({
     spec: v.string(),
     approved: v.optional(v.boolean()),
     actor: v.optional(v.string()),
+    generation: v.optional(triageGeneration),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -839,6 +941,11 @@ export const spec = mutation({
       throw new ConvexError(
         "Use a specification with two to ten acceptance criteria",
       );
+    // The receipt describes how the current spec text was produced. A save
+    // without a new receipt is a human revision, so the old receipt would
+    // otherwise mislabel edited text as model output. Re-saving identical
+    // text (for example approving the displayed spec) keeps the receipt.
+    const specUnchanged = issue.spec === args.spec;
     await ctx.db.patch("issues", args.issueId, {
       spec: args.spec,
       status: args.approved ? "approved" : "spec_ready",
@@ -846,6 +953,8 @@ export const spec = mutation({
       specApprovedBy: args.approved
         ? (args.actor?.trim() || "Operator").slice(0, 100)
         : undefined,
+      specGeneration:
+        args.generation || (specUnchanged ? issue.specGeneration : undefined),
     });
     await ctx.db.insert("events", {
       issueId: args.issueId,

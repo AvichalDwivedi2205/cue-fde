@@ -14,6 +14,7 @@
     busy = false,
     initializing = false,
     submissionError = "";
+  let contactCaseId, contactDirty = false;
   function setStatus(message) {
     status.textContent = submissionError || message;
   }
@@ -41,6 +42,17 @@
   async function read() {
     if (!session || busy) return;
     const data = await call("read");
+    contactCaseId = data.case?.id;
+    const preferences = document.getElementById("notification-preferences");
+    if (preferences) preferences.hidden = !contactCaseId || !data.notificationsAvailable;
+    if (!contactDirty) {
+      const enabled = document.getElementById("notification-enabled"), email = document.getElementById("notification-email");
+      if (enabled) enabled.checked = data.notificationEmail?.kind === "opted_in";
+      if (email) {
+        email.value = data.notificationEmail?.kind === "opted_in" ? data.notificationEmail.address : "";
+        email.required = data.notificationEmail?.kind === "opted_in";
+      }
+    }
     document.getElementById("brand").textContent = data.name + " support";
     document.getElementById("voice").hidden = data.settings?.voice === false;
     file.closest("label").hidden = data.settings?.screenshots === false;
@@ -184,6 +196,25 @@
   });
   document.getElementById("close").onclick = () =>
     parent.postMessage({ type: "cue:close" }, origin);
+  const notificationForm = document.getElementById("notification-form");
+  if (notificationForm) {
+    const enabled = document.getElementById("notification-enabled"), email = document.getElementById("notification-email");
+    notificationForm.oninput = () => { contactDirty = true; email.required = enabled.checked; };
+    notificationForm.onsubmit = async (event) => {
+      event.preventDefault();
+      if (busy || !session || !contactCaseId) return;
+      const save = document.getElementById("notification-save"), notice = document.getElementById("notification-status");
+      busy = true;
+      save.disabled = true;
+      notice.textContent = "Saving…";
+      try {
+        await call("contact", { caseId: contactCaseId, contact: enabled.checked ? { kind: "opt_in", address: email.value.trim() } : { kind: "revoke" } });
+        contactDirty = false;
+        notice.textContent = enabled.checked ? "Email updates enabled for this report." : "Email updates disabled.";
+      } catch (error) { notice.textContent = error.message; }
+      finally { busy = false; save.disabled = false; }
+    };
+  }
   document.getElementById("voice").onclick = () => {
     if (!session) return;
     window.CueVoice.open(

@@ -17,7 +17,7 @@ export type AppContext = {
   aliases?: string[];
   widget?: { answers: boolean; voice: boolean; screenshots: boolean };
   engineering?: EngineeringBinding;
-  routing?: { label?: string; engineeringChannel?: string };
+  routing?: { label?: string; engineeringChannel?: string; engineeringMemberId?: string };
   installCheckedAt?: number;
 };
 
@@ -32,7 +32,7 @@ function normalize(pack: {
   aliases?: string[];
   widget?: { answers: boolean; voice: boolean; screenshots: boolean };
   engineering?: unknown;
-  routing?: { label?: string; engineeringChannel?: string };
+  routing?: { label?: string; engineeringChannel?: string; engineeringMemberId?: string };
   installCheckedAt?: number;
 }): AppContext {
   return {

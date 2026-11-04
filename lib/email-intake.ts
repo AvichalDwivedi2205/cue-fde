@@ -11,6 +11,7 @@ export type ReceivedEmail = {
   headers?: Record<string, string> | null;
 };
 type Report = {
+  appId?: string;
   channel: "email" | "x" | "reddit";
   sourceKey: string;
   eventKey: string;

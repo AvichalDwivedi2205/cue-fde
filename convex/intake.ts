@@ -2,7 +2,7 @@ import { mutation, type MutationCtx } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { v, ConvexError } from "convex/values";
 import { authorize } from "./cue";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { socialSource } from "../lib/social-source";
 import { knowledgeReply } from "./knowledgeSchema";
 import { currentHits } from "./knowledge";
@@ -270,6 +270,8 @@ export const markVerificationCase = mutation({
 export const receive = mutation({
   args: {
     secret: v.string(),
+    appId: v.optional(v.string()),
+    providerAuthorId: v.optional(v.string()),
     channel: v.union(
       v.literal("slack"),
       v.literal("email"),
@@ -292,10 +294,44 @@ export const receive = mutation({
   returns: v.object({ caseId: v.id("cases"), duplicate: v.boolean() }),
   handler: async (ctx, a) => {
     authorize(a.secret);
+    const appId = a.appId;
+    if (appId !== undefined) {
+      const pack = await ctx.db
+        .query("appPacks")
+        .withIndex("by_appId", (q) => q.eq("appId", appId))
+        .unique();
+      if (!pack || pack.status !== "active")
+        throw new ConvexError("Application is not active");
+    }
+    const assertScope = (c: Doc<"cases"> | null) => {
+      // Signed Slack follow-ups already identify one bound thread. Its saved
+      // app remains authoritative when the legacy gateway has no app route.
+      const appMatches = c && (c.appId === a.appId || (a.channel === "slack" && a.appId === undefined));
+      if (!c || !appMatches || c.channel !== a.channel)
+        throw new ConvexError("Wrong app or channel for provider event");
+      return c;
+    };
+    const receiptCase = async (caseId: Id<"cases">) => {
+      const c = assertScope(await ctx.db.get("cases", caseId));
+      if (a.channel === "email" && c.customer !== a.customer)
+        throw new ConvexError("Wrong sender for email event");
+      if (a.providerAuthorId !== undefined) {
+        if (c.providerAuthorId && c.providerAuthorId !== a.providerAuthorId)
+          throw new ConvexError("Conflicting provider author");
+      }
+      return c;
+    };
+    if (
+      a.providerAuthorId !== undefined &&
+      (a.channel !== "x" ||
+        a.transport !== "x_api" ||
+        !/^\d{1,30}$/.test(a.providerAuthorId))
+    )
+      throw new ConvexError("Invalid provider author");
     const social = a.channel === "x" || a.channel === "reddit";
     if (social) {
       const source = socialSource(
-        a.channel as "x" | "reddit",
+        a.channel === "x" ? "x" : "reddit",
         a.sourceUrl || "",
       );
       const nativeX = a.channel === "x" && a.transport === "x_api";
@@ -322,26 +358,32 @@ export const receive = mutation({
       .query("externalEvents")
       .withIndex("by_key", (q) => q.eq("key", a.eventKey))
       .unique();
-    if (receipt) return { caseId: receipt.caseId, duplicate: true };
+    if (receipt) {
+      await receiptCase(receipt.caseId);
+      return { caseId: receipt.caseId, duplicate: true };
+    }
     if (a.messageKey) {
       const messageReceipt = await ctx.db
         .query("externalEvents")
         .withIndex("by_messageKey", (q) => q.eq("messageKey", a.messageKey))
         .unique();
-      if (messageReceipt)
+      if (messageReceipt) {
+        await receiptCase(messageReceipt.caseId);
         return { caseId: messageReceipt.caseId, duplicate: true };
+      }
     }
     let c = await ctx.db
       .query("cases")
       .withIndex("by_sourceKey", (q) => q.eq("sourceKey", a.sourceKey))
       .unique();
+    if (c) await receiptCase(c._id);
     for (const messageKey of [...(a.references || [])].reverse()) {
       if (c) break;
       const parent = await ctx.db
         .query("externalEvents")
         .withIndex("by_messageKey", (q) => q.eq("messageKey", messageKey))
         .unique();
-      if (parent) c = await ctx.db.get("cases", parent.caseId);
+      if (parent) c = assertScope(await ctx.db.get("cases", parent.caseId));
       if (c && a.channel === "email" && c.customer !== a.customer) c = null;
     }
     let caseId: Id<"cases">;
@@ -373,14 +415,20 @@ export const receive = mutation({
       caseId = await ctx.runMutation(api.cue.createCase, {
         secret: a.secret,
         channel: a.channel,
+        appId: a.appId,
         sourceKey: a.sourceKey,
         sourceUrl: a.sourceUrl,
         body: a.body,
         customer: a.customer,
         title: a.title,
       });
-      if (a.externalId)
-        await ctx.db.patch("cases", caseId, { externalId: a.externalId });
+      if (a.externalId || a.providerAuthorId)
+        await ctx.db.patch("cases", caseId, {
+          ...(a.externalId ? { externalId: a.externalId } : {}),
+          ...(a.providerAuthorId
+            ? { providerAuthorId: a.providerAuthorId }
+            : {}),
+        });
       if (social)
         await ctx.db.patch("cases", caseId, {
           provenance:

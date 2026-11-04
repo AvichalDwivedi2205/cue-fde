@@ -1,0 +1,63 @@
+{
+  "fixture": "quiet-signals-heldout",
+  "version": "v2-heldout",
+  "label": "Synthetic held-out fixture · fictional authors · no recovery-need pattern",
+  "syntheticAuthors": true,
+  "posts": [
+    {
+      "id": "h01",
+      "author": "Nia P.",
+      "text": "The dashboard has felt slow since the redesign. Not broken, just slower than before."
+    },
+    {
+      "id": "h02",
+      "author": "Omar V.",
+      "text": "It crashed twice today while I was presenting. Both times on the timeline view."
+    },
+    {
+      "id": "h03",
+      "author": "Omar V.",
+      "text": "It crashed twice today while I was presenting. Both times on the timeline view."
+    },
+    {
+      "id": "h04",
+      "author": "Lena K.",
+      "text": "Please add a dark mode, my eyes hurt at night."
+    },
+    {
+      "id": "h05",
+      "author": "Tom W.",
+      "text": "Please do NOT add a dark mode, I need it bright for printouts. Add a print layout instead."
+    },
+    {
+      "id": "h06",
+      "author": "CashFlowDan",
+      "text": "Make $$$ from home, no skills needed — click fastcash-deals.example.com and thank me later."
+    },
+    {
+      "id": "h07",
+      "author": "Quinn A.",
+      "text": "Which coffee machine does your office use? Asking for our office admin."
+    },
+    {
+      "id": "h08",
+      "author": "Priya S.",
+      "text": "Timeline view keeps freezing when I present from it. Lost my place twice today."
+    },
+    {
+      "id": "h09",
+      "author": "Omar V.",
+      "text": "Third time asking — the timeline view freezes mid-presentation. This is embarrassing in client meetings."
+    },
+    {
+      "id": "h10",
+      "author": "Aya B.",
+      "text": "Would love keyboard shortcuts for archiving cards. My wrists will thank you."
+    },
+    {
+      "id": "h11",
+      "author": "Grant V.",
+      "text": "Is it possible to merge two boards? We ended up with duplicates after a reorg."
+    }
+  ]
+}

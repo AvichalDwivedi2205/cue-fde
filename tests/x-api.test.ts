@@ -71,6 +71,7 @@ test("only exact brand mentions with provider-supplied authors enter intake", ()
     channel: "x",
     transport: "x_api",
     customer: "@alice",
+    providerAuthorId: "200",
     externalId: "x-api:x:" + post.id,
     sourceKey: "x:" + post.id,
     sourceUrl: `https://x.com/alice/status/${post.id}`,
@@ -313,6 +314,7 @@ test("native X plus email replay creates one real Convex case and one customer m
     secret: "test-native-x-secret",
     ...report,
     transport: "notification_email",
+    providerAuthorId: undefined,
     eventKey: "email:actual-provider-receipt",
     externalId: "actual-provider-receipt",
   });
@@ -382,4 +384,40 @@ test("saving inactive credentials cannot begin history collection; activation ti
     xConfigForSave({ ...active, username: "other", userId: "300" }, active, 500)
       .startedAt,
   ).toBe(500);
+});
+
+test("saved X app binding controls routing, author provenance and the collection boundary", async () => {
+  const saved = xConfigForSave(
+    xInput.parse({ ...config, appId: "app-a" }),
+    undefined,
+    startedAt,
+  );
+  const rebound = xConfigForSave(
+    xInput.parse({ ...saved, appId: "app-b" }),
+    saved,
+    startedAt + 2000,
+  );
+  expect(rebound.startedAt).toBe(startedAt + 2000);
+  expect(xReports(page, rebound)).toEqual([]);
+  expect(xReports(page, saved)[0]).toMatchObject({
+    appId: "app-a",
+    providerAuthorId: "200",
+  });
+  expect(xInput.parse({ ...config, appId: "app-a" }).appId).toBe("app-a");
+  const s = setup();
+  let current = saved;
+  const poller = createXPoller({ ...s, config: async () => current });
+  await poller.poll();
+  expect(s.receive).toHaveBeenCalledWith(
+    expect.objectContaining({ appId: "app-a", providerAuthorId: "200" }),
+  );
+  current = { ...saved, appId: "app-b" };
+  await poller.poll();
+  expect(s.mentions.mock.calls[1][0]).toMatchObject({
+    sinceId: undefined,
+    nextToken: undefined,
+  });
+  expect(s.receive).toHaveBeenLastCalledWith(
+    expect.objectContaining({ appId: "app-b" }),
+  );
 });

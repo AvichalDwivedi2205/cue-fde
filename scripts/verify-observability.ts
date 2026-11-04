@@ -112,22 +112,22 @@ try {
     return result;
   });
   await check("Cue specification verification", async () => {
-    const result = await generateSpec({
+    const { spec } = await generateSpec({
       title: "Caption search",
       body: "Find my own memories by all words in their captions. Keep journals private.",
     });
-    assert(result.acceptanceCriteria.length >= 2);
+    assert(spec.acceptanceCriteria.length >= 2);
     assert(
       /all (?:the )?(?:entered |search |query )?(?:words|keywords|terms)/i.test(
-        JSON.stringify(result),
+        JSON.stringify(spec),
       ),
     );
     assert(
       !/any (?:of the )?(?:entered )?(?:words|keywords|terms)/i.test(
-        JSON.stringify(result),
+        JSON.stringify(spec),
       ),
     );
-    return result;
+    return spec;
   });
   await check("Cue growth verification", async () => {
     const source =

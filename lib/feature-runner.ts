@@ -1,3 +1,4 @@
+import { publishEngineeringRun } from "./engineering-slack";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { promises as fs } from "node:fs";
@@ -51,8 +52,9 @@ async function runPullRequestPipeline(
     auth = secret(),
     repo = path.join(process.cwd(), ".cue", "runs", runId);
   let issueId: Id<"issues"> | undefined;
+  let handoffNotifications = false;
   const log = async (title: string, detail: string, kind = "agent") => {
-    await store.mutation(api.cue.event, {
+    const eventId = await store.mutation(api.cue.event, {
       secret: auth,
       runId,
       ...(issueId ? { issueId } : {}),
@@ -60,6 +62,13 @@ async function runPullRequestPipeline(
       detail: detail.slice(-12000),
       kind,
     });
+    if (
+      handoffNotifications &&
+      /^Repository baseline|^Meta coding response$|^Independent checks passed$|^Implementation needs attention$/.test(
+        title,
+      )
+    )
+      await publishEngineeringRun(runId, eventId).catch(() => {});
   };
   const update = async (
     fields: Parameters<
@@ -113,6 +122,7 @@ async function runPullRequestPipeline(
         throw new Error("Reproduction context missing for bug fix run");
     }
     issueId = issue._id;
+    handoffNotifications = !!issue.engineeringHandoff;
     // The pack is the single policy source; the run must reference exactly
     // the binding it was created with.
     const pack = await requireActivePack(run.targetId ?? "bloom");
@@ -421,7 +431,8 @@ async function runPullRequestPipeline(
       `${pr}\nExact commit ${commit}. Deployment remains subject to the connected repository's release process.`,
       "approval",
     );
-    if (options.notify !== false) await sendSlackRunUpdate(runId);
+    if (options.notify !== false || issue.engineeringHandoff)
+      await sendSlackRunUpdate(runId);
   } catch (e) {
     recordWorkflowFailure(e);
     const error = e instanceof Error ? e.message : String(e);
@@ -431,6 +442,7 @@ async function runPullRequestPipeline(
       error,
     }).catch(() => {});
     await log("Implementation needs attention", error, "failure");
+    await publishEngineeringRun(runId).catch(() => {});
   }
 }
 

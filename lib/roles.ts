@@ -98,11 +98,16 @@ export function reviewers(config: SlackTeam, permission: "deploy" | "spec") {
 }
 export function actionPermission(action: string): Permission {
   if (["seed", "reset"].includes(action)) return "manage";
-  if (["approve", "reject"].includes(action)) return "deploy";
+  if (["approve", "reject", "previewAcceptance"].includes(action))
+    return "deploy";
   if (
-    ["investigate", "implementFeature", "cancel", "slackApproval"].includes(
-      action,
-    )
+    [
+      "investigate",
+      "implementFeature",
+      "cancel",
+      "slackApproval",
+      "engineeringHandoff",
+    ].includes(action)
   )
     return "investigate";
   if (["generateSpec", "specApproval"].includes(action) || action === "spec")
@@ -117,6 +122,10 @@ export function actionPermission(action: string): Permission {
       "emailSend",
       "slackSend",
       "link",
+      "customerUpdatePrepare",
+      "customerUpdateReview",
+      "customerUpdateSend",
+      "customerUpdateReconcile",
     ].includes(action)
   )
     return "support";

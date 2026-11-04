@@ -1,3 +1,4 @@
+import { api, db, secret } from "./server-store";
 import { z } from "zod";
 import type { SlackConfig } from "./integration-config";
 import { slackEphemeral } from "./slack";
@@ -11,7 +12,9 @@ const target = z.object({
   actions: z
     .array(
       z.object({
+        value: z.string().optional(),
         action_id: z.enum([
+          "cue_engineering_start",
           "cue_approve",
           "cue_reject",
           "cue_spec_approve",
@@ -32,8 +35,24 @@ export async function sendSlackDecisionFeedback(
   const parsed = target.safeParse(input);
   if (!parsed.success) return;
   const p = parsed.data;
-  if (p.team.id !== config.teamId || p.channel.id !== config.engineeringChannel)
-    return;
+  if (p.team.id !== config.teamId) return;
+  if (p.channel.id !== config.engineeringChannel) {
+    const value = z.object({ issueId: z.string() }).safeParse(
+      (() => {
+        try {
+          return JSON.parse(p.actions[0].value || "null");
+        } catch {
+          return null;
+        }
+      })(),
+    );
+    if (!value.success) return;
+    const state = await db().query(api.cue.snapshot, { secret: secret() });
+    const h = state.issues.find(
+      (i) => i._id === value.data.issueId,
+    )?.engineeringHandoff;
+    if (!h || h.team !== p.team.id || h.channel !== p.channel.id) return;
+  }
   const message = error instanceof Error ? error.message : "";
   const spec = p.actions[0].action_id.startsWith("cue_spec_");
   const member = slackMember(config, p.user.id);

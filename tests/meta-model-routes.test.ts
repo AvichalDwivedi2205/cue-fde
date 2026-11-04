@@ -321,9 +321,15 @@ test("Meta classification and specification preserve their strict public shapes"
     ],
   };
   state.completion.mockResolvedValueOnce(output(spec));
-  expect(
-    await generateSpec({ issue: { title: "Persistent captions" } }),
-  ).toEqual(spec);
+  const generated = await generateSpec({
+    issue: { title: "Persistent captions" },
+  });
+  expect(generated.spec).toEqual(spec);
+  expect(generated.generation).toMatchObject({
+    provider: "meta",
+    requestedModel: META_SPARK_MODEL,
+    model: META_SPARK_MODEL,
+  });
   expect(state.google).not.toHaveBeenCalled();
 });
 

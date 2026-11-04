@@ -1,3 +1,5 @@
+import { packContext } from "./app-pack";
+import { receiveEngineeringInteraction } from "./engineering-slack";
 import { z } from "zod";
 import { api, db, secret } from "./server-store";
 import type { SlackConfig } from "./integration-config";
@@ -62,6 +64,7 @@ const interaction = z.object({
     .array(
       z.object({
         action_id: z.enum([
+          "cue_engineering_start",
           "cue_approve",
           "cue_reject",
           "cue_spec_approve",
@@ -75,11 +78,18 @@ const interaction = z.object({
 export async function decideSlack(input: unknown, config: SlackConfig) {
   const p = interaction.parse(input);
   const action = p.actions[0];
+  const handoffAction =
+    action.action_id === "cue_engineering_start" ||
+    ((action.action_id === "cue_approve" ||
+      action.action_id === "cue_reject") &&
+      z
+        .object({ issueId: z.string(), revision: z.number() })
+        .safeParse(JSON.parse(action.value)).success);
+  if (handoffAction) return receiveEngineeringInteraction(input, config);
   const member = slackMember(config, p.user.id);
   const spec = action.action_id.startsWith("cue_spec_");
   if (
     p.team.id !== config.teamId ||
-    p.channel.id !== config.engineeringChannel ||
     !member ||
     !can(member.role, spec ? "spec" : "deploy")
   )
@@ -93,6 +103,12 @@ export async function decideSlack(input: unknown, config: SlackConfig) {
       .parse(JSON.parse(action.value));
     const snapshot = await db().query(api.cue.snapshot, { secret: secret() });
     const issue = snapshot.issues.find((i) => i._id === value.issueId);
+    const pack = issue?.appId ? await packContext(issue.appId) : null;
+    if (
+      p.channel.id !==
+      (pack?.routing?.engineeringChannel || config.engineeringChannel)
+    )
+      throw new Error("Operator not authorized");
     if (!issue?.spec || specVersion(issue.spec) !== value.version)
       throw new Error("Specification changed; refresh the approval request");
     await db().mutation(api.cue.decideSpec, {
@@ -111,9 +127,23 @@ export async function decideSlack(input: unknown, config: SlackConfig) {
   const value = z
     .object({ runId: z.string(), commit: z.string().regex(/^[a-f0-9]{40}$/) })
     .parse(JSON.parse(action.value));
+  if (p.channel.id !== config.engineeringChannel) {
+    const state = await db().query(api.cue.snapshot, { secret: secret() });
+    const targetRun = state?.runs.find((r) => r._id === value.runId);
+    const issue = state?.issues.find((i) => i._id === targetRun?.issueId);
+    const pack = issue
+      ? await packContext(targetRun?.targetId || issue.appId || "bloom")
+      : null;
+    if (
+      !pack?.routing?.engineeringChannel ||
+      p.channel.id !== pack.routing.engineeringChannel
+    )
+      throw new Error("Operator not authorized");
+  }
   await db().mutation(api.jobs.decide, {
     secret: secret(),
     runId: value.runId as Id<"runs">,
+    legacySlack: true,
     commit: value.commit,
     actor: config.members
       ? `${member.name} · Slack ${p.user.id}`

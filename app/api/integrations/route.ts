@@ -28,6 +28,8 @@ import {
   xRuntimeStatus,
 } from "@/lib/integration-checks";
 import { createXApi } from "@/lib/x-api";
+import { createXSupport } from "@/lib/x-support";
+import { requireNativeChannelApp } from "@/lib/native-channel-app";
 export const runtime = "nodejs";
 export async function GET(request: Request) {
   try {
@@ -46,6 +48,7 @@ export async function GET(request: Request) {
               packStatus: pack?.status || "none",
               installChecked: !!pack?.installCheckedAt,
               hasEngineering: !!pack?.engineering,
+              routing: pack?.routing,
             };
           }),
         ),
@@ -55,6 +58,8 @@ export async function GET(request: Request) {
           enabled: !!config.x?.enabled,
           username: config.x?.username,
           userId: config.x?.userId,
+          appId: config.x?.appId,
+          replyConfigured: !!config.x?.userAccessToken,
           ...(await xRuntimeStatus()),
         },
         ownerEmail: process.env.CUE_OPERATOR_EMAIL,
@@ -83,6 +88,7 @@ export async function GET(request: Request) {
               pollReceiving: !!email.pollReceiving,
               receivingAddress: email.receivingAddress,
               supportReceivingAddress: email.supportReceivingAddress,
+              appId: email.appId,
               notifications: await notificationRuntimeStatus(),
             }
           : { configured: false },
@@ -148,18 +154,23 @@ export async function POST(request: Request) {
       const input = xInput.parse({
         ...b,
         bearerToken: b.bearerToken || old?.bearerToken,
+        appId: b.appId || old?.appId,
+        userAccessToken: b.userAccessToken || old?.userAccessToken,
       });
+      if (input.enabled) input.appId = (await requireNativeChannelApp(input.appId)).appId;
       const config = xConfigForSave(input, old);
       if (config.enabled) {
         const provider = createXApi(config);
         await provider.credits();
         await provider.verifyBrand();
+        if (config.userAccessToken)
+          await createXSupport(config).verifyBrand({ brandUserId: config.userId, brandUsername: config.username });
       }
       await updateIntegrations((c) => ({ ...c, x: config }));
       return Response.json({
         ok: true,
         message: config.enabled
-          ? "X credentials verified. Cue’s connected collector imports new mentions. Public replies remain drafts."
+          ? "X credentials verified. Cue imports new mentions. Sending a customer update requires exact-message approval and verified user access."
           : "X API credentials saved; collection paused.",
       });
     }
@@ -283,7 +294,9 @@ export async function POST(request: Request) {
         replyTo: b.replyTo || undefined,
         receivingAddress: b.receivingAddress || undefined,
         supportReceivingAddress: b.supportReceivingAddress || undefined,
+        appId: b.appId || old?.appId,
       });
+      config.appId = (await requireNativeChannelApp(config.appId)).appId;
       const result = await checkEmail(config);
       await updateIntegrations((c) => ({
         ...c,

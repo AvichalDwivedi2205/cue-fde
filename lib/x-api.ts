@@ -45,6 +45,8 @@ const creditsSchema = z.object({
 });
 export type XPage = z.infer<typeof pageSchema>;
 export type XReport = {
+  appId?: string;
+  providerAuthorId: string;
   channel: "x";
   transport: "x_api";
   eventKey: string;
@@ -169,6 +171,8 @@ export function xReports(page: XPage, config: XConfig): XReport[] {
       continue;
     const sourceKey = "x:" + post.id;
     reports.push({
+      ...(config.appId !== undefined ? { appId: config.appId } : {}),
+      providerAuthorId: post.author_id,
       channel: "x",
       transport: "x_api",
       eventKey: "x-api:" + sourceKey,
